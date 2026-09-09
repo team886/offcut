@@ -61,7 +61,7 @@ versions = [A,         A',          B,          B']        ← fold prefix
 
 Naif "son bloğu al" yaklaşımı, son op bir `update` ise kullanıcıya koca dosya yerine 5 satırlık diff indirir — **sessiz bozuk çıktı**. Versiyon seçimi bu fold'un yan ürünü olarak bedava gelir.
 
-**Replay doğrulaması:** `update` uygularken `old_str` gövdede bulunamazsa o versiyonun rekonstrüksiyonu güvenilmez. O versiyon `ok:false` işaretlenir, UI'da `⚠ kısmi` görünür, dosya adına `-partial` eklenir. Sessizce yanlış içerik verilmez.
+**Replay doğrulaması:** `update` uygularken `old_str` gövdede bulunamazsa o versiyonun rekonstrüksiyonu güvenilmez. O versiyon `ok:false` işaretlenir, UI'da `⚠ kısmi` görünür, dosya adına `-partial` eklenir — **uzantıdan önce, şablon uygulandıktan sonra**: `Sales-Dashboard-v2-partial.tsx`. Şablonun içine gömülmez, çünkü kullanıcının şablonunda `{version}` olmayabilir ve uyarının kaybolmaması gerekir. Sessizce yanlış içerik verilmez.
 
 **`old_str` tekil olmalı.** Gövdede birden fazla kez geçiyorsa hangisinin değiştirileceği belirsizdir — ilkini değiştirip devam etmek sessizce yanlış dosya üretir. Kural: **0 eşleşme → `ok:false`; 2+ eşleşme → `ok:false`, `reason:"old_str_ambiguous"`; tam 1 eşleşme → uygula.** JS `String.replace` ilk eşleşmeyi değiştirir; bu davranışa güvenilmez, eşleşme sayısı açıkça sayılır.
 
@@ -487,7 +487,11 @@ Zip satırı ayarla kapatılabilir.
 
 **Menü "ne değişti" söylemeden seçim yaptıramaz.** Kullanıcının verdiği karar "hangi versiyonu istiyorum" — ve bu kararın tek gerçek girdisi **ne değiştiği**. Boyut ve zaman damgası bunu söylemez: 8.4 KB ile 8.1 KB arasındaki farkın bir satır mı yoksa bütün bir bölüm mü olduğu görünmez.
 
-Fold zaten her iki içeriği de elinde tutuyor, yani satır bazlı fark **bedava**: her satır için `+n / −n` gösterilir (`v2 · +12 −3`). Tam diff üretmiyoruz (§ elenen yönler), yalnızca sayım — LCS'ye gerek yok, satır kümesi farkı yeterli ve 500 satırlık dosyada bile milisaniye altı.
+Fold zaten her iki içeriği de elinde tutuyor, yani satır bazlı fark **bedava**: her satır için `+n / −n` gösterilir (`v2 · +12 −3`). Tam diff üretmiyoruz, yalnızca sayım.
+
+**Küme farkı değil, çokluk kümesi farkı.** Satırları bir kümeye atıp farkını almak, tekrar eden satırları yok sayar — bir dosyada onlarca `}` , `return`, boş satır bulunur ve küme yaklaşımı bunları tek sayar. Sonuç: 40 satır silinmiş bir düzenleme `−3` görünür ve kullanıcı yanlış sürümü seçer. Doğrusu satır → adet eşlemesi (`Map<satır, sayı>`) üzerinden fark: `+n` = yeni tarafta fazla olan adetlerin toplamı, `−n` = eski tarafta fazla olanların. Hâlâ O(n), hâlâ LCS'siz, 500 satırlık dosyada milisaniye altı — ama doğru.
+
+Sayım her zaman **bir önceki sürüme** göredir; v1 için karşılaştırılacak bir şey yok, `ilk sürüm` yazılır.
 
 Kazanç orantısız: kullanıcı "üç satır düzeltilmiş" ile "yarısı yeniden yazılmış" arasındaki farkı görüp doğru versiyonu ilk denemede seçiyor. Bunu göstermemek, elimizdeki bilgiyi saklamak olurdu.
 
@@ -503,7 +507,9 @@ Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırı
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 9 öğe → zip`.
 
-İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`. Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
+İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`.
+
+**Sıra önemli: `sanitize` önce, klasör öneki sonra.** `sanitize` dosya adındaki `/` karakterini temizliyor (§6) — klasör önekini ada önce eklersek onu da siler ve zip düz bir liste olur. Zip girdisi `kind öneki + "/" + sanitize(ad)` olarak kurulur; ayırıcı `/`'ler sanitize'dan **geçmez**. Aynı kural klasöre kaydetmede yok, çünkü orada alt klasör üretmiyoruz (§8.6). Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
 Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-indirilenler.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
 
@@ -910,7 +916,9 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 - `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
 - `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `kind`'e göre yedek ad; **emoji'li başlık kırpılınca yarım surrogate kalmıyor**; çok baytlı başlıkta 200 baytlık sınır önce doluyor
-- `fmtName`: her token, eksik token, bilinmeyen token literal kalır
+- `fmtName`: her token, eksik token, bilinmeyen token literal kalır; `-partial` uzantıdan hemen önce ve şablondan bağımsız eklenir
+- `lineDelta`: tekrar eden satır içeren iki sürümde çokluk kümesi farkı doğru sayar (küme farkı bu testte **kalır**); v1'de `ilk sürüm`
+- zip girdi yolu: `kod/` öneki `sanitize`'dan sonra eklenir, ayırıcı `/` hayatta kalır
 
 **zip.js**
 - `CRC32("hello") === 0x3610a686`
