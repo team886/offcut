@@ -1,0 +1,58 @@
+name: CI
+
+# Every gate this project relies on runs here. A rule nothing checks is a rule
+# that only exists for as long as someone remembers reading it (design §19.3).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No dependencies to install: the whole toolchain is Node built-ins.
+      # Nothing to audit, nothing to pin, nothing that can be taken over.
+
+      - name: Self-test (gate 1)
+        run: node selftest.js
+
+      - name: Invariants (gates 2-13, 15)
+        run: node tools/check-invariants.mjs
+
+      - name: Specification consistency (gate 14)
+        run: node tools/check-spec.mjs
+
+      - name: Package
+        run: node tools/pack.mjs
+
+      # The writer that packages this release is the writer that ships in it,
+      # so a broken archive here means a broken archive for users. Opening it
+      # with an independent reader is the only check that proves it opens.
+      - name: The package opens
+        run: |
+          python3 - <<'PY'
+          import zipfile, glob, sys
+          path = glob.glob("dist/magpie-*.zip")[0]
+          z = zipfile.ZipFile(path)
+          bad = z.testzip()
+          if bad:
+              sys.exit(f"corrupt entry in {path}: {bad}")
+          names = z.namelist()
+          for required in ("manifest.json", "src/content.js", "_locales/en/messages.json"):
+              if required not in names:
+                  sys.exit(f"{required} is missing from the package")
+          print(f"{path}: {len(names)} entries, all readable")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: dist/*.zip

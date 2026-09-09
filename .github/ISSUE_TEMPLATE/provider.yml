@@ -1,0 +1,42 @@
+name: Add a provider
+description: A chat provider Magpie does not know about yet
+labels: [provider]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A registry row is usually all that is needed — code blocks work from the
+        shared DOM path, without an adapter. `docs/ADDING-A-PROVIDER.md` walks
+        through it, and `tools/discover.js` collects the measurements below by
+        running once in the page's console.
+
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      placeholder: chat.example.com
+    validations:
+      required: true
+
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Output of tools/discover.js
+      description: >
+        Run it in the console on a conversation that contains code. It reports the
+        code-block selector, where the language lives, and whether the message list
+        is virtualised — the three things a registry row needs.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: account
+    attributes:
+      label: Does using it require a paid account?
+      description: Only so we know whether a maintainer can verify it before merging.
+      options:
+        - "No, a free account is enough"
+        - "Yes, it needs a paid plan"
+    validations:
+      required: true
