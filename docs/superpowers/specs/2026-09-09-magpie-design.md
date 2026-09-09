@@ -1454,7 +1454,16 @@ Koşulan liste; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işar
 
 ## 15. Chrome Web Store teslimatları
 
-`store/` klasöründe:
+`store/` klasöründe — **hepsi yazıldı**, tarif değil metin:
+
+| Dosya | İçerik |
+|---|---|
+| `listing.tr.md` / `listing.en.md` | Ad, 132 karakterlik kısa açıklama, uzun açıklama |
+| `privacy.tr.md` / `privacy.en.md` | Gizlilik politikası — **yayımlanacak URL'nin kaynağı** |
+| `permissions.md` | İzin başına gerekçe + veri kullanım beyanı + beyanın teknik dayanağı |
+| `screenshots.md` | 5 görselin listesi, hangisi neyi neden gösterir, ve kuralları |
+
+Ayrıntı:
 - **İletişim ve sahiplik** — mağaza kaydında, gizlilik politikasında ve `README`'de aynı bilgiler görünür: yayıncı **Ömer Faruk Ceylandağ**, iletişim **faruk@katatechnology.co**, kullanıcı desteği **team@katatechnology.co**. Web Store gizlilik politikasında **erişilebilir bir iletişim adresi zorunlu**; destek adresini kişisel adresten ayırmak, yayıncı değişse bile kanalın açık kalmasını sağlar
 - **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (kayıttaki sağlayıcılarda ve kullanıcının izin verdiği hostlarda konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
   **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
