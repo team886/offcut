@@ -1016,11 +1016,17 @@ Klasör yolunda `write()` hata verirse gerçek hata toast'ı çıkar. Tarayıcı
 ### 8.5 Logo
 İsim değiştiği için işaret yeniden değerlendirilir, ama **ölçüt aynı: 16px.** Logo toolbar'da yaşar, 128px'te değil.
 
-İki aday, ikisi de ink (#262624) yuvarlak kare zeminde coral (#d97757) vurguyla:
-1. **Saksağan işareti** — isimle birebir, ayırt edici. Risk: kuş siluetleri 16px'te lekeye döner; çok sadeleştirilmiş bir gaga+baş formu ayakta kalabilir
-2. **Mevcut işaret** (belge silueti + çıkan ok) — 16px'te kanıtlanmış, ama artık isimle ilgisiz
+**Test yapıldı** (`docs/design/logo-magpie.html`, üç aday 128/48/16 + açık/koyu toolbar). Sonuç:
 
-Karar 16px testiyle verilir: iki taslak 16'da yan yana basılır, ayırt edilebilen kazanır. Hiçbiri ayırt edilemiyorsa 2 kalır — **okunmayan bir marka işareti, ilgisiz ama okunan bir işaretten kötüdür.**
+- **A — tam saksağan** (gövde, baş, gaga, uzun kuyruk, coral nokta): 128'de hikâyeyi tam anlatıyor, **16'da beş şeklin dördü birbirine giriyor** — kuyruk gövdeye yapışıyor, gaga kayboluyor. Elendi
+- **C — mevcut işaret** (belge + ok): 16'da okunuyor ama çizgi ağırlıklı olduğu için soluyor, ve artık isimle bağı yok. Elendi
+- **B — baş + gaga + coral nokta: seçildi**
+
+**Seçilen işaret:** ink (#262624) yuvarlak kare zemin, cream (#f5f4ef) dolu kuş başı + üçgen gaga, gaganın önünde coral (#d97757) nokta.
+
+Üç gerekçe: (1) yalnızca üç şekil ve hepsi 16px'te 3px'in üstünde — siluet bozulmuyor; (2) **dolu formlar çizgiden dayanıklı**, küçükte incelmiyor; (3) coral nokta hem marka vurgusu hem anlam — gagasındaki şey, yani ürünün kendisi.
+
+**Kabul edilen sınır:** B bir saksağan değil, **bir kuş**. Saksağanı saksağan yapan şey (uzun kuyruk, siyah-beyaz deseni) 16px'te zaten kaybolur. İsim hikâyeyi taşır, işaret onu hatırlatır; 16px'te fazlası mümkün değil. Mağaza görselinde (128px+) tam saksağan formu kullanılabilir — **aynı marka, farklı ölçekte farklı detay**, ama toolbar işareti B'dir.
 
 **Elenen yön:** Claude'un yıldız/spark işaretini andıran logo — Chrome Web Store impersonation politikası ve marka ihlali riski. Coral rengi tonal akrabalık için yeterli; işaret taklidi gereksiz risk.
 
@@ -1532,7 +1538,7 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
 - `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
 - `README.md`'de ve mağaza uzun açıklamasında **MCP ajan çıktısı** kullanım örneği (§2.2.2, birinci yol): bir MCP ajanının ürettiği rapor/kod da sohbetin içinde olduğu için sıradan bir öğedir — kullanıcı bunu kendiliğinden düşünmüyor, yazılmazsa keşfedilmiyor
-- `docs/design/*.html` — tasarım ekranları (indirme kontrolü ve versiyon menüsü, logo ve badge durumları, pill/toast, çok sağlayıcı ve yetenek matrisi, popup v2, araç çıktıları). **Depoda tutulur**: spec bunlara atıf yapıyor ve tasarım kararlarının görsel kanıtı bunlar; geçici bir klasörde bırakılırsa spec kendi referansını kaybeder
+- `docs/design/*.html` — tasarım ekranları (indirme kontrolü ve versiyon menüsü, logo adayları ve 16px kararı, badge durumları, pill/toast, çok sağlayıcı ve yetenek matrisi, popup v2, araç çıktıları). **Depoda tutulur**: spec bunlara atıf yapıyor ve tasarım kararlarının görsel kanıtı bunlar; geçici bir klasörde bırakılırsa spec kendi referansını kaybeder
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
 - `docs/ADDING-A-PROVIDER.md` — kayıt satırı nasıl eklenir: hangi alanlar zorunlu (`host`, `name`), hangileri opsiyonel (`chatRoot`, `newChatUrl`), fixture nasıl çıkarılır ve temizlenir, uyumluluk paketi nasıl koşulur. Kayıt modeli katkıya açık olmayı hedefliyor; nasıl katkı verileceği yazılı değilse hedef değil temennidir
 - `.github/ISSUE_TEMPLATE/provider.yml` — yeni sağlayıcı isteği: host, ekran görüntüsü, `pre > code` var mı
@@ -1617,7 +1623,7 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] Ekran görüntüleri **demo** konuşmadan
 - [ ] Marka feragatnamesi kayıttaki **her** sağlayıcı için açıklamada
 - [ ] **"Magpie" adı için marka/ad çakışması tarandı** (Web Store + ticari marka) — §2.1.2
-- [ ] Logo 16px testinden geçti; saksağan işareti okunmuyorsa mevcut işaret korundu (§8.5)
+- [ ] Logo: seçilen B işareti 16px'te üretildi (`icons/16.png`) ve toolbar'da doğrulandı (§8.5)
 - [ ] `docs/BREAKAGE.md` adaptörlü sağlayıcılar için dolu, taban için ortak bölüm var
 - [ ] Önceki sürümün zip'i saklandı (§19.7)
 

@@ -1,0 +1,79 @@
+<style>
+.sizes { display:flex; align-items:flex-end; gap:16px; padding:14px 4px 6px; }
+.sz { text-align:center; } .sz small { display:block; margin-top:6px; font-size:10px; color:#8b8a84; }
+.bars { margin-top:10px; }
+.bar { display:flex; align-items:center; gap:7px; padding:6px 9px; border-radius:7px; font:11px ui-sans-serif,system-ui,sans-serif; }
+.bar.light { background:#fff; color:#5c5b55; border:1px solid #e4e2dc; }
+.bar.dark { background:#1f1e1d; color:#a3a29c; border:1px solid #35342f; margin-top:5px; }
+.bar .puz { opacity:.45; font-size:12px; }
+.cards .card-image { padding:16px; background:#141413; }
+.note { font-size:12px; color:#8b8a84; margin-top:8px; }
+.verdict { border:1px solid #3a3936; border-radius:9px; padding:12px 14px; margin-top:18px; background:#1f1e1d; font-size:12.5px; color:#c9c7bf; line-height:1.6; }
+.verdict b { color:#f5f4ef; }
+</style>
+
+<h2>Logo — 16px hakem</h2>
+<p class="subtitle">İsim Magpie oldu. Kural değişmedi: logo toolbar'da yaşar. Üç aday, gerçek boyutlarda.</p>
+
+<div class="cards">
+
+  <!-- A: full magpie -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="sizes">
+        <div class="sz"><svg width="72" height="72" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><path d="M46 46L27 33" stroke="#f5f4ef" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="28" r="11" fill="#f5f4ef"/><circle cx="27" cy="21" r="7.5" fill="#f5f4ef"/><path d="M34 20l9 2-9 3z" fill="#f5f4ef"/><circle cx="47" cy="21" r="4.5" fill="#d97757"/></svg><small>128</small></div>
+        <div class="sz"><svg width="40" height="40" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><path d="M46 46L27 33" stroke="#f5f4ef" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="28" r="11" fill="#f5f4ef"/><circle cx="27" cy="21" r="7.5" fill="#f5f4ef"/><path d="M34 20l9 2-9 3z" fill="#f5f4ef"/><circle cx="47" cy="21" r="4.5" fill="#d97757"/></svg><small>48</small></div>
+        <div class="sz"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><path d="M46 46L27 33" stroke="#f5f4ef" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="28" r="11" fill="#f5f4ef"/><circle cx="27" cy="21" r="7.5" fill="#f5f4ef"/><path d="M34 20l9 2-9 3z" fill="#f5f4ef"/><circle cx="47" cy="21" r="4.5" fill="#d97757"/></svg><small>16</small></div>
+      </div>
+      <div class="bars">
+        <div class="bar light"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><path d="M46 46L27 33" stroke="#f5f4ef" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="28" r="11" fill="#f5f4ef"/><circle cx="27" cy="21" r="7.5" fill="#f5f4ef"/><path d="M34 20l9 2-9 3z" fill="#f5f4ef"/><circle cx="47" cy="21" r="4.5" fill="#d97757"/></svg><span class="puz">🧩</span> ⋮ — açık</div>
+        <div class="bar dark"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><path d="M46 46L27 33" stroke="#f5f4ef" stroke-width="7" stroke-linecap="round"/><circle cx="24" cy="28" r="11" fill="#f5f4ef"/><circle cx="27" cy="21" r="7.5" fill="#f5f4ef"/><path d="M34 20l9 2-9 3z" fill="#f5f4ef"/><circle cx="47" cy="21" r="4.5" fill="#d97757"/></svg><span class="puz">🧩</span> ⋮ — koyu</div>
+      </div>
+    </div>
+    <div class="card-body"><h3>A · Tam saksağan + taşıdığı şey</h3>
+      <p>Gövde, baş, gaga, uzun kuyruk, gagasının önünde coral bir "parlayan şey". 128'de hikâyeyi tam anlatıyor. 16'da beş ayrı şekil birbirine giriyor.</p></div>
+  </div>
+
+  <!-- B: head only -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="sizes">
+        <div class="sz"><svg width="72" height="72" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><circle cx="26" cy="30" r="15" fill="#f5f4ef"/><path d="M38 24l16 5-16 6z" fill="#f5f4ef"/><circle cx="49" cy="29" r="6" fill="#d97757"/></svg><small>128</small></div>
+        <div class="sz"><svg width="40" height="40" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><circle cx="26" cy="30" r="15" fill="#f5f4ef"/><path d="M38 24l16 5-16 6z" fill="#f5f4ef"/><circle cx="49" cy="29" r="6" fill="#d97757"/></svg><small>48</small></div>
+        <div class="sz"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><circle cx="26" cy="30" r="15" fill="#f5f4ef"/><path d="M38 24l16 5-16 6z" fill="#f5f4ef"/><circle cx="49" cy="29" r="6" fill="#d97757"/></svg><small>16</small></div>
+      </div>
+      <div class="bars">
+        <div class="bar light"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><circle cx="26" cy="30" r="15" fill="#f5f4ef"/><path d="M38 24l16 5-16 6z" fill="#f5f4ef"/><circle cx="49" cy="29" r="6" fill="#d97757"/></svg><span class="puz">🧩</span> ⋮ — açık</div>
+        <div class="bar dark"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><circle cx="26" cy="30" r="15" fill="#f5f4ef"/><path d="M38 24l16 5-16 6z" fill="#f5f4ef"/><circle cx="49" cy="29" r="6" fill="#d97757"/></svg><span class="puz">🧩</span> ⋮ — koyu</div>
+      </div>
+    </div>
+    <div class="card-body"><h3>B · Baş + gaga + coral nokta</h3>
+      <p>Üç şekil, hepsi 16px'te 3px üstünde. Kuş okunuyor, gaga yön veriyor, coral nokta "taşıdığı şey". Tam saksağan değil ama <b>bir kuşun bir şey taşıdığı</b> anlaşılıyor.</p></div>
+  </div>
+
+  <!-- C: current mark -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="sizes">
+        <div class="sz"><svg width="72" height="72" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><small>128</small></div>
+        <div class="sz"><svg width="40" height="40" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><small>48</small></div>
+        <div class="sz"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><small>16</small></div>
+      </div>
+      <div class="bars">
+        <div class="bar light"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span class="puz">🧩</span> ⋮ — açık</div>
+        <div class="bar dark"><svg width="16" height="16" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#262624"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg><span class="puz">🧩</span> ⋮ — koyu</div>
+      </div>
+    </div>
+    <div class="card-body"><h3>C · Mevcut işaret (belge + ok)</h3>
+      <p>16px'te kanıtlanmış, ama artık isimle ilgisiz. Çizgi ağırlıklı olduğu için küçükte inceliyor.</p></div>
+  </div>
+
+</div>
+
+<div class="verdict">
+<b>16px hakemi ne diyor:</b> A'da beş şekil var ve dördü 16'da birbirine giriyor — kuyruk gövdeye yapışıyor, gaga kayboluyor. C okunuyor ama dolu değil, ince çizgiler küçükte soluyor ve isimle bağı yok.
+<br><br>
+<b>B kazanıyor</b>, üç sebeple: (1) üç şekil, hepsi 16px'te 3px'in üstünde — silueti bozulmuyor; (2) dolu formlar, çizgiden daha dayanıklı; (3) coral nokta hem marka vurgusu hem anlam taşıyor — <b>gagasındaki şey</b>, yani ürünün ta kendisi.
+<br><br>
+Not: B bir saksağan değil, <b>bir kuş</b>. 16px'te saksağanı saksağan yapan şey (uzun kuyruk, siyah-beyaz deseni) zaten kaybolur. İsim hikâyeyi taşır, işaret onu hatırlatır — 16px'te fazlası mümkün değil.
+</div>
