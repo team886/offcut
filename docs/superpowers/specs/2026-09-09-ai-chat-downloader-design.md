@@ -454,6 +454,10 @@ Boru hattı async ve kullanıcı beklemek zorunda değil. Üç yarış durumu:
 
 Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek üç bedeli birden getirir: React/Angular reconciliation çökme riskinin **blok sayısı kadar katlanması** (§7 adım 2), akış sırasında sürekli yeniden enjeksiyon, ve arayüzün kontrol çöplüğüne dönmesi.
 
+**Düğme üreteceği dosya adını gösterir.** Ad, dört basamaklı bir zincirden türetiliyor (§3.3.1) ve kullanıcının o zincirin sonucunu **tıklamadan önce** görmesi gerekir — aksi hâlde `kod-7.txt` inen dosyayı indirilenler klasöründe bulmaya çalışır. Düğme `↓ backfill.py` biçiminde çizilir; ad uzunsa ortadan kısaltılır (`↓ order-serv…py`), tam ad `title` özniteliğinde durur.
+
+Aynı ilke belge butonunda da geçerli: split butonun `↓` yarısına hover edildiğinde ipucu üretilecek adı söyler.
+
 Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
 
 **Klavye ve ekran okuyucu yolu ayrıdır — ve olması gereken de bu.** Hover'a bağlı bir kontrol ekran okuyucu kullanıcısı için **yok** hükmündedir. İlk çözüm "kod bloğunu odaklanabilir yap" olurdu, ama bu `tabindex` eklemek demek, yani sağlayıcının DOM'unu değiştirmek — §8.1.1'in "hiç düğüm eklenmez" kuralıyla aynı aileden bir ihlal (öznitelik de yeniden render'da ezilir ve her ezilişte geri yazmak, kaçındığımız enjeksiyon döngüsünün ta kendisi).
@@ -478,6 +482,12 @@ v1   31 dk önce · 6.2 KB
 🗜 Tüm versiyonlar → .zip
 ```
 Zip satırı ayarla kapatılabilir.
+
+**Menü "ne değişti" söylemeden seçim yaptıramaz.** Kullanıcının verdiği karar "hangi versiyonu istiyorum" — ve bu kararın tek gerçek girdisi **ne değiştiği**. Boyut ve zaman damgası bunu söylemez: 8.4 KB ile 8.1 KB arasındaki farkın bir satır mı yoksa bütün bir bölüm mü olduğu görünmez.
+
+Fold zaten her iki içeriği de elinde tutuyor, yani satır bazlı fark **bedava**: her satır için `+n / −n` gösterilir (`v2 · +12 −3`). Tam diff üretmiyoruz (§ elenen yönler), yalnızca sayım — LCS'ye gerek yok, satır kümesi farkı yeterli ve 500 satırlık dosyada bile milisaniye altı.
+
+Kazanç orantısız: kullanıcı "üç satır düzeltilmiş" ile "yarısı yeniden yazılmış" arasındaki farkı görüp doğru versiyonu ilk denemede seçiyor. Bunu göstermemek, elimizdeki bilgiyi saklamak olurdu.
 
 **Aynı içerikli ardışık versiyonlar işaretlenir.** Bir `update` hiçbir şeyi değiştirmemiş olabilir (aynı `new_str`, ya da sonuç aynı bayta çıkan bir düzenleme). Menüde iki satır aynı boyutu gösterir ve kullanıcı ikisini de indirip fark arar. Fold sırasında ardışık versiyonların baytları karşılaştırılır; aynıysa satır `değişiklik yok` etiketi alır. Satır **silinmez** — Claude o adımı attıysa kullanıcı bunu görmeyi hak eder; sadece boşuna indirme yapmaz.
 
@@ -575,7 +585,12 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
 7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**.
 8. **Siteler** (`sites`): dört sağlayıcı için aç/kapa. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
-9. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+9. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
+10. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
+11. **Bu oturumda indirilenler işaretlidir.** İnen satır soluk bir `✓` alır (oturum içi, kalıcı değil). Kullanıcı listeye geri döndüğünde neyi aldığını hatırlamak zorunda kalmaz — aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcıdır.
+12. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
+13. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
+14. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -776,6 +791,8 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Boş gövdeli `create` | Geçerli; 0 baytlık dosya iner |
 | Numaralarımız panelin göstergesiyle tutmuyor | `v` etiketi bırakılır, sıra + zaman damgası kullanılır (§8.2) |
 | Ardışık iki versiyon birebir aynı | Menüde `değişiklik yok` etiketi; ikisi de indirilebilir kalır |
+| Zip/toplu indirme iptal edildi | Yarım arşiv **üretilmez**; hiçbir dosya inmez, bilgi toast'ı |
+| Ek boyutu meta veriden okunamıyor | `boyut bilinmiyor` yazılır, tahmin edilmez |
 | `<a download>` sonrası dosya yazılmadı | Öğrenilemez; toast bu yüzden "indiriliyor" der, "indirildi" demez |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
