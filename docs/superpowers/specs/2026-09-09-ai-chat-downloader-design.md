@@ -84,7 +84,7 @@ Kullanıcı Claude hâlâ yazarken butona basabilir. O anda son op yarım gelmi�
 
 Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var ya da son mesaj `stop_reason` taşımıyor), son versiyon `⚠ yazılıyor` işaretlenir. Menü açılır, önceki **tamamlanmış** versiyonlar normal indirilir; yarım versiyonu seçmek için kullanıcının uyarıyı görüp yine de tıklaması gerekir. Varsayılan seçim yarım versiyona düşmez.
 
-## 3.3 İndirilebilir öğe modeli
+### 3.3 İndirilebilir öğe modeli
 
 Üç kaynağın (artifact, kod bloğu, ek) tek bir modele indirgenmesi, boru hattının, UI'ın, zip'in ve adlandırmanın tek kod yolunda kalmasını sağlar:
 
@@ -123,7 +123,7 @@ Ekler **ikili olabilir** (PDF, xlsx, png). Kural: içerik hiçbir zaman metne ç
 
 **Doğrulanacak (adım 1):** ek indirme endpoint'i ve yanıt biçimi. Belirlenemezse ekler kapsamdan **çıkarılır** — artifact ve kod tek başına ürünü ayakta tutar; çalışmayan bir feature'ı yarım bırakmaktansa hiç söz vermemek iyidir.
 
-## 3.4 Sağlayıcı adaptörü
+### 3.4 Sağlayıcı adaptörü
 
 Çekirdek sağlayıcıyı bilmez. Her sağlayıcı tek bir dosyada, tek bir sözleşmeyi uygular:
 
@@ -336,7 +336,7 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
    1. Buton, action bar'ın **son çocuğu** olarak eklenir — React'in kaldırma/sıralama işlemlerinin en az dokunduğu konum
    2. React'in hiçbir düğümü **kaldırılmaz, taşınmaz, sırası değiştirilmez**; yalnızca ekleme yapılır
    3. Adım 1'de bu **dört sağlayıcıda ayrı ayrı, kasten zorlanır**: buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
-   4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama sayfayı asla düşürmez. Kod blokları için bu yol zaten varsayılan (§8.2.2)
+   4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama sayfayı asla düşürmez. Kod blokları için bu yol zaten varsayılan (§8.1.1)
 
    Menü, pill ve toast zaten shadow root içinde ve `body`'ye bağlı (§8.7); risk yalnızca butona ait.
 
@@ -374,6 +374,14 @@ Boru hattı async ve kullanıcı beklemek zorunda değil. Üç yarış durumu:
 
 **`defaultVersion: "ask"` seçiliyken buton bölünmez.** "Sor" demek "varsayılan yok" demektir; `↓` yarısının indireceği bir şey kalmaz. O ayarda buton tek parçadır ve tıklama doğrudan menüyü açar. İki yarısı da aynı şeyi yapan bir split buton, kullanıcıya olmayan bir seçim sunar.
 
+### 8.1.1 Kod bloğu kontrolü — tek gezici düğme, N enjeksiyon değil
+
+Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek üç bedeli birden getirir: React/Angular reconciliation çökme riskinin **blok sayısı kadar katlanması** (§7 adım 2), akış sırasında sürekli yeniden enjeksiyon, ve arayüzün kontrol çöplüğüne dönmesi.
+
+Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
+
+Klavye kullanıcıları için: kod bloğu odaklanabilir olduğunda düğme aynı şekilde hizalanır; ayrıca `Alt+Shift+D` odaktaki bloğu indirir.
+
 ### 8.2 Versiyon menüsü (popover)
 ```
 VERSİYON SEÇ
@@ -392,14 +400,6 @@ Zip satırı ayarla kapatılabilir.
 Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırılır. Birebir tutuyorsa `v1…vN` kullanılır. Tutmuyorsa **kendi numaramızı panelinkiymiş gibi sunmayız**: menü satırları `v` yerine sıra + zaman damgasıyla etiketlenir (`3. düzenleme · 14 dk önce`) ve görüntülenen olan `✓ görüntülenen` ile işaretlenir. Kullanıcı yanlış bir eşleşmeye ikna edilmez.
 
 **Yetenek yoksa kontrol de yok.** Versiyon desteklemeyen bir sağlayıcıda (Gemini, Perplexity) buton hiç bölünmez; `▾` yarısı çizilmez, menü açılmaz. Boş bir menü veya tek satırlık liste, kullanıcıya olmayan bir yetenek vaat eder. Aynı kural ek desteği ve panel/canvas için de geçerli — kapalı yetenek görünmez, "bu sağlayıcıda desteklenmiyor" yazan gri bir kontrol de değil.
-
-### 8.2.2 Kod bloğu kontrolü — tek gezici düğme, N enjeksiyon değil
-
-Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek üç bedeli birden getirir: React/Angular reconciliation çökme riskinin **blok sayısı kadar katlanması** (§7 adım 2), akış sırasında sürekli yeniden enjeksiyon, ve arayüzün kontrol çöplüğüne dönmesi.
-
-Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
-
-Klavye kullanıcıları için: kod bloğu odaklanabilir olduğunda düğme aynı şekilde hizalanır; ayrıca `Alt+Shift+D` odaktaki bloğu indirir.
 
 ### 8.2.1 Sohbet seviyesi zip
 
@@ -475,14 +475,20 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 **Service worker 30 sn boşta ölür.** Nabız zamanlayıcısı ortasında SW ölürse ikon ara karede takılı kalır. Karşı önlem: nabız **önce** son (sabit) durumu yazar, animasyon karelerini onun üstüne bindirir; SW ölse bile ikon doğru durumda kalır. SW her uyandığında aktif sekmelerin badge durumu `artifact:present` mesajlarından yeniden kurulur.
 
 ### 8.6 Ayar paneli (popup = options)
-Üstte **eylem**, altta ayarlar:
-1. *Şu an* kartı: artifact adı, tip, versiyon sayısı, boyut + `↓ v3 indir` / `▾` / `🗜`
-2. Bildirim: toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok
-3. İndirme: varsayılan versiyon (görüntülenen / son / sor), zip satırı (aç/kapa), otomatik indirme (aç/kapa, **varsayılan kapalı**)
-4. Dosya adı: şablon input + tıklanabilir token chip'leri + **canlı önizleme**
-5. Alt satır: `🔒 Veri cihazdan çıkmıyor · dış istek yok` + `Alt ⇧ D` (kısayol kullanıcı tarafından değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır)
+Üstte **eylem**, altta ayarlar. Her `cfg` anahtarının (§9) burada bir karşılığı vardır; şemada olup panelde olmayan ayar bırakılmaz.
 
-Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
+1. **Sağlayıcı şeridi:** aktif sağlayıcı + o sağlayıcıda ne alınabileceği (`ChatGPT · canvas + kod · versiyon yok`). Kullanıcı eksik yeteneği bozukluk sanmasın diye.
+2. **Öğe listesi**, `kind` başına gruplu: *Belgeler* (artifact/canvas), *Kod blokları · N*, *Ekler · N*. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
+   Eski tek-kartlı "şu an" tasarımının yerini bu aldı: artık öğe tek değil ve panel açık olmak zorunda değil (§8.8).
+3. **Neleri göster** (`kinds`): artifact/canvas · kod blokları · ekler — üç anahtar. Kod bloklarını kapatmak, uzun teknik sohbetlerde listeyi sadeleştirmenin tek yolu.
+4. **Bildirim** (`badge`, `notify`): toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok.
+5. **İndirme** (`defaultVersion`, `zipAll`, `autoDownload`, `dragEnabled`): varsayılan versiyon (görüntülenen / son / sor) · menüde zip satırı (aç/kapa) · sürükle-bırak (aç/kapa — bazı kullanıcılar kazara sürüklemeyi sevmez) · otomatik indirme (aç/kapa, **varsayılan kapalı**).
+6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
+7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**.
+8. **Siteler** (`sites`): dört sağlayıcı için aç/kapa. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
+9. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+
+Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
 ### 8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı
 
@@ -896,7 +902,7 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 8. `sw.js`: badge, nabız, kısayol, sistem bildirimi
 9. `panel.html/js`: ayarlar + canlı önizleme + hızlı indirme
 10. İkonlar (16/48/128)
-11. Kod blokları: `common-dom.js` + gezici düğme (§8.2.2)
+11. Kod blokları: `common-dom.js` + gezici düğme (§8.1.1)
 12. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
 13. Manuel doğrulama listesi — dört sağlayıcıda ayrı ayrı
 14. Performans bütçelerinin ölçümü (§19.2)
