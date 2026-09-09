@@ -77,6 +77,21 @@ Kimlik bilgisi gerektirmeyen, elimizdeki veriyle çalışan:
 
 Üçü de aynı sınırın içinde: **var olan veriden**, model çağrısı olmadan, kullanıcının eylemiyle.
 
+### 2.1.2 İsim — "downloader" kalıyor, sebebi konumlandırma değil keşfedilebilirlik
+
+Omurga "indirici"den geniş (§2.1), yani isim ürünü eksik anlatıyor. Yeniden adlandırma cazip; **yapmıyoruz.**
+
+Gerekçe: mağaza aramasında insanlar niyetlerini yazıyor — *"download chatgpt code"*, *"save claude artifact"*. Bu terimler ürünün **ilk işi** ve kullanıcının kafasındaki kelime. Soyut bir ad (`Chat Keeper`, `Artifact Vault`) konumlandırmayı kazanır, keşfedilebilirliği kaybeder — ve keşfedilmeyen bir ürünün konumlandırması kimseye ulaşmaz.
+
+Doğru ayrım: **isim işi söyler, açıklama omurgayı söyler.**
+- İsim: `AI Chat Downloader` — arama terimi burada
+- Kısa açıklama (132 karakter): omurga cümlesi — *"Sohbetlerinden çıkan kodu ve belgeleri çıkar, sürümle, taşı ve yeniden kullan."*
+- Uzun açıklamanın ilk paragrafı: izin uyarısını karşılar (§15), ikincisi omurgayı açar
+
+Bu, ürünün kendini iki farklı yerde iki farklı şekilde tanıtması değil — **aynı ürünün girişi ve tarifi.** Tek amaç beyanı (§19.6) omurga cümlesiyle birebir aynı kalır; ad bir arama anahtarı, beyan değildir.
+
+Yeniden değerlendirme koşulu: kullanıcıların çoğunluğu ürünü indirme dışındaki bir özellik için kuruyorsa (mağaza yorumları ve issue'lardan görülür), ad o zaman tartışılır. Şimdi tartışmak, elde veri yokken kimlik değiştirmek olurdu.
+
 ## 2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek
 
 FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip olduğuna** bağlı ve bunu bilmiyorum. Uydurmak yerine üç olası şekli ve maliyetlerini yazıyorum; hangisi doğruysa spec o dala göre yazılır.
