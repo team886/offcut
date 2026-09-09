@@ -1477,6 +1477,7 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
 - `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
 - `README.md`'de ve mağaza uzun açıklamasında **MCP ajan çıktısı** kullanım örneği (§2.2.2, birinci yol): bir MCP ajanının ürettiği rapor/kod da sohbetin içinde olduğu için sıradan bir öğedir — kullanıcı bunu kendiliğinden düşünmüyor, yazılmazsa keşfedilmiyor
+- `docs/design/*.html` — tasarım ekranları (indirme kontrolü ve versiyon menüsü, logo ve badge durumları, pill/toast, çok sağlayıcı ve yetenek matrisi, popup v2, araç çıktıları). **Depoda tutulur**: spec bunlara atıf yapıyor ve tasarım kararlarının görsel kanıtı bunlar; geçici bir klasörde bırakılırsa spec kendi referansını kaybeder
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
 - `docs/ADDING-A-PROVIDER.md` — kayıt satırı nasıl eklenir: hangi alanlar zorunlu (`host`, `name`), hangileri opsiyonel (`chatRoot`, `newChatUrl`), fixture nasıl çıkarılır ve temizlenir, uyumluluk paketi nasıl koşulur. Kayıt modeli katkıya açık olmayı hedefliyor; nasıl katkı verileceği yazılı değilse hedef değil temennidir
 - `.github/ISSUE_TEMPLATE/provider.yml` — yeni sağlayıcı isteği: host, ekran görüntüsü, `pre > code` var mı

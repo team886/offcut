@@ -1,0 +1,101 @@
+<style>
+.pp { --bg:#262624; --bg2:#1f1e1d; --line:#3a3936; --tx:#f5f4ef; --dim:#a3a29c; --acc:#d97757; --ok:#3f8f5e; --warn:#e0b341; }
+.pp { width:340px; background:var(--bg); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--tx); }
+.pp-h { display:flex; align-items:center; gap:8px; padding:11px 13px; border-bottom:1px solid var(--line); }
+.pp-h b { font-size:13px; font-weight:600; letter-spacing:-.01em; }
+.pp-h s { text-decoration:none; margin-left:auto; font-size:10px; color:var(--dim); }
+
+.pp-now { margin:11px 13px; padding:10px 11px; background:var(--bg2); border:1px solid var(--line); border-radius:9px; }
+.pp-now .ttl { display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; }
+.pp-now .dot { width:6px; height:6px; border-radius:99px; background:var(--ok); box-shadow:0 0 6px var(--ok); }
+.pp-now .meta { font-size:11px; color:var(--dim); margin:3px 0 9px; }
+.pp-btns { display:flex; gap:6px; }
+.pp-btn { flex:1; text-align:center; padding:6px 0; border-radius:7px; font-size:11.5px; font-weight:600;
+          background:var(--acc); color:#20140f; }
+.pp-btn.ghost { background:transparent; border:1px solid var(--line); color:var(--tx); font-weight:500; flex:0 0 auto; padding:6px 11px; }
+
+.pp-sec { padding:3px 13px 0; }
+.pp-lbl { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); margin:13px 0 6px; }
+.pp-r { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(58,57,54,.6); }
+.pp-r:last-child { border-bottom:0; }
+.pp-r .k { font-size:12.5px; }
+.pp-r .k small { display:block; font-size:10.5px; color:var(--dim); margin-top:2px; line-height:1.35; }
+.pp-r .sp { flex:1; }
+.sw { width:32px; height:18px; border-radius:99px; background:#4a4945; position:relative; flex:0 0 auto; }
+.sw:after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:99px; background:#8b8a84; }
+.sw.on { background:var(--acc); }
+.sw.on:after { left:16px; background:#fff; }
+.seg { display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:7px; padding:2px; flex:0 0 auto; }
+.seg span { padding:3px 8px; font-size:10.5px; color:var(--dim); border-radius:5px; white-space:nowrap; }
+.seg span.on { background:var(--acc); color:#20140f; font-weight:600; }
+
+.tpl { background:var(--bg2); border:1px solid var(--line); border-radius:7px; padding:7px 9px;
+       font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--tx); }
+.chips { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+.chip { padding:2px 7px; border:1px solid var(--line); border-radius:99px; font:10px ui-monospace,monospace; color:var(--dim); }
+.prev { margin-top:7px; font-size:11px; color:var(--dim); }
+.prev b { color:var(--ok); font:11.5px ui-monospace,monospace; font-weight:400; }
+.hint { font-size:10.5px; color:var(--warn); margin-top:5px; display:flex; gap:5px; }
+
+.pp-f { margin-top:14px; padding:9px 13px; border-top:1px solid var(--line); background:var(--bg2);
+        display:flex; align-items:center; gap:7px; font-size:10.5px; color:var(--dim); }
+.kbd { font:10px ui-monospace,monospace; border:1px solid var(--line); border-radius:4px; padding:1px 5px; color:var(--tx); }
+.wrap { display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; padding:6px 0; }
+.side { flex:1; min-width:250px; }
+.side h3 { margin:0 0 6px; }
+.side p { font-size:12.5px; color:#a3a29c; margin:0 0 14px; line-height:1.5; }
+.side .k { font-size:12px; color:#c9c7bf; }
+</style>
+
+<h2>Ayar paneli</h2>
+<p class="subtitle">Tek dosya hem popup hem options sayfası. Üstte "şu an ne var + hemen indir", altta ayarlar.</p>
+
+<div class="wrap">
+<div class="pp">
+  <div class="pp-h">
+    <svg width="17" height="17" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1f1e1d"/><rect x="13" y="12" width="38" height="27" rx="5" fill="none" stroke="#f5f4ef" stroke-width="4.5"/><path d="M13 21h38" stroke="#f5f4ef" stroke-width="4.5"/><path d="M32 30v18m0 0l-7.5-7.5M32 48l7.5-7.5" stroke="#d97757" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+    <b>Artifact Downloader</b><s>v1.0.0</s>
+  </div>
+
+  <div class="pp-now">
+    <div class="ttl"><span class="dot"></span> Sales Dashboard</div>
+    <div class="meta">React · 3 versiyon · v3 görüntüleniyor · 8.4 KB</div>
+    <div class="pp-btns">
+      <div class="pp-btn">↓ v3 indir</div>
+      <div class="pp-btn ghost">▾</div>
+      <div class="pp-btn ghost">🗜</div>
+    </div>
+  </div>
+
+  <div class="pp-sec">
+    <div class="pp-lbl">Bildirim</div>
+    <div class="pp-r"><div class="k">Toolbar rozeti<small>Artifact sayısı + 3 nabız</small></div><div class="sp"></div><div class="sw on"></div></div>
+    <div class="pp-r"><div class="k">Sayfa içi pulse<small>Panelde 2 sn nabız atan pill</small></div><div class="sp"></div><div class="sw on"></div></div>
+    <div class="pp-r"><div class="k">Bildirim türü</div><div class="sp"></div>
+      <div class="seg"><span>kapalı</span><span class="on">sayfa içi</span><span>sistem</span></div></div>
+
+    <div class="pp-lbl">İndirme</div>
+    <div class="pp-r"><div class="k">Varsayılan versiyon</div><div class="sp"></div>
+      <div class="seg"><span class="on">görüntülenen</span><span>son</span><span>sor</span></div></div>
+    <div class="pp-r"><div class="k">Menüde "tüm versiyonlar → zip"<small>Kapatırsan menü sadeleşir</small></div><div class="sp"></div><div class="sw on"></div></div>
+    <div class="pp-r"><div class="k">Artifact açılınca otomatik indir<small>Her yeni artifact sessizce iner</small></div><div class="sp"></div><div class="sw"></div></div>
+
+    <div class="pp-lbl">Dosya adı</div>
+    <div class="tpl">{title}-v{version}</div>
+    <div class="chips"><span class="chip">{title}</span><span class="chip">{version}</span><span class="chip">{date}</span><span class="chip">{ext}</span></div>
+    <div class="prev">Önizleme: <b>Sales-Dashboard-v3.tsx</b></div>
+  </div>
+
+  <div class="pp-f">🔒 Veri cihazdan çıkmıyor · dış istek yok<div style="flex:1"></div><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">D</span></div>
+</div>
+
+<div class="side">
+  <h3>Tasarımdaki kararlar</h3>
+  <p><span class="k">Üstteki "şu an" kartı ayar değil, eylem.</span> Popup'ı açan çoğu insan ayar değiştirmeye değil indirmeye gelir. Ayarları listenin başına koyan popup, herkesi kaydırmaya zorlar.</p>
+  <p><span class="k">Dosya adı şablonu canlı önizlemeli.</span> Token'lı input'un klasik hatası: kullanıcı <code>{version}</code> yazar, ne çıkacağını bilmez. Önizleme tahmini öldürür.</p>
+  <p><span class="k">"sistem" bildirimi seçilene kadar izin istenmez.</span> Kurulum ekranı tek satır izin gösterir. Kullanıcı reddederse segment sessizce "sayfa içi"ne döner.</p>
+  <p><span class="k">Otomatik indirme en altta ve kapalı.</span> Geri alınamayan davranışlar varsayılan olmaz.</p>
+  <p><span class="k">Alt satırdaki gizlilik cümlesi.</span> Bu extension özel sohbetleri okuyor. Bunu görünür şekilde söylemek Web Store incelemesini de kullanıcı güvenini de kolaylaştırır.</p>
+</div>
+</div>

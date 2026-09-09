@@ -1,0 +1,142 @@
+<style>
+.cp { --bg:#262624; --bg2:#1f1e1d; --line:#3d3d3a; --tx:#f5f4ef; --dim:#a3a29c; --acc:#d97757; }
+.cp { background:var(--bg); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--tx); }
+.cp-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--line); background:var(--bg); }
+.cp-t { font-weight:600; font-size:13px; letter-spacing:-.01em; }
+.cp-v { font-size:11px; color:var(--dim); }
+.cp-sp { flex:1; }
+.cp-seg { display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:7px; padding:2px; }
+.cp-seg span { padding:2px 8px; font-size:11px; color:var(--dim); border-radius:5px; }
+.cp-seg span.on { background:#3a3936; color:var(--tx); }
+.cp-ic { width:26px; height:26px; display:grid; place-items:center; border-radius:6px; color:var(--dim); font-size:13px; }
+.cp-dl { color:var(--tx); background:rgba(217,119,87,.16); box-shadow:0 0 0 1px var(--acc), 0 0 12px -2px var(--acc); }
+.cp-split { display:flex; align-items:stretch; border-radius:6px; background:rgba(217,119,87,.16);
+            box-shadow:0 0 0 1px var(--acc), 0 0 12px -2px var(--acc); }
+.cp-split i { font-style:normal; display:grid; place-items:center; width:24px; height:26px; font-size:13px; }
+.cp-split i+i { border-left:1px solid rgba(217,119,87,.5); width:18px; font-size:9px; }
+.cp-body { padding:12px; background:var(--bg2); min-height:104px; position:relative; }
+.cp-code { font:11px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; color:#8b8a84; white-space:pre; }
+.cp-code b { color:#c9c7bf; font-weight:400; }
+
+/* popover */
+.cp-pop { position:absolute; right:10px; top:-4px; width:238px; background:#302f2d; border:1px solid var(--line);
+          border-radius:9px; box-shadow:0 12px 32px -8px #000; overflow:hidden; z-index:5; }
+.cp-pop-h { padding:7px 10px; font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim); border-bottom:1px solid var(--line); }
+.cp-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border-bottom:1px solid rgba(61,61,58,.55); }
+.cp-row:hover { background:#3a3936; }
+.cp-row.sel { background:rgba(217,119,87,.14); }
+.cp-row b { font-weight:600; font-size:12px; min-width:20px; }
+.cp-row s { text-decoration:none; color:var(--dim); font-size:11px; }
+.cp-row em { font-style:normal; margin-left:auto; font-size:10px; color:var(--acc); }
+.cp-warn { color:#e0b341; }
+.cp-foot { padding:8px 10px; font-size:11.5px; color:var(--tx); background:#2a2927; display:flex; align-items:center; gap:7px; }
+
+/* inline strip */
+.cp-strip { display:flex; gap:6px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line); background:#2a2927; }
+.cp-chip { padding:3px 9px; border-radius:99px; border:1px solid var(--line); font-size:11px; color:var(--dim); }
+.cp-chip.on { border-color:var(--acc); color:var(--tx); background:rgba(217,119,87,.16); }
+.cp-chip.w { border-color:#6b5a1f; color:#e0b341; }
+.cards .card-image { padding:14px; background:#141413; }
+.note { font-size:12px; color:var(--dim); margin-top:6px; }
+</style>
+
+<h2>İndirme butonu + versiyon seçimi</h2>
+<p class="subtitle">Üçü de aynı veriyi gösteriyor: 3 versiyonlu bir artifact, v3 açık, v2 replay'i şüpheli (⚠). Fark, seçimi <em>nerede</em> yaptığın.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="cp">
+        <div class="cp-head">
+          <span class="cp-t">Sales Dashboard</span><span class="cp-v">· v3</span>
+          <span class="cp-sp"></span>
+          <div class="cp-seg"><span class="on">Code</span><span>Preview</span></div>
+          <div class="cp-ic cp-dl">↓</div>
+          <div class="cp-ic">⧉</div><div class="cp-ic">✕</div>
+        </div>
+        <div class="cp-body">
+          <div class="cp-pop">
+            <div class="cp-pop-h">Versiyon seç</div>
+            <div class="cp-row sel"><b>v3</b><s>2 dk önce · 8.4 KB</s><em>görüntülenen</em></div>
+            <div class="cp-row"><b class="cp-warn">v2</b><s>14 dk önce · 8.1 KB</s><em class="cp-warn">⚠ kısmi</em></div>
+            <div class="cp-row"><b>v1</b><s>31 dk önce · 6.2 KB</s></div>
+            <div class="cp-foot">🗜 Tüm versiyonlar → .zip</div>
+          </div>
+          <div class="cp-code">import { useState } <b>from</b> "react";
+<b>export default function</b> Dashboard() {
+  <b>const</b> [range, setRange] = useState("30d");</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Tek buton + popover</h3>
+      <p>Tık = menü açılır, her indirme 2 tık. En basit kod, en az sürpriz. Hızlı yol yok.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="cp">
+        <div class="cp-head">
+          <span class="cp-t">Sales Dashboard</span><span class="cp-v">· v3</span>
+          <span class="cp-sp"></span>
+          <div class="cp-seg"><span class="on">Code</span><span>Preview</span></div>
+          <div class="cp-split"><i>↓</i><i>▾</i></div>
+          <div class="cp-ic">⧉</div><div class="cp-ic">✕</div>
+        </div>
+        <div class="cp-body">
+          <div class="cp-pop">
+            <div class="cp-pop-h">Versiyon seç</div>
+            <div class="cp-row sel"><b>v3</b><s>2 dk önce · 8.4 KB</s><em>görüntülenen</em></div>
+            <div class="cp-row"><b class="cp-warn">v2</b><s>14 dk önce · 8.1 KB</s><em class="cp-warn">⚠ kısmi</em></div>
+            <div class="cp-row"><b>v1</b><s>31 dk önce · 6.2 KB</s></div>
+            <div class="cp-foot">🗜 Tüm versiyonlar → .zip</div>
+          </div>
+          <div class="cp-code">import { useState } <b>from</b> "react";
+<b>export default function</b> Dashboard() {
+  <b>const</b> [range, setRange] = useState("30d");</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Split buton</h3>
+      <p><code>↓</code> tek tıkla varsayılan versiyonu indirir. <code>▾</code> menüyü açar. Günlük kullanım 1 tık, seçim hâlâ 2 tık.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="cp">
+        <div class="cp-head">
+          <span class="cp-t">Sales Dashboard</span><span class="cp-v">· v3</span>
+          <span class="cp-sp"></span>
+          <div class="cp-seg"><span class="on">Code</span><span>Preview</span></div>
+          <div class="cp-ic cp-dl">↓</div>
+          <div class="cp-ic">⧉</div><div class="cp-ic">✕</div>
+        </div>
+        <div class="cp-strip">
+          <span class="cp-chip">v1</span>
+          <span class="cp-chip w">v2 ⚠</span>
+          <span class="cp-chip on">v3 ✓</span>
+          <span class="cp-sp"></span>
+          <span class="cp-chip">🗜 zip</span>
+        </div>
+        <div class="cp-body">
+          <div class="cp-code">import { useState } <b>from</b> "react";
+<b>export default function</b> Dashboard() {
+  <b>const</b> [range, setRange] = useState("30d");
+  <b>return</b> &lt;main className="grid"&gt;</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Kalıcı versiyon şeridi</h3>
+      <p>Tık = panelin altına şerit açılır, hep görünür. Versiyonları keşfetmek en kolay. Panelin dikey alanını yer, Claude'un layout'una müdahale.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="note">⚠ = <code>old_str</code> replay'i eşleşmedi, o versiyon rekonstrüksiyonu şüpheli. Üç seçenekte de bu uyarı görünür — sessiz bozuk dosya vermiyoruz.</p>

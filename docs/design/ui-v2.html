@@ -1,0 +1,133 @@
+<style>
+.k { --bg:#262624; --bg2:#1f1e1d; --line:#3a3936; --tx:#f5f4ef; --dim:#a3a29c; --acc:#d97757; --ok:#3f8f5e; --warn:#e0b341; }
+.pp { width:344px; background:#262624; border:1px solid #3a3936; border-radius:12px; overflow:hidden;
+      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:#f5f4ef; }
+.hd { display:flex; align-items:center; gap:8px; padding:10px 13px; border-bottom:1px solid #3a3936; font-weight:600; font-size:12.5px; }
+.hd s { text-decoration:none; margin-left:auto; font-size:10px; color:#a3a29c; font-weight:400; }
+.site { display:flex; align-items:center; gap:6px; padding:6px 13px; background:#1f1e1d; border-bottom:1px solid #3a3936; font-size:11px; color:#a3a29c; }
+.site .d { width:6px; height:6px; border-radius:99px; background:#3f8f5e; box-shadow:0 0 6px #3f8f5e; }
+.filt { margin:9px 13px 4px; display:flex; align-items:center; gap:7px; background:#1f1e1d; border:1px solid #3a3936;
+        border-radius:7px; padding:5px 9px; font-size:11.5px; color:#a3a29c; }
+.grp { padding:8px 13px 3px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:#a3a29c; display:flex; }
+.grp i { font-style:normal; margin-left:auto; text-transform:none; letter-spacing:0; font-size:10px; }
+.it { display:flex; align-items:center; gap:8px; padding:6px 13px; border-bottom:1px solid rgba(58,57,54,.5); font-size:12px; }
+.it.sel { background:rgba(217,119,87,.10); }
+.cb { width:13px; height:13px; border-radius:3px; border:1px solid #55534e; flex:0 0 auto; }
+.cb.on { background:#d97757; border-color:#d97757; position:relative; }
+.cb.on:after { content:"✓"; position:absolute; inset:0; font-size:9px; color:#20140f; display:grid; place-items:center; }
+.ic { width:20px; height:19px; border-radius:5px; display:grid; place-items:center; font-size:8.5px; flex:0 0 auto; background:#33322f; color:#c9c7bf; }
+.nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mt { margin-left:auto; font-size:10px; color:#a3a29c; white-space:nowrap; }
+.dn { color:#3f8f5e; font-size:10px; }
+.dl { width:21px; height:19px; border-radius:5px; display:grid; place-items:center; font-size:11px; background:rgba(217,119,87,.16); box-shadow:0 0 0 1px #d97757; flex:0 0 auto; }
+.bar { padding:8px 13px; border-top:1px solid #3a3936; background:#1f1e1d; display:flex; align-items:center; gap:8px; font-size:11.5px; }
+.btn { background:#d97757; color:#20140f; font-weight:600; border-radius:7px; padding:5px 10px; font-size:11.5px; }
+.prog { height:3px; background:#33322f; border-radius:9px; overflow:hidden; flex:1; }
+.prog i { display:block; height:100%; width:30%; background:#d97757; }
+.ft { padding:7px 13px; border-top:1px solid #3a3936; background:#1f1e1d; display:flex; gap:7px; align-items:center; font-size:10.5px; color:#a3a29c; }
+
+/* version menu */
+.vm { width:262px; background:#302f2d; border:1px solid #3a3936; border-radius:9px; overflow:hidden;
+      font:12px ui-sans-serif,system-ui,sans-serif; color:#f5f4ef; box-shadow:0 12px 32px -8px #000; }
+.vh { padding:7px 11px; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:#a3a29c; border-bottom:1px solid #3a3936; }
+.vr { display:flex; align-items:center; gap:8px; padding:7px 11px; border-bottom:1px solid rgba(58,57,54,.55); }
+.vr.on { background:rgba(217,119,87,.13); }
+.vr b { min-width:20px; font-size:12px; }
+.dif { font:10.5px ui-monospace,Menlo,monospace; }
+.plus { color:#3f8f5e; } .minus { color:#c9705f; }
+.vr s { text-decoration:none; color:#a3a29c; font-size:10.5px; margin-left:auto; }
+.vf { padding:7px 11px; background:#2a2927; font-size:11.5px; }
+
+/* floating code button */
+.tr { background:#262624; border:1px solid #3a3936; border-radius:10px; padding:13px; position:relative;
+      font:13px ui-sans-serif,system-ui,sans-serif; color:#f5f4ef; }
+.blk { background:#1a1918; border:1px solid #33322f; border-radius:8px; padding:9px 11px;
+       font:11px/1.65 ui-monospace,Menlo,monospace; color:#8b8a84; white-space:pre; position:relative; }
+.blk b { color:#c9c7bf; font-weight:400; }
+.fl { position:absolute; top:44px; right:22px; display:flex; align-items:center; gap:5px; padding:4px 9px 4px 7px;
+      border-radius:7px; background:#302f2d; border:1px solid #d97757; font:11px ui-sans-serif,sans-serif;
+      color:#f5f4ef; box-shadow:0 6px 18px -6px #000; }
+.cards .card-image { padding:16px; background:#141413; }
+.two { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.two>div { flex:1; min-width:290px; }
+.two p { font-size:12.5px; color:#a3a29c; line-height:1.55; margin:0 0 12px; }
+.two .k { color:#c9c7bf; }
+h3.sec { margin:26px 0 6px; }
+</style>
+
+<h2>UI v2 — işlevsellik yükseltmeleri</h2>
+<p class="subtitle">Altı eksik: ne değiştiği görünmüyordu, üretilecek ad tıklamadan bilinmiyordu, uzun sohbette liste kullanılamıyordu, seçim hep-ya-hiçti, ne indirildiği unutuluyordu, uzun işte geri bildirim yoktu.</p>
+
+<div class="two">
+<div>
+  <div class="pp">
+    <div class="hd">AI Chat Downloader <s>v1.0.0</s></div>
+    <div class="site"><span class="d"></span> Claude · artifact + kod + ek · versiyon var</div>
+
+    <div class="filt">🔍 <span style="color:#f5f4ef">py</span><span style="margin-left:auto">3/47</span></div>
+
+    <div class="grp">Belgeler <i>1</i></div>
+    <div class="it"><span class="cb"></span><span class="ic">◧</span><span class="nm">Sales Dashboard</span>
+      <span class="mt">React · 3 sürüm</span><span class="dl">↓</span></div>
+
+    <div class="grp">Kod blokları <i>2 eşleşme</i></div>
+    <div class="it sel"><span class="cb on"></span><span class="ic">py</span><span class="nm">backfill.py</span>
+      <span class="mt"><span class="dn">✓</span> 14 satır</span><span class="dl">↓</span></div>
+    <div class="it sel"><span class="cb on"></span><span class="ic">py</span><span class="nm">order-service.py</span>
+      <span class="mt">61 satır</span><span class="dl">↓</span></div>
+
+    <div class="grp">Ekler <i>1</i></div>
+    <div class="it"><span class="cb"></span><span class="ic">csv</span><span class="nm">siparisler-2026.csv</span>
+      <span class="mt">boyut bilinmiyor</span><span class="dl">↓</span></div>
+
+    <div class="bar"><span class="btn">Seçilenleri indir (2) → zip</span>
+      <div class="prog"><i></i></div><span style="color:#a3a29c">12/40</span><span style="color:#a3a29c">✕</span></div>
+    <div class="ft">🔒 Veri cihazdan çıkmıyor<div style="flex:1"></div>⏻ Bu sitede kapat</div>
+  </div>
+</div>
+
+<div>
+  <p><span class="k">Filtre 10 öğeden sonra beliriyor.</span> 47 öğeli sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür. Koşullu, çünkü doğru cevap sohbetin boyutuna bağlı.</p>
+  <p><span class="k">Çoklu seçim gerçek bir kısıtı kaldırıyor.</span> Önceki tasarımda "tek dosya" ile "hepsi zip" arasında hiçbir şey yoktu. 40 blokluk bir sohbette istediğin 4 tanesini almanın yolu yoktu.</p>
+  <p><span class="k">Soluk ✓ = bu oturumda indirildi.</span> Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı. Kalıcı değil, oturum içi.</p>
+  <p><span class="k">Ek boyutu tahmin edilmiyor.</span> Meta veriden okunamıyorsa <code>boyut bilinmiyor</code> yazıyor — uydurulmuş bir sayı, yokluğundan kötü.</p>
+  <p><span class="k">İlerleme yalnızca 300 ms'yi aşan işte.</span> 80 ms'lik bir çubuk titremeden başka bir şey değil. İptal edilebilir; iptalde yarım zip üretilmiyor.</p>
+</div>
+</div>
+
+<h3 class="sec">Versiyon menüsü — artık "ne değişti" söylüyor</h3>
+<div class="two">
+<div>
+  <div class="vm">
+    <div class="vh">Versiyon seç · Sales Dashboard</div>
+    <div class="vr on"><b>v3</b><span class="dif"><span class="plus">+12</span> <span class="minus">−3</span></span><s>2 dk · 8.4 KB · görüntülenen</s></div>
+    <div class="vr"><b>v2</b><span class="dif"><span class="plus">+180</span> <span class="minus">−164</span></span><s>14 dk · 8.1 KB</s></div>
+    <div class="vr"><b>v1</b><span class="dif" style="color:#6b6a65">ilk sürüm</span><s>31 dk · 6.2 KB</s></div>
+    <div class="vf">🗜 Tüm sürümler → .zip</div>
+  </div>
+</div>
+<div>
+  <p><span class="k">Boyut ve zaman "ne değişti"yi söylemiyor.</span> 8.4 KB ile 8.1 KB arasındaki farkın bir satır mı yoksa bütün bir bölüm mü olduğu görünmüyordu. Oysa kullanıcının verdiği karar tam olarak bu.</p>
+  <p><span class="k">Satır farkı bedava geliyor.</span> Fold zaten her iki içeriği de tutuyor; <code>+n −n</code> için tam diff'e gerek yok, satır kümesi farkı yetiyor — 500 satırda milisaniye altı.</p>
+  <p>Yukarıdaki örnekte v2 <code>+180 −164</code>: neredeyse baştan yazılmış. v3 ise <code>+12 −3</code>: küçük düzeltme. Kullanıcı doğru sürümü <b>ilk denemede</b> seçiyor. Bu bilgi elimizdeydi ve saklıyorduk.</p>
+</div>
+</div>
+
+<h3 class="sec">Gezici düğme — üreteceği adı söylüyor</h3>
+<div class="two">
+<div>
+  <div class="tr">
+    <div style="font-size:12.5px;color:#c9c7bf;margin-bottom:9px">Migration'ı iki adımda yapabilirsin:</div>
+    <div class="blk"><b>def</b> backfill(session):
+    <b>for</b> row <b>in</b> session.query(Order):
+        row.currency = "TRY"
+    session.commit()</div>
+    <div class="fl">↓ <span>backfill.py</span></div>
+  </div>
+</div>
+<div>
+  <p><span class="k">Ad dört basamaklı bir zincirden türetiliyor</span> (fence dosya adı → ilk tanım → başlık → sıra numarası). Kullanıcının o zincirin sonucunu <b>tıklamadan önce</b> görmesi gerekiyor.</p>
+  <p>Aksi hâlde <code>kod-7.txt</code> olarak inen dosyayı indirilenler klasöründe aramak zorunda kalıyor. Ad uzunsa ortadan kısaltılıyor, tam hâli <code>title</code>'da.</p>
+  <p>Aynı ilke belge butonunda da geçerli: <code>↓</code> yarısına hover edince ipucu üretilecek adı söylüyor.</p>
+</div>
+</div>

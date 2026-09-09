@@ -1,0 +1,97 @@
+<style>
+.cp { --bg:#262624; --bg2:#1f1e1d; --line:#3d3d3a; --tx:#f5f4ef; --dim:#a3a29c; --acc:#d97757; }
+.cp { background:var(--bg); border:1px solid var(--line); border-radius:10px; overflow:hidden; position:relative;
+      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--tx); }
+.cp-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--line); }
+.cp-t { font-weight:600; font-size:13px; } .cp-v { font-size:11px; color:var(--dim); } .cp-sp { flex:1; }
+.cp-seg { display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:7px; padding:2px; }
+.cp-seg span { padding:2px 8px; font-size:11px; color:var(--dim); border-radius:5px; }
+.cp-seg span.on { background:#3a3936; color:var(--tx); }
+.cp-ic { width:26px; height:26px; display:grid; place-items:center; border-radius:6px; color:var(--dim); font-size:13px; }
+.cp-split { display:flex; border-radius:6px; background:rgba(217,119,87,.16); box-shadow:0 0 0 1px var(--acc); }
+.cp-split i { font-style:normal; display:grid; place-items:center; width:24px; height:26px; font-size:13px; color:var(--tx); }
+.cp-split i+i { border-left:1px solid rgba(217,119,87,.5); width:18px; font-size:9px; }
+.cp-split.pulse { animation:pl 1.1s ease-out 2; }
+@keyframes pl { 0%{box-shadow:0 0 0 1px var(--acc),0 0 0 0 rgba(217,119,87,.55)} 100%{box-shadow:0 0 0 1px var(--acc),0 0 0 11px rgba(217,119,87,0)} }
+.cp-body { padding:12px; background:var(--bg2); min-height:118px; position:relative; }
+.cp-code { font:11px/1.7 ui-monospace,Menlo,monospace; color:#8b8a84; white-space:pre; }
+.cp-code b { color:#c9c7bf; font-weight:400; }
+
+.pill { position:absolute; z-index:6; display:flex; align-items:center; gap:6px; padding:6px 11px 6px 9px;
+        background:#302f2d; border:1px solid var(--acc); border-radius:99px; font-size:11.5px; font-weight:500;
+        box-shadow:0 6px 20px -6px #000; animation:pl2 1.2s ease-out 2; }
+@keyframes pl2 { 0%{box-shadow:0 6px 20px -6px #000,0 0 0 0 rgba(217,119,87,.5)} 100%{box-shadow:0 6px 20px -6px #000,0 0 0 12px rgba(217,119,87,0)} }
+.pill .d { width:6px; height:6px; border-radius:99px; background:var(--acc); }
+.pos-a { top:44px; right:10px; }
+.pos-b { bottom:10px; right:10px; }
+
+.toast { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:9px; font-size:11.5px;
+         background:#302f2d; border:1px solid var(--line); box-shadow:0 8px 24px -8px #000; margin-bottom:7px; }
+.toast .i { width:16px; height:16px; border-radius:99px; display:grid; place-items:center; font-size:9px; color:#141413; flex:0 0 auto; }
+.toast code { font:11px ui-monospace,monospace; color:#f5f4ef; }
+.toast s { text-decoration:none; margin-left:auto; color:var(--dim); font-size:10.5px; }
+.toast.ok { border-color:rgba(63,143,94,.5) } .toast.ok .i { background:#3f8f5e }
+.toast.warn { border-color:rgba(224,179,65,.5) } .toast.warn .i { background:#e0b341 }
+.toast.err { border-color:rgba(192,57,43,.6) } .toast.err .i { background:#c0392b; color:#fff }
+.toasts { padding:14px 4px 4px; max-width:400px; }
+.cards .card-image { padding:16px; background:#141413; }
+.note { font-size:12px; color:#8b8a84; margin-top:8px; }
+h3.sec { margin:26px 0 2px; }
+</style>
+
+<h2>Pulse pill konumu + toast</h2>
+<p class="subtitle">Pill = "burada indirilecek bir şey var" sinyali. 2 nabız atıp 4 sn sonra kendi kendine kaybolur, tıklanınca menüyü açar. Soru: nereye otursun?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="cp">
+        <div class="cp-head"><span class="cp-t">Sales Dashboard</span><span class="cp-v">· v3</span><span class="cp-sp"></span>
+          <div class="cp-seg"><span class="on">Code</span><span>Preview</span></div>
+          <div class="cp-split pulse"><i>↓</i><i>▾</i></div><div class="cp-ic">⧉</div><div class="cp-ic">✕</div></div>
+        <div class="cp-body">
+          <div class="pill pos-a"><span class="d"></span> 3 versiyon indirilebilir</div>
+          <div class="cp-code">import { useState } <b>from</b> "react";
+<b>export default function</b> Dashboard() {
+  <b>const</b> [range, setRange] = useState("30d");</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Butonun altına yapışık</h3>
+      <p>Pill doğrudan indirme butonunu işaret ediyor — göz pill'den butona iniyor, ne yapacağını öğreniyor. Kodun ilk satırlarını 4 sn kapatıyor.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="cp">
+        <div class="cp-head"><span class="cp-t">Sales Dashboard</span><span class="cp-v">· v3</span><span class="cp-sp"></span>
+          <div class="cp-seg"><span class="on">Code</span><span>Preview</span></div>
+          <div class="cp-split pulse"><i>↓</i><i>▾</i></div><div class="cp-ic">⧉</div><div class="cp-ic">✕</div></div>
+        <div class="cp-body">
+          <div class="pill pos-b"><span class="d"></span> 3 versiyon indirilebilir</div>
+          <div class="cp-code">import { useState } <b>from</b> "react";
+<b>export default function</b> Dashboard() {
+  <b>const</b> [range, setRange] = useState("30d");
+  <b>const</b> data = useMemo(() =&gt; agg(rows, range), [rows]);
+  <b>return</b> &lt;main className="grid"&gt;</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Panelin sağ altı</h3>
+      <p>Okunan alanın dışında, kodu hiç kapatmıyor. Toast'lar da aynı yerden çıkar — tek bildirim bölgesi. Butonla görsel bağı zayıf.</p>
+    </div>
+  </div>
+</div>
+
+<h3 class="sec">Toast varyantları</h3>
+<div class="toasts">
+  <div class="toast ok"><span class="i">✓</span> <code>Sales-Dashboard-v3.tsx</code> <s>indirildi</s></div>
+  <div class="toast ok"><span class="i">✓</span> <code>Sales-Dashboard-3-versiyon.zip</code> <s>3 dosya</s></div>
+  <div class="toast warn"><span class="i">!</span> Sayfadan okundu — versiyon geçmişi yok <s>neden?</s></div>
+  <div class="toast warn"><span class="i">!</span> <code>v2</code> kısmi: <code>old_str</code> eşleşmedi <s>yine de indir</s></div>
+  <div class="toast err"><span class="i">✕</span> İndirilemedi — artifact okunamadı <s>detay</s></div>
+</div>
+<p class="note">Başarı toast'ı 2.5 sn, uyarı 5 sn, hata <b>elle kapatılana kadar</b> durur. Hata sessizce kaybolmaz — kullanıcı dosyanın inmediğini fark etmeli.</p>

@@ -1,0 +1,124 @@
+<style>
+.z { --bg:#262624; --bg2:#1f1e1d; --line:#3a3936; --tx:#f5f4ef; --dim:#a3a29c; --acc:#d97757; --ok:#3f8f5e; --no:#5c5b55; }
+.matrix { width:100%; border-collapse:separate; border-spacing:0; font:12px ui-sans-serif,system-ui,sans-serif;
+          background:#1f1e1d; border:1px solid #3a3936; border-radius:10px; overflow:hidden; color:#f5f4ef; }
+.matrix th, .matrix td { padding:9px 12px; border-bottom:1px solid rgba(58,57,54,.7); text-align:center; }
+.matrix th:first-child, .matrix td:first-child { text-align:left; color:#c9c7bf; }
+.matrix thead th { background:#2a2927; font-size:11px; letter-spacing:.03em; }
+.matrix tr:last-child td { border-bottom:0; }
+.y { color:#3f8f5e; font-weight:700; } .n { color:#5c5b55; } .q { color:#e0b341; font-weight:700; }
+.legend { font-size:11.5px; color:#8b8a84; margin-top:9px; }
+
+.tr { background:#262624; border:1px solid #3a3936; border-radius:10px; padding:14px; position:relative;
+      font:13px/1.5 ui-sans-serif,system-ui,sans-serif; color:#f5f4ef; }
+.msg { font-size:12.5px; color:#c9c7bf; margin-bottom:9px; }
+.blk { background:#1a1918; border:1px solid #33322f; border-radius:8px; padding:9px 11px; margin-bottom:9px;
+       font:11px/1.65 ui-monospace,Menlo,monospace; color:#8b8a84; white-space:pre; position:relative; }
+.blk b { color:#c9c7bf; font-weight:400; }
+.blk.hot { border-color:rgba(217,119,87,.55); }
+.lang { position:absolute; top:7px; right:10px; font:9px ui-sans-serif,sans-serif; color:#6b6a65; letter-spacing:.06em; }
+.float { position:absolute; display:flex; align-items:center; gap:5px; padding:4px 9px 4px 7px; border-radius:7px;
+         background:#302f2d; border:1px solid #d97757; font:11px ui-sans-serif,system-ui,sans-serif; color:#f5f4ef;
+         box-shadow:0 6px 18px -6px #000; z-index:4; }
+.cursor { position:absolute; width:13px; height:19px; z-index:5; }
+
+.pp { width:330px; background:#262624; border:1px solid #3a3936; border-radius:12px; overflow:hidden;
+      font:13px/1.45 ui-sans-serif,system-ui,sans-serif; color:#f5f4ef; }
+.pp-h { display:flex; align-items:center; gap:8px; padding:10px 13px; border-bottom:1px solid #3a3936; font-weight:600; font-size:12.5px; }
+.pp-h s { text-decoration:none; margin-left:auto; font-size:10px; color:#a3a29c; font-weight:400; }
+.site { display:flex; align-items:center; gap:6px; padding:6px 13px; background:#1f1e1d; border-bottom:1px solid #3a3936;
+        font-size:11px; color:#a3a29c; }
+.site .dot { width:6px; height:6px; border-radius:99px; background:#3f8f5e; box-shadow:0 0 6px #3f8f5e; }
+.grp { padding:9px 13px 4px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:#a3a29c; }
+.it { display:flex; align-items:center; gap:9px; padding:7px 13px; border-bottom:1px solid rgba(58,57,54,.5); font-size:12px; }
+.it .ic { width:19px; height:19px; border-radius:5px; display:grid; place-items:center; font-size:9px; flex:0 0 auto;
+          background:#33322f; color:#c9c7bf; }
+.it .m { margin-left:auto; font-size:10px; color:#a3a29c; }
+.it .dl { width:22px; height:20px; border-radius:5px; display:grid; place-items:center; font-size:11px;
+          background:rgba(217,119,87,.16); box-shadow:0 0 0 1px #d97757; }
+.pp-f { padding:8px 13px; border-top:1px solid #3a3936; background:#1f1e1d; display:flex; gap:7px; align-items:center;
+        font-size:10.5px; color:#a3a29c; }
+.cards .card-image { padding:16px; background:#141413; }
+.note { font-size:12px; color:#8b8a84; margin-top:9px; }
+h3.sec { margin:28px 0 4px; }
+.two { display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; }
+.two > div { flex:1; min-width:280px; }
+.two p { font-size:12.5px; color:#a3a29c; line-height:1.55; }
+</style>
+
+<h2>Dört sağlayıcı — yetenek matrisi ve düşüş davranışı</h2>
+<p class="subtitle">Yetenek yoksa kontrol de yok. Gri, pasif, "desteklenmiyor" yazan kontrol de göstermiyoruz — hiç çizilmiyor.</p>
+
+<table class="matrix">
+  <thead><tr><th>Yetenek</th><th>Claude</th><th>ChatGPT</th><th>Gemini</th><th>Perplexity</th></tr></thead>
+  <tbody>
+    <tr><td>Kod blokları (DOM tabanı)</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+    <tr><td>Panel / canvas belgesi</td><td class="y">✓ artifact</td><td class="y">✓ canvas</td><td class="n">—</td><td class="n">—</td></tr>
+    <tr><td>Versiyon geçmişi</td><td class="y">✓ op-log</td><td class="q">?</td><td class="n">✗</td><td class="n">✗</td></tr>
+    <tr><td>Yüklenen ekler</td><td class="q">?</td><td class="q">?</td><td class="q">?</td><td class="q">?</td></tr>
+    <tr><td>API kademesi</td><td class="q">?</td><td class="q">?</td><td class="q">?</td><td class="q">?</td></tr>
+    <tr><td>Sürükle-bırak · klasöre kaydet · zip</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+  </tbody>
+</table>
+<p class="legend"><span class="q">?</span> = adım 1'de sağlayıcı bazında keşfedilecek. Bu spec hiçbir sağlayıcının dahilî API'sini bildiğini iddia etmiyor — Claude dahil. Doğrulanamayan yetenek o sağlayıcıda <b>kapatılır</b>, taklit edilmez.</p>
+
+<h3 class="sec">Kod bloğu: tek gezici düğme, N enjeksiyon değil</h3>
+<div class="two">
+<div>
+  <div class="tr">
+    <div class="msg">Migration'ı iki adımda yapabilirsin:</div>
+
+    <div class="blk"><span class="lang">SQL</span><b>ALTER TABLE</b> orders
+  <b>ADD COLUMN</b> currency text;</div>
+
+    <div class="blk hot"><span class="lang">PYTHON</span><b>def</b> backfill(session):
+    <b>for</b> row <b>in</b> session.query(Order):
+        row.currency = "TRY"
+    session.commit()</div>
+
+    <div class="float" style="top:150px; right:16px;">↓ <span>backfill.py</span></div>
+    <svg class="cursor" style="top:168px; right:6px" viewBox="0 0 13 19"><path d="M1 1l10 9-4.2.6 2.6 5-2 1-2.6-5L1 15z" fill="#fff" stroke="#000" stroke-width="1"/></svg>
+
+    <div class="blk"><span class="lang">BASH</span>python manage.py migrate</div>
+  </div>
+  <p class="note">Fare hangi bloğun üstündeyse düğme oraya hizalanıyor. Ad, kodun ilk anlamlı tanımından türetildi: <code>def backfill</code> → <code>backfill.py</code>. Son blok üç satırdan kısa — hiç kontrol almıyor.</p>
+</div>
+<div>
+  <h3 style="margin-top:0">Neden tek düğme</h3>
+  <p>Bir mesajda onlarca blok olabilir. Her birine buton enjekte etmek üç bedeli birden getiriyordu: framework reconciliation çökme riskinin <b>blok sayısı kadar katlanması</b>, akış sırasında sürekli yeniden enjeksiyon, ve arayüzün kontrol çöplüğüne dönmesi.</p>
+  <p>Gezici düğme shadow root içinde <code>body</code>'ye bağlı. Sağlayıcının DOM'una <b>hiç</b> düğüm eklenmiyor — kod blokları için çökme riski tamamen sıfır.</p>
+  <p>Klavyeyle: blok odaklandığında düğme aynı şekilde hizalanıyor, <code>Alt+Shift+D</code> odaktakini indiriyor.</p>
+</div>
+</div>
+
+<h3 class="sec">Popup — öğe türleri ve sağlayıcı</h3>
+<div class="two">
+<div>
+  <div class="pp">
+    <div class="pp-h">AI Chat Downloader <s>v1.0.0</s></div>
+    <div class="site"><span class="dot"></span> ChatGPT · canvas + kod · <b style="color:#e0b341">versiyon yok</b></div>
+
+    <div class="grp">Belgeler</div>
+    <div class="it"><span class="ic">◧</span> Sales Dashboard <span class="m">canvas · 8.4 KB</span><span class="dl">↓</span></div>
+
+    <div class="grp">Kod blokları · 3</div>
+    <div class="it"><span class="ic">py</span> backfill.py <span class="m">14 satır</span><span class="dl">↓</span></div>
+    <div class="it"><span class="ic">sql</span> alter-orders.sql <span class="m">2 satır</span><span class="dl">↓</span></div>
+    <div class="it"><span class="ic">ts</span> use-cart.ts <span class="m">31 satır</span><span class="dl">↓</span></div>
+
+    <div class="grp">Ekler · 1</div>
+    <div class="it"><span class="ic">csv</span> siparisler-2026.csv <span class="m">412 KB</span><span class="dl">↓</span></div>
+
+    <div class="it" style="border-bottom:0"><span class="ic">🗜</span> <b>Tümü → zip</b> <span class="m">artifacts/ kod/ ekler/</span><span class="dl">↓</span></div>
+
+    <div class="pp-f">🔒 Veri cihazdan çıkmıyor<div style="flex:1"></div>⏻ Bu sitede kapat</div>
+  </div>
+</div>
+<div>
+  <h3 style="margin-top:0">Kararlar</h3>
+  <p><b>Sağlayıcı şeridi ne alacağını söylüyor.</b> ChatGPT'de "versiyon yok" açıkça yazıyor. Kullanıcı eksik yeteneği bozukluk sanmıyor.</p>
+  <p><b>Zip <code>kind</code> başına klasörlü.</b> <code>kod-3.py</code> ile bir artifact aynı düzlemde durursa arşivi açan neyin ne olduğunu ayırt edemiyor.</p>
+  <p><b>Badge kod bloklarını saymıyor.</b> Uzun sohbette 40+ blok olur; <code>40</code> yazan rozet bilgi değil gürültü ve "indirilecek bir şey var" sinyalini değersizleştirir. Badge yalnızca belge sınıfını sayıyor.</p>
+  <p><b>Alt satırda site bazında kapatma.</b> Bir gün bir sağlayıcıda bir şey ters gidecek; kullanıcı extension'ı kaldırmadan iki saniyede kapatabilmeli — "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.</p>
+</div>
+</div>
