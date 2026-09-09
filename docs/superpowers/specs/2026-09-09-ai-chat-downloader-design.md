@@ -44,6 +44,49 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 
 **Doğrulanacak ön koşul — adaptörlü her sağlayıcı için.** Adım 1'de her sağlayıcının kendi indirme/dışa aktarma düğmesini eklemiş olup olmadığı kontrol edilir (Claude'da artifact indirme, ChatGPT'de canvas dışa aktarma, Gemini'de Docs'a aktar, Perplexity'de dışa aktar). Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
 
+## 2.1 Ne tür bir ürün — "indirici" dar bir tarif
+
+"İndirici" bu ürünün ne yaptığını değil, **ilk özelliğini** anlatıyor. Otuz turdur eklenenlere bakınca omurga netleşti: sürüm geçmişi, sohbet taşıma, indirme geçmişi, sohbetler arası tanıma, Markdown dışa aktarma. Bunların hiçbiri "dosya indirme" değil.
+
+**Omurga:** *AI sohbetlerinden çıkan işi sahiplenmek ve yeniden kullanmak.* Model üretir, sen sahiplenirsin — çıkarmak, sürümlemek, taşımak, hatırlamak, tekrar kullanmak. "LLM'leri iyi kullanmak"ın bu ürüne düşen kısmı budur.
+
+**Bu tarifin dışında bıraktıkları ve nedenleri:**
+
+| Talep | Neden bu ürün değil |
+|---|---|
+| Prompt kütüphanesi / yönetici | Ayrı bir ürün kategorisi; sohbetten çıkan işle ilgisi yok, tek amaç beyanını böler |
+| Çoklu-model istemci | §4.4 — kimlik bilgisi, composer otomasyonu, framing engeli |
+| Ajan çalıştırma / otomasyon | Kimlik bilgisi ve sunucu gerektirir; §17.2'yi kökten bozar |
+| Model kalitesi kıyaslama, prompt puanlama | Model çağırmak demek — bu ürün hiçbir modele istek atmaz |
+
+Ortak ölçüt açık: **kullanıcının kendi oturumunda zaten var olan veriyle** yapılabiliyorsa kapsam içi; bir model çağrısı, bir anahtar ya da bir sunucu gerekiyorsa kapsam dışı. Bu ölçüt otuz turdur tutarlı kaldı ve tek amaç beyanını (§19.6) da o koruyor.
+
+### 2.1.1 Omurgaya düşen, henüz yazılmamış üç şey
+
+Kimlik bilgisi gerektirmeyen, elimizdeki veriyle çalışan:
+
+**Bağlam devri.** Uzun sohbette model erken kısımları unutmaya başlar; kullanıcı bunu genelde geç fark eder. Sohbet belirgin biçimde uzadığında (mesaj sayısı/karakter eşiği) popup'ta sessiz bir öneri: `Bu sohbet uzadı — bağlamı yeni bir sohbete taşı`. Taşıma zaten var (§3.3.3); eklenen tek şey **hazır bir devir promptu**: Markdown'ın başına *"Aşağıda önceki konuşmam var. Özetini çıkar ve kaldığımız yerden devam et."* Model çağrısı yok, sadece kullanıcının yapıştıracağı metnin doğru biçimlenmesi.
+
+**Kaybolmuş işi bulmak.** Uzun bir sohbette üretilmiş ama hiç indirilmemiş öğeler, geçmiş açıkken bilinebiliyor. Popup: `Bu sohbette 6 öğe var, 2'sini hiç almadın`. En sık kayıp, farkında olunmayan kayıp.
+
+**Geçmişten bağlam olarak yeniden kullanma.** Geçmişteki bir öğeyi (§4.3) yeni bir sohbete **bağlam olarak** panoya koymak: `⧉ Bağlam olarak kopyala` → ad + dil + içerik, fenced. "Geçen ay yazdığım şu bileşeni referans vererek devam et" akışı, indirip açıp kopyalamadan. Geçmiş zaten hash ve yol tutuyor; eksik olan tek şey bu düğme.
+
+Üçü de aynı sınırın içinde: **var olan veriden**, model çağrısı olmadan, kullanıcının eylemiyle.
+
+## 2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek
+
+FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip olduğuna** bağlı ve bunu bilmiyorum. Uydurmak yerine üç olası şekli ve maliyetlerini yazıyorum; hangisi doğruysa spec o dala göre yazılır.
+
+| FindAgent'ın yüzeyi | Entegrasyon | Maliyet |
+|---|---|---|
+| **Web sohbet arayüzü var** | Kayıt satırı (§3.4). `host` + `name` + `newChatUrl`; `chatRoot` sezgiselden gelir. Kod blokları, indirme, sürükleme, geçmiş, taşıma — hepsi **anında** çalışır | Bir satır. Kayıt modelinin tam olarak var olma sebebi |
+| **API/endpoint var** | Taşıma hedefi olarak: `→ FindAgent'a gönder`. Ama bu, veriyi bizim gönderdiğimiz ilk yol olur — kimlik bilgisi, §17.2'nin gözden geçirilmesi, mağaza veri beyanının değişmesi | Yüksek. Ayrı bir güven tasarımı gerekir |
+| **MCP sunucusu var** | §4.2'deki MCP yüzeyiyle aynı yön: yerel indirme kütüphanesini FindAgent ajanlarına açmak. Extension'ı değiştirmez, kütüphaneyi tüketir | Orta; ama klasöre kaydetme + geçmiş yaygınlaşmadan anlamsız |
+
+**Cevaplanması gereken:** FindAgent'ın kullanıcıya görünen yüzü bir web arayüzü mü, bir ajan platformu mu, yoksa MCP üzerinden mi kullanılıyor? Kullanıcı FindAgent'ta bir "sohbet" yapıyor mu, yoksa ajanlar arka planda mı çalışıyor?
+
+Cevap "web arayüzü" ise iş bitmiş demektir — bir kayıt satırı. Diğer iki dal gerçek tasarım kararları içeriyor ve bu dokümanın kurduğu gizlilik çerçevesini yeniden açar; o yüzden karar verilmeden yazılmaz.
+
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
 Artifact'ın "güncel hâli" hiçbir yerde tek parça durmaz. Konuşmada **operasyon kaydı** durur:
