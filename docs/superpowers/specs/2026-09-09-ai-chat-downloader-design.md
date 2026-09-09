@@ -202,6 +202,8 @@ Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyon
 
 `?` = **adım 1'de sağlayıcı bazında keşfedilecek.** Bu spec hiçbir sağlayıcının dahilî API şemasını bildiğini iddia etmiyor; Claude için bile şema doğrulaması ilk iş (§4). Keşif çıktısı her adaptör için: konuşma kimliği nereden okunur, API var mı, yanıt şekli, akış tespiti, `SEL` seçicileri, ek endpoint'i.
 
+**`capabilities` statik yazılır, çalışma anında yalnızca *daralabilir*.** Adaptör dosyasında keşif sonucuna göre sabit tanımlanır; oturum sırasında API 401 verirse `api` o sekme için kapanır ve UI hemen buna göre çizilir (versiyon menüsü kaybolur). Genişleme yönü yoktur — çalışma anında "acaba destekliyor mu" diye yoklama yapılmaz, çünkü yoklama hem gereksiz istek hem de bot koruması riskidir (§16).
+
 Bir yetenek doğrulanamazsa o sağlayıcıda **kapatılır**, taklit edilmez: versiyon menüsü yoksa buton bölünmez (§8.1), ek desteği yoksa hiç söz edilmez. Kullanıcı her sağlayıcıda ne alacağını görür; eksik yetenek sessiz hata olarak görünmez.
 
 ### 3.4.3 Yalıtım
@@ -223,6 +225,16 @@ Aşağıdaki kademe yapısı **genel kalıptır**; somut alanlar Claude adaptör
 Kural: Kademe 2'de, çıkarılan gövde içinde başka bir açılış/kapanış işareti kalıntısı varsa versiyon `ok:false`, `reason:"tier2_ambiguous"` işaretlenir. Kademe 1 (yapısal JSON) bu soruna tanım gereği bağışık — sınırlar veriden değil şemadan gelir. Kademe sıralamasının ikinci gerekçesi budur.
 
 Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görünür ve sarı toast çıkar — kullanıcı versiyon geçmişinin neden yok olduğunu bilir.
+
+**Kademe 3'ün asıl tehlikesi eksik değil, sanki tammış gibi görünen içeriktir.** Uzun kod görünümleri **sanallaştırılmış** olabilir: DOM'da yalnızca ekranda olan satırlar durur, `textContent` geri kalanını hiç görmez. Sonuç 400 satırlık bir dosyanın 60 satırı — ve dosya açıldığında makul görünür, çünkü baştan başlar ve sözdizimi bozulmaz. Sessiz kesilmenin en kötü biçimi.
+
+Kural — okuma **tamlık kanıtı olmadan kabul edilmez**:
+1. Blok/panel kaydırılabiliyorsa (`scrollHeight > clientHeight`) içerik şüphelidir
+2. Kod satırlarını taşıyan düğüm sayısı, kaydırma yüksekliğinin ima ettiği satır sayısıyla karşılaştırılır; tutmuyorsa sanallaştırma var demektir
+3. Sanallaştırma tespit edilirse: içerik **programatik olarak sonuna kadar kaydırılıp** parça parça toplanır (`scrollTop` adım adım, her adımda yeni satırlar biriktirilir), sonra kaydırma konumu **eski hâline döndürülür** (§12'deki sekme geri yükleme ilkesiyle aynı)
+4. Toplama sonrası satır sayısı hâlâ tutmuyorsa öğe `⚠ eksik olabilir` işaretlenir ve dosya adına `-partial` eklenir — bozuk dosyayı sessizce vermeyiz
+
+Bu, Kademe 1'i tercih etmenin **üçüncü** gerekçesi: API yanıtı sanallaştırma bilmez, tam metni verir.
 
 **Doğrulanacak varsayım (implementation'ın ilk adımı):** Kademe 1 için `input` nesnesinin alan adları (`id` mi `identifier` mı, `content` mi `new_content` mi); Kademe 2 için `old_str`/`new_str`'ın attribute mı child element mi olduğu. Parser yazılmadan önce gerçek bir konuşma JSON'u dump edilip her iki şema da doğrulanacak; parser gördüğü varyantları tolere edecek şekilde yazılır.
 
@@ -312,9 +324,12 @@ ai-chat-downloader/
 
 ## 6. Modül sözleşmeleri
 
-### parse.js (saf)
+### parse.js (saf) — çekirdek
+
+**Sınır:** `parseOps` **çekirdeğin değil, adaptörün** işidir; sağlayıcının şemasını (tool_use alan adları, `antArtifact` biçimi) yalnızca adaptör bilir. Çekirdek `Op[]`'ı alır ve geri kalanını yapar. Aşağıdaki `parseOps` imzası bu yüzden **adaptörün uyması gereken çıktı sözleşmesidir**, çekirdekte bir implementasyon değil; `buildVersions`, `extFor`, `sanitize`, `fmtName` ise çekirdektedir ve dört sağlayıcıda ortaktır. Sağlayıcıya özel hiçbir alan adı `parse.js`'e sızmaz.
+
 ```js
-parseOps(conversationJson) → Op[]
+parseOps(conversationJson) → Op[]   // ADAPTÖR uygular, çekirdek tüketir
 // Op: { artifactId, title, type, language, command, content?, oldStr?, newStr?, msgIndex, createdAt }
 
 buildVersions(ops, artifactId) → Version[]
@@ -514,6 +529,8 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 | indi | yeşil `✓`, 2 sn sonra eski hâl |
 | hata | kırmızı `!`, kalır |
 
+**Boş badge "indirilecek bir şey yok" demek değildir.** Badge yalnızca belgeleri sayar; 12 kod bloğu olan bir sohbette badge boştur ve bu doğrudur — kod blokları davetsiz sinyal üretmez, talep üzerine erişilir. Popup açıldığında ikisi de listelenir (§8.6), yani bilgi kaybolmaz, sadece rozete taşınmaz.
+
 **Badge kod bloklarını saymaz.** Uzun bir sohbette 40+ kod bloğu olabilir; `40` yazan bir rozet bilgi değil gürültüdür ve "indirilecek bir şey var" sinyalini değersizleştirir. Badge yalnızca **belge sınıfı** öğeleri sayar: artifact/canvas. Kod blokları talep üzerine, gezici düğmeyle erişilir; sinyal üretmezler.
 
 **Sayı nereden geliyor — ağdan değil, DOM'dan.** Burada bir çelişki riski var: §7 boru hattı konuşmayı **yalnızca butona basılınca** çekiyor. Badge'in sayıyı gösterebilmesi için sayfa açılır açılmaz fetch yapmak gerekirdi ve bu, hiç indirme yapmayacak kullanıcı için her sohbette birkaç MB'lık istek demektir — sessiz, gereksiz, pil yakan.
@@ -601,7 +618,7 @@ Kural — üç kademeli davranış:
 
 Hiçbir durumda "hiçbir şey olmadı" yok. Ayar kapatılmaz, kullanıcı bir sonraki indirmede yeniden izin verebilir.
 
-Aynı adlı dosya varsa üzerine yazılmaz; `-2`, `-3` soneki eklenir. Tarayıcı indirmesinde bunu Chrome yapıyor; klasöre yazarken **biz** yapmak zorundayız, yoksa sessiz veri kaybı olur.
+Aynı adlı dosya varsa üzerine yazılmaz; `-2`, `-3` soneki eklenir. Tarayıcı indirmesinde bunu Chrome yapıyor; klasöre yazarken **biz** yapmak zorundayız, yoksa sessiz veri kaybı olur. Varlık kontrolü `getFileHandle(name)` ile yapılır — `NotFoundError` fırlatması adın **boş** olduğu anlamına gelir; `create:true` ile çağırmak dosyayı oluşturup kontrolü anlamsız kılar, o yüzden kontrol her zaman `create` olmadan yapılır.
 
 ### 8.8 İlk çalıştırma ve boş durumlar
 
