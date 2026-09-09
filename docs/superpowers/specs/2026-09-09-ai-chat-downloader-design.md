@@ -15,7 +15,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 
 **Neden sabit bir liste, `<all_urls>` değil.** Genel web indiricisi yönü bilinçle reddedildi: `<all_urls>` host izni Web Store incelemesinin en sık ret sebebi ve kullanıcı güveninin en hızlı kaybı; "tek amaç" beyanı (mağaza formunda zorunlu) çöker. Sabit ve gerekçelendirilebilir bir liste — `claude.ai`, `chatgpt.com`, `gemini.google.com`, `perplexity.ai` — tek amacı korur: *AI sohbet asistanlarından kod ve doküman indirmek*. Dış istek yine yok; her sağlayıcıya yalnızca kullanıcının kendi oturumunda, kendi verisi için gidilir.
 
-**Kabul edilen risk.** Dört sağlayıcı = dört bağımsız arayüz, dört bağımsız kırılma takvimi. Baskın maliyet kod değil bakımdır. Bu bilinçli bir karardır (bkz. §16 Riskler); tasarım bunu üç şeyle sınırlar: adaptör yalıtımı, sağlayıcıdan bağımsız DOM tabanı, ve bir adaptör bozulduğunda diğerlerinin etkilenmemesi.
+**Kabul edilen risk.** Her sağlayıcı arayüzünü bağımsız değiştirir; N sağlayıcı = N bağımsız kırılma takvimi. Baskın maliyet kod değil bakımdır. Bu bilinçli bir karardır (bkz. §16 Riskler); tasarım bunu üç şeyle sınırlar: adaptör yalıtımı, sağlayıcıdan bağımsız DOM tabanı, ve bir adaptör bozulduğunda diğerlerinin etkilenmemesi.
 
 ## 2. Hedefler / Hedef olmayanlar
 
@@ -36,12 +36,12 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 **Hedef değil**
 - Toplu hesap yedeği (tüm sohbetleri gezmek)
 - Artifact düzenleme / geri yükleme
-- Listedeki dört sağlayıcı dışındaki siteler
+- Kayıtta olmayan ve kullanıcının izin vermediği siteler (§3.4.0)
 - Kurumsal politika ile önceden yapılandırma (`storage.managed`) — talep gelirse eklenir, varsayım olarak inşa edilmez
 - Sunucu, hesap, senkronizasyon
 - **Çalıştırılabilir paket üretmek.** React artifact'ı tek başına `.tsx` olarak iner; `package.json`, bundler yapılandırması veya HTML sarmalayıcı üretmeyiz. Kullanıcı dosyayı kendi projesine taşır. Bu bilinçli bir sınır: "çalışan proje" üretmek ayrı bir üründür ve her framework için ayrı bakım demektir
 
-**Doğrulanacak ön koşul — dört sağlayıcı için ayrı ayrı.** Adım 1'de her sağlayıcının kendi indirme/dışa aktarma düğmesini eklemiş olup olmadığı kontrol edilir (Claude'da artifact indirme, ChatGPT'de canvas dışa aktarma, Gemini'de Docs'a aktar, Perplexity'de dışa aktar). Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
+**Doğrulanacak ön koşul — adaptörlü her sağlayıcı için.** Adım 1'de her sağlayıcının kendi indirme/dışa aktarma düğmesini eklemiş olup olmadığı kontrol edilir (Claude'da artifact indirme, ChatGPT'de canvas dışa aktarma, Gemini'de Docs'a aktar, Perplexity'de dışa aktar). Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
 
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
@@ -141,7 +141,7 @@ css → .css             scss sass → .scss           md markdown → .md
 toml → .toml           ini → .ini                  diff patch → .diff
 dockerfile → .dockerfile   (dilsiz / tanınmayan) → .txt
 ```
-Bu tablo **çekirdeğe** aittir ve dört sağlayıcıda ortaktır; §6'daki MIME tablosu yalnızca Claude adaptörünündür.
+Bu tablo **çekirdeğe** aittir ve tüm sağlayıcılarda ortaktır; §6'daki MIME tablosu yalnızca Claude adaptörünündür.
 
 Uzantı fence dilinden gelir; dil yoksa ve içerik ayırt edilemiyorsa `.txt`. Versiyon kavramı yok (`versions` tek elemanlı).
 
@@ -162,23 +162,6 @@ Kural: ek indirmeleri **sıralı** (eşzamanlılık 1), aralarında küçük bir
 Aynı disiplin belge/kod için gerekmiyor: onlar zaten çekilmiş konuşma yanıtının içinden geliyor, ek istek yok.
 
 **Doğrulanacak (adım 1):** ek indirme endpoint'i ve yanıt biçimi. Belirlenemezse ekler kapsamdan **çıkarılır** — artifact ve kod tek başına ürünü ayakta tutar; çalışmayan bir feature'ı yarım bırakmaktansa hiç söz vermemek iyidir.
-
-### 3.4 Sağlayıcı kaydı ve adaptörler
-
-**Neden dört değil.** Önceki sürüm sağlayıcı başına bir adaptör varsayıyordu ve dört sağlayıcıyı "kabul edilmiş bakım riski" olarak yazıyordu. Bu yanlış muhasebeydi: kod bloğu çıkarımı **zaten sağlayıcıdan bağımsız** (§3.4.2), yani bir sağlayıcıyı taban seviyede desteklemenin maliyeti bir adaptör değil, **bir kayıt satırı**. Pahalı olan belge/versiyon/ek katmanı — ve o katman AI sohbet arayüzlerinin çoğunda **hiç yok**.
-
-Doğru model iki katmanlı:
-
-**1. Kayıt (registry) — taban destek.** Paket içinde gömülü bir tablo (uzak kod yok, §17):
-```js
-{ id: "deepseek", host: "chat.deepseek.com", chatRoot: "…",
-  name: "DeepSeek", newChatUrl: "https://chat.deepseek.com/" }
-```
-Bir satır = kod bloğu indirme, doğru ad ve uzantı, sürükle-bırak, klasöre kaydet, zip, filtre, seçim. Yeni sağlayıcı eklemek bir PR'da bir satır ve bir fixture; adaptör yazılmaz.
-
-**2. Adaptör — gelişmiş destek.** Yalnızca belge/canvas, versiyon geçmişi, ek veya API kademesi sunan sağlayıcılar için. Sözleşme aşağıdaki gibidir ve kayıt satırının üstüne biner. Claude (artifact + op-log) ve ChatGPT (canvas) buraya girer; Gemini Canvas ve benzerleri adım 1'de ölçülür.
-
-**Bakım muhasebesi düzeliyor:** taban sağlayıcı kırıldığında tamir tek bir `chatRoot` seçicisidir ve `LAST_VERIFIED` mekanizması (§19.8) zaten sağlayıcı başına çalışıyor. Yirmi taban sağlayıcı, dört adaptörden **daha ucuz**dur.
 
 ### 3.3.3 Konuşmayı taşıma — Markdown ve "başka sağlayıcıda devam et"
 
@@ -202,6 +185,23 @@ Panoya yazma `navigator.clipboard.writeText` ile ve **kullanıcı hareketiyle** 
 **Ne kaybolur, açıkça yazılır.** Hedefte artifact'lar artifact olmaz, kod blokları kod bloğu kalır ama sürüm geçmişi yoktur, ekler taşınmaz (dosyaların kendisi gitmez, adları listelenir). Bu `docs/LIMITATIONS.md`'de ve taşıma ekranında yazılıdır — "devam ettirme" tam bir kopya değil, **bağlam aktarımı**.
 
 Kayıt satırına tek alan ekler: `newChatUrl`. Adaptör gerektirmez; taban seviyedeki her sağlayıcı hem kaynak hem hedef olabilir.
+
+### 3.4 Sağlayıcı kaydı ve adaptörler
+
+**Neden dört değil.** Önceki sürüm sağlayıcı başına bir adaptör varsayıyordu ve dört sağlayıcıyı "kabul edilmiş bakım riski" olarak yazıyordu. Bu yanlış muhasebeydi: kod bloğu çıkarımı **zaten sağlayıcıdan bağımsız** (§3.4.2), yani bir sağlayıcıyı taban seviyede desteklemenin maliyeti bir adaptör değil, **bir kayıt satırı**. Pahalı olan belge/versiyon/ek katmanı — ve o katman AI sohbet arayüzlerinin çoğunda **hiç yok**.
+
+Doğru model iki katmanlı:
+
+**1. Kayıt (registry) — taban destek.** Paket içinde gömülü bir tablo (uzak kod yok, §17):
+```js
+{ id: "deepseek", host: "chat.deepseek.com", chatRoot: "…",
+  name: "DeepSeek", newChatUrl: "https://chat.deepseek.com/" }
+```
+Bir satır = kod bloğu indirme, doğru ad ve uzantı, sürükle-bırak, klasöre kaydet, zip, filtre, seçim. Yeni sağlayıcı eklemek bir PR'da bir satır ve bir fixture; adaptör yazılmaz.
+
+**2. Adaptör — gelişmiş destek.** Yalnızca belge/canvas, versiyon geçmişi, ek veya API kademesi sunan sağlayıcılar için. Sözleşme aşağıdaki gibidir ve kayıt satırının üstüne biner. Claude (artifact + op-log) ve ChatGPT (canvas) buraya girer; Gemini Canvas ve benzerleri adım 1'de ölçülür.
+
+**Bakım muhasebesi düzeliyor:** taban sağlayıcı kırıldığında tamir tek bir `chatRoot` seçicisidir ve `LAST_VERIFIED` mekanizması (§19.8) zaten sağlayıcı başına çalışıyor. Yirmi taban sağlayıcı, dört adaptörden **daha ucuz**dur.
 
 ### 3.4.0 Listede olmayan siteler — kullanıcı izniyle
 
@@ -255,7 +255,7 @@ Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyon
 
 **Bir sağlayıcı erişilemezse ne olur.** Kapalı shadow root varsa ve API kademesi de yoksa o sağlayıcı için yapılabilecek bir şey yoktur. Karar: o sağlayıcı **kapsamdan çıkarılır** — manifest'ten host izni ve `content_scripts` bloğu silinir, mağaza listelemesinde adı geçmez, `sites` ayarında görünmez. Yarım çalışan bir sağlayıcı hem kullanıcı için hem inceleme için hem bakım için üçlü zarardır.
 
-Bu, dört sağlayıcı iddiasının **ön koşuludur**: adım 1'de her sağlayıcı için sırayla `chatRoot` bulunabiliyor mu, kod bloğu metni okunabiliyor mu, ana çerçevede mi. Üçü de olumluysa sağlayıcı listede kalır. Mağaza metni ancak bu ölçümden sonra yazılır — desteklenmeyen bir sağlayıcıyı listelemek, incelemede yanlış beyandır.
+Bu, kayda giren her sağlayıcının **ön koşuludur**: eklenmeden önce sırayla `chatRoot` bulunabiliyor mu, kod bloğu metni okunabiliyor mu, ana çerçevede mi. Üçü de olumluysa sağlayıcı listede kalır. Mağaza metni ancak bu ölçümden sonra yazılır — desteklenmeyen bir sağlayıcıyı listelemek, incelemede yanlış beyandır.
 
 ### 3.4.3 Yetenek matrisi
 
@@ -487,7 +487,7 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
    Kural, sırayla:
    1. Buton, action bar'ın **son çocuğu** olarak eklenir — React'in kaldırma/sıralama işlemlerinin en az dokunduğu konum
    2. React'in hiçbir düğümü **kaldırılmaz, taşınmaz, sırası değiştirilmez**; yalnızca ekleme yapılır
-   3. Adım 1'de bu **dört sağlayıcıda ayrı ayrı, kasten zorlanır**: buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
+   3. Adım 1'de bu **adaptörlü her sağlayıcıda kasten zorlanır** (taban sağlayıcılarda enjeksiyon yok, §8.1.1): buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
    4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama sayfayı asla düşürmez. Kod blokları için bu yol zaten varsayılan (§8.1.1)
 
    Menü, pill ve toast zaten shadow root içinde ve `body`'ye bağlı (§8.7); risk yalnızca butona ait.
@@ -679,7 +679,7 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
 7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**. Önizleme, yer tutucu bir örnek değil **o an listedeki ilk öğenin gerçek adı** üzerinden hesaplanır (`Sales-Dashboard-v3.tsx`); liste boşsa jenerik örneğe düşer. Kullanıcının göreceği şeyle önizlemenin aynı olmaması, önizlemenin varlık sebebini yok eder.
    Şablondaki `/` ve `\` **temizlenir**, alt klasör oluşturmaz. Alt klasör desteği izin, iç içelik ve hata yollarını çoğaltır; karşılığında kazandırdığı şey nadir bir düzen tercihi. Token yardımında bu açıkça yazılır ki kullanıcı denemesin.
-8. **Siteler** (`sites`): kayıttaki sağlayıcılar için aç/kapa. Liste uzun olduğundan **arama kutusu** ve `Tümünü kapat / aç` bulunur; varsayılan hepsi açık. Kullanıcının eklediği hostlar (§3.4.0) ayrı bir grupta, her biri **kaldır** düğmesiyle — verdiği izni geri almanın yolu extension ayarlarında aranmamalı. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
+8. **Siteler** (`sites`): kayıttaki sağlayıcılar için aç/kapa. Liste uzun olduğundan **arama kutusu** ve `Tümünü kapat / aç` bulunur; varsayılan hepsi açık. Kullanıcının eklediği hostlar (`extraHosts`, §3.4.0) ayrı bir grupta, her biri **kaldır** düğmesiyle — verdiği izni geri almanın yolu extension ayarlarında aranmamalı. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
 9. **Adı indirmeden önce düzeltebilme.** Satırdaki ada tıklamak onu yerinde düzenlenebilir yapar; `Enter` onaylar, `Esc` iptal eder. Uzantı ayrı ve düzenlenmez (yanlış uzantı sessiz bir hata kaynağı).
 
    Gerekçe: ad dört basamaklı bir **sezgisel** zincirden geliyor (§3.3.1) ve sezgisel her zaman yanılabilir — `kod-7.py`, `use-cart.ts` yerine `index.ts`. Düzeltmenin tek yolu indirip dosyayı yeniden adlandırmak olurdu. Türetme ne kadar iyi olursa olsun, kullanıcıya son sözü vermeyen bir ad üreticisi eksiktir. Düzeltilen ad o oturum boyunca o öğe için hatırlanır.
@@ -705,7 +705,7 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 **Hareket.** `@media (prefers-reduced-motion: reduce)` altında nabız ve pill animasyonu iptal; pill yine görünür, sadece nabız atmaz. Badge nabzı da bu durumda tek karede sabitlenir.
 
-**Yazım yönü.** Dört sağlayıcı da Arapça/İbranice arayüzde `dir="rtl"` çalışır; `right: 10px` ile sabitlenen pill ve menü yanlış tarafa düşer, hatta panel kenarından taşar. Konumlandırmada fiziksel değil **mantıksal** özellikler kullanılır (`inset-inline-end`, `padding-inline`, `margin-inline-start`). Maliyeti sıfır, sonradan düzeltmesi her kuralı tek tek gözden geçirmek demek.
+**Yazım yönü.** Sağlayıcılar Arapça/İbranice arayüzde `dir="rtl"` çalışır; `right: 10px` ile sabitlenen pill ve menü yanlış tarafa düşer, hatta panel kenarından taşar. Konumlandırmada fiziksel değil **mantıksal** özellikler kullanılır (`inset-inline-end`, `padding-inline`, `margin-inline-start`). Maliyeti sıfır, sonradan düzeltmesi her kuralı tek tek gözden geçirmek demek.
 
 **Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı modelin ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
 
@@ -928,6 +928,18 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 
 İlke: bozuk dosya vermektense hiç dosya vermemek.
 
+### 11.1 Hangi sayılar ayarlanabilir, hangileri değil
+
+Spec'teki eşiklerin bir kısmı **ilkeden** çıkıyor, bir kısmı **tahmin**. İkisini ayırt edememek, implementer'ın ya dokunmaması gereken bir şeyi değiştirmesine ya da gerçekten kötü seçilmiş bir sayıyla yaşamasına yol açar.
+
+**Değişmez (ilkeden çıkar, dokunma):**
+`old_str` tam 1 eşleşme kuralı · zip alanlarının bayt cinsinden olması · 120 kod noktası **ve** 200 bayt ad sınırı (dosya sistemi sınırı) · ZIP64 eşikleri (65535 / 4 GB) · `version needed = 20` · toast'ın "indiriliyor" demesi (bilgi sınırı, tercih değil)
+
+**Ayarlanabilir (ölçümle iyileştir):**
+`MIN_CODE_LINES = 3` · konuşma cache TTL'i 60 sn · pill süresi 4 sn, tanıtım 6 sn · toast 2.5/5 sn · çapraz kademe uyuşmazlık eşiği %5 · sürükleme blob'unun serbest bırakılma gecikmesi 60 sn · `LAST_VERIFIED` 90/180 gün · performans bütçeleri (§19.2) · kademeli yayın %10/%50/%100 ve 48 saat
+
+Ayarlanabilir sayılar tek yerde adlandırılmış sabit olarak tutulur; koda dağılmış çıplak sayı bırakılmaz. Bir sayının kaynağı belirsizse **ayarlanabilir** sayılır — ilke iddiası kanıt ister.
+
 ### 11.2 Etkileşim semantiği — ayarların kesiştiği yerler
 
 Tek tek her ayar tanımlı, ama **birlikte** ne yaptıkları değildi. Her biri gerçek bir karar:
@@ -942,18 +954,6 @@ Tek tek her ayar tanımlı, ama **birlikte** ne yaptıkları değildi. Her biri 
 | Seçim varken "Tümü → zip" | Bar **seçime** dönüşür; "tümü" yalnızca seçim yokken görünür | İki toplu eylemin aynı anda görünmesi hangisinin çalışacağını belirsizleştirir |
 | Kısayol, odakta öğe yokken | Açık belge indirilir; o da yoksa `! Bu sayfada indirilecek öğe yok` | Sessiz no-op, kısayolun bozuk olduğunu düşündürür |
 | `kinds` ile gizlenen tür, sohbet zip'inde | Zip **görünen türleri** kapsar | Zip, listenin toplu hâlidir; listede olmayanı içermesi tutarsızlık olurdu |
-
-### 11.1 Hangi sayılar ayarlanabilir, hangileri değil
-
-Spec'teki eşiklerin bir kısmı **ilkeden** çıkıyor, bir kısmı **tahmin**. İkisini ayırt edememek, implementer'ın ya dokunmaması gereken bir şeyi değiştirmesine ya da gerçekten kötü seçilmiş bir sayıyla yaşamasına yol açar.
-
-**Değişmez (ilkeden çıkar, dokunma):**
-`old_str` tam 1 eşleşme kuralı · zip alanlarının bayt cinsinden olması · 120 kod noktası **ve** 200 bayt ad sınırı (dosya sistemi sınırı) · ZIP64 eşikleri (65535 / 4 GB) · `version needed = 20` · toast'ın "indiriliyor" demesi (bilgi sınırı, tercih değil)
-
-**Ayarlanabilir (ölçümle iyileştir):**
-`MIN_CODE_LINES = 3` · konuşma cache TTL'i 60 sn · pill süresi 4 sn, tanıtım 6 sn · toast 2.5/5 sn · çapraz kademe uyuşmazlık eşiği %5 · sürükleme blob'unun serbest bırakılma gecikmesi 60 sn · `LAST_VERIFIED` 90/180 gün · performans bütçeleri (§19.2) · kademeli yayın %10/%50/%100 ve 48 saat
-
-Ayarlanabilir sayılar tek yerde adlandırılmış sabit olarak tutulur; koda dağılmış çıplak sayı bırakılmaz. Bir sayının kaynağı belirsizse **ayarlanabilir** sayılır — ilke iddiası kanıt ister.
 
 ## 12. DOM bağımlılık katmanı
 
@@ -970,9 +970,9 @@ Bu bir anti-corruption layer. Üçüncü parti DOM'a bağımlı her extension en
 
 Her selector için `null` toleransı: bulunamayan selector exception atmaz, kademe düşürür.
 
-**Selector'lar metne bağlanamaz.** Dört sağlayıcının arayüzü de yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: her sağlayıcının arayüzü Türkçeye alınıp tüm akış tekrar denenir.
+**Selector'lar metne bağlanamaz.** Sağlayıcı arayüzleri yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: her sağlayıcının arayüzü Türkçeye alınıp tüm akış tekrar denenir.
 
-**Tema.** Dört sağlayıcının da açık teması var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
+**Tema.** Sağlayıcıların açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
 
 ### 12.1 DOM'dan metin okuma kuralları
 
@@ -986,7 +986,7 @@ Sanallaştırma (§4) tek tuzak değil. DOM bir **görüntüleme katmanı**; kod
 
 **4. Katlanmış / "daha fazla göster" bloklar.** İçerik CSS ile kırpılmışsa `textContent` tamdır, sorun yok; DOM'dan çıkarılmışsa bu §4'teki sanallaştırma kuralının aynısıdır ve aynı tamlık kanıtı aranır.
 
-Bu dört kural `common-dom.js`'te tek bir `readCodeText(node)` fonksiyonunda toplanır — dört sağlayıcı ve hem kod blokları hem Kademe 3 aynı yolu kullanır. Ayrı ayrı yazılırsa biri eksik kalır.
+Bu dört kural `common-dom.js`'te tek bir `readCodeText(node)` fonksiyonunda toplanır — bütün sağlayıcılar ve hem kod blokları hem Kademe 3 aynı yolu kullanır. Ayrı ayrı yazılırsa biri eksik kalır.
 
 **Preview modunda DOM okuma.** Kademe 3'e düşüldüğünde kod yalnızca Code sekmesinde bulunur. Sekmeyi programatik tıklamak kullanıcının görünümünü değiştirir — bu bizim değil onun tercihi. Kural: mevcut sekme kaydedilir, Code'a geçilir, metin okunur, **eski sekme geri yüklenir**. Kullanıcı ideal olarak kısa bir titreme dışında hiçbir şey görmez. Preview'da başlamışsa ve okuma başarısızsa yine de eski sekmeye dönülür (`try/finally`).
 
@@ -1030,7 +1030,7 @@ Koşulan liste; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işar
 ## 15. Chrome Web Store teslimatları
 
 `store/` klasöründe:
-- **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (dört sağlayıcıdaki konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
+- **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (kayıttaki sağlayıcılarda ve kullanıcının izin verdiği hostlarda konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
   **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
 - **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı,
   Uzun açıklamanın **ilk paragrafı** Chrome'un kurulumda gösterdiği "bu sitelerdeki verilerinizi okuyabilir ve değiştirebilir" uyarısını karşılar: neden bu izne ihtiyaç olduğu (sohbeti okumadan indirilecek şey bulunamaz), verinin nereye gitmediği, ve tek amaç. Bu uyarı kaçınılmaz; açıklanmazsa kurulum oranını ve güveni o düşürür izin gerekçeleri (`storage` → ayarlar; dört host izni → sohbet içeriğini okuma, her biri ayrı gerekçelendirilir; `notifications` → opsiyonel, kullanıcı açarsa)
@@ -1047,7 +1047,7 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 
 | Risk | Etki | Azaltma |
 |---|---|---|
-| **Dört sağlayıcının bakımı** — her biri arayüzünü bağımsız değiştirir | Herhangi bir anda bir veya birkaç adaptör bozuk olabilir | Kabul edilmiş risk (§1). Sınırlayıcılar: adaptör yalıtımı (biri bozulunca diğerleri çalışır, §3.4.3) · sağlayıcıdan bağımsız DOM tabanı (değerin çoğu tek kod yolunda, §3.4.1) · adaptör başına uyumluluk testi · bozuk yeteneğin sessizce değil **açıkça** kapanması · sağlayıcı bazında `docs/BREAKAGE.md` girdisi |
+| **Çok sağlayıcının bakımı** — her biri arayüzünü bağımsız değiştirir | Herhangi bir anda bir veya birkaç adaptör bozuk olabilir | Kabul edilmiş risk (§1). Sınırlayıcılar: adaptör yalıtımı (biri bozulunca diğerleri çalışır, §3.4.3) · sağlayıcıdan bağımsız DOM tabanı (değerin çoğu tek kod yolunda, §3.4.1) · adaptör başına uyumluluk testi · bozuk yeteneğin sessizce değil **açıkça** kapanması · sağlayıcı bazında `docs/BREAKAGE.md` girdisi |
 | Bir sağlayıcının dahilî API'si bulunamaz/değişir | O sağlayıcıda versiyon/toplu erişim kaybolur | DOM kademesi zorunlu; ürün yetenek kaybederek ayakta kalır |
 | Sağlayıcının bot/otomasyon koruması dahilî API çağrısını engeller | İstek 403 döner, kullanıcı oturumu etkilenebilir | **Kural: sayfanın kendisinin atmayacağı hiçbir istek atılmaz** — hız sınırı zorlanmaz, arka planda tarama yapılmaz, istek yalnızca kullanıcı eylemiyle ve kullanıcının zaten baktığı konuşma için atılır. Şüphe varsa o sağlayıcıda API kademesi hiç açılmaz, DOM tabanı kullanılır |
 | Sağlayıcı DOM'u değişir | Buton enjekte edilemez | Adaptörün `SEL` katmanı, tek dosyada tamir |
@@ -1077,7 +1077,7 @@ Bu extension iki tür **güvenilmez veri** işliyor: öğe başlıkları ve öğ
 | `sanitize` yol geçişini de keser: `/` `\` `..` ve baştaki `~` temizlenir | `<a download="../../x">` denemesi. Chrome zaten yol bileşenlerini yok sayar ama savunma bizde de olmalı |
 | Filtre eşleşmelerini vurgulamak için `innerHTML` kullanılmaz; vurgu, metin parçalarının ayrı `textContent` düğümlerine bölünmesiyle yapılır | Kullanıcı girdisi + öğe başlığı aynı satırda buluşuyor; en cazip `innerHTML` kullanım yeri tam da burası |
 | `Sorun bildir` bağlantısı bir **gezinme**dir, istek değil: sabit bir depo adresine açılır, gövdesi teşhis bloğudur ve URL kodlamasından geçer | Kullanıcı tıklamadan hiçbir şey olmaz; "dış istek yok" iddiası korunur, ama incelemede sorulmaması için burada yazılı |
-| Ağa **hiç** çıkılmaz; `fetch` hedefleri yalnızca dört sağlayıcının kendi origin'i | Gizlilik politikasının doğrulanabilir olması için; CI'daki ağ taraması bunun teknik dayanağı (§19.3) |
+| Ağa **hiç** çıkılmaz; `fetch` hedefleri yalnızca kayıttaki ve kullanıcının izin verdiği origin'ler | Gizlilik politikasının doğrulanabilir olması için; CI'daki ağ taraması bunun teknik dayanağı (§19.3) |
 
 ### 17.1 Yayıncı hesabı — asıl tedarik zinciri
 
@@ -1127,7 +1127,7 @@ Buraya kadarki bölümler **ne inşa edileceğini** anlatıyor. Bu bölüm **yay
 
 `minimum_chrome_version` manifest'te açıkça belirtilir. Taban, kullanılan API'lerin en yüksek gereksinimi olarak adım 1'de hesaplanır; başlangıç varsayımı **116** (MV3 service worker davranışları, `showDirectoryPicker`, `structuredClone`, `Intl.RelativeTimeFormat` bu sürümde stabil). Gereğinden yüksek bir taban kullanıcı keser, düşük bir taban sessiz bozulma üretir — bu yüzden tahminle değil, kullanılan API listesiyle belirlenir.
 
-Chromium tabanlı Edge/Brave/Opera çalışır ama **test edilmez ve iddia edilmez**. Firefox kapsam dışı (§16'daki bakım yükü zaten dört sağlayıcıyla dolu).
+Chromium tabanlı Edge/Brave/Opera çalışır ama **test edilmez ve iddia edilmez**. Firefox kapsam dışı (§16'daki bakım yükü zaten kayıtla dolu).
 
 ### 19.2 Performans bütçeleri
 
@@ -1155,7 +1155,7 @@ GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriy
 5. Kaynakta yasak kalıp taraması: `innerHTML`, `insertAdjacentHTML`, `eval`, `new Function`, `document.write`, `window.addEventListener("message"` (§17). İhlal = kırmızı, istisna yok
 6. Paket boyutu bütçesi
 7. `manifest.version` ile `CHANGELOG.md`'nin en üst girdisi eşleşiyor mu
-8. **Ağ hedefi taraması:** kaynaktaki tüm `http(s)://` literalleri dört sağlayıcı origin'inin dışına çıkmıyor. Mağazadaki "veri toplamıyor" beyanının (§19.6) teknik dayanağı bu kapıdır — beyan ile kod arasındaki tutarsızlık kaldırma sebebi
+8. **Ağ hedefi taraması:** kaynaktaki tüm `http(s)://` literalleri kayıttaki origin'lerin dışına çıkmıyor (kullanıcı hostları çalışma anında gelir, kaynakta yazılı değildir). Mağazadaki "veri toplamıyor" beyanının (§19.6) teknik dayanağı bu kapıdır — beyan ile kod arasındaki tutarsızlık kaldırma sebebi
 9. **Selector metin taraması:** `adapters/` içinde doğal dil string'i selector konumunda yok — `[aria-label="Copy"]`, `:has(:contains(…))`, `textContent === "Preview"` gibi kalıplar kırmızı (§12). Yazan kişinin arayüzü İngilizceyse asla göremeyeceği hatayı CI görür
 10. **Katman ihlali:** `content.js` hiçbir sağlayıcı seçicisi içermiyor; `SEL` yalnızca `adapters/` altında (§3.4.3, §12). Adaptör yalıtımının tek koruyucusu bu kapı
 11. **Ayar kapsaması:** `cfg` şemasındaki her anahtarın panelde bir kontrolü var, panelde şemada olmayan kontrol yok (§8.6). Ayar eklenip UI unutulması bu kapıyla imkânsız
@@ -1176,9 +1176,9 @@ Her yayın bir git tag'i: `v1.0.0`.
 Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 
 - [ ] CI yeşil (§19.3'ün **tamamı** — sayı burada tekrarlanmaz, sayılar sürüklenir)
-- [ ] Manuel doğrulama listesi (§14) dört sağlayıcıda ayrı ayrı koşuldu
+- [ ] Manuel doğrulama listesi (§14) örnekleme kuralına göre koşuldu ve örnek `SMOKE.md`'ye yazıldı
 - [ ] Performans bütçeleri (§19.2) ölçüldü ve aşılmadı
-- [ ] Enjeksiyon çökme testi (§7 adım 2) dört sağlayıcıda temiz
+- [ ] Enjeksiyon çökme testi (§7 adım 2) adaptörlü sağlayıcılarda temiz
 - [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`, **popup öğe listesi tam klavye + `aria`** (kod bloklarının tek erişilebilir yolu, §8.1.1)
 - [ ] Açık + koyu tema, TR + EN arayüz, RTL kontrolü
 - [ ] Dokunmatik cihazda kod bloğu indirme erişilebilir (§8.1.1) · %200 yakınlaştırmada hizalama
@@ -1188,8 +1188,8 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] İzin listesi minimal: `storage` + 4 host + opsiyonel `notifications`. Fazlası yok
 - [ ] Gizlilik politikası yayımlandı ve URL erişilebilir
 - [ ] Ekran görüntüleri **demo** konuşmadan
-- [ ] Marka feragatnamesi dört sağlayıcı için de açıklamada
-- [ ] `docs/BREAKAGE.md` dört sağlayıcı bölümüyle dolu
+- [ ] Marka feragatnamesi kayıttaki **her** sağlayıcı için açıklamada
+- [ ] `docs/BREAKAGE.md` adaptörlü sağlayıcılar için dolu, taban için ortak bölüm var
 - [ ] Önceki sürümün zip'i saklandı (§19.7)
 
 ### 19.6 Mağaza gönderimi
@@ -1213,7 +1213,7 @@ Kullanıcı tarafındaki acil çıkış yolu zaten var: site bazında devre dı�
 Telemetri yok (§17), dolayısıyla izleme **planlı ve manuel** olmak zorunda:
 
 - Her adaptör dosyasının başında `LAST_VERIFIED = "2026-09-09"`. 90 günden eskiyse o sağlayıcı yeniden doğrulanır.
-- **Aylık smoke test:** dört sağlayıcıda kısa kontrol listesi (buton görünüyor mu, indirme çalışıyor mu, konsol temiz mi). Depoda `docs/SMOKE.md` olarak; sonuç tarih + sağlayıcı ile commit'lenir.
+- **Aylık smoke test:** adaptörlü sağlayıcılar + üç taban örneği için kısa kontrol listesi (buton görünüyor mu, indirme çalışıyor mu, konsol temiz mi). Depoda `docs/SMOKE.md` olarak; sonuç tarih + sağlayıcı ile commit'lenir.
 - Mağaza yorumları ve GitHub issue'ları haftalık gözden geçirilir. Sağlayıcı arayüz değişimleri genelde önce burada görünür.
 - Bir sağlayıcı bozulduğunda kullanıcıya görünen davranış: o sağlayıcıda yetenek kapanır ve teşhis bloğu sebebi taşır — sessiz hata yok.
 
@@ -1231,34 +1231,34 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 
 ## Uygulama sırası (özet)
 
-1. **Sağlayıcı keşfi (dördü için ayrı ayrı):** konuşma kimliği nereden okunur, API var mı ve yanıt şekli nedir, akış nasıl tespit edilir, `SEL` seçicileri, ek endpoint'i, enjeksiyonun framework'ü çökertip çökertmediği (§7 adım 2). Claude için ayrıca `tool_use` şeması **ve** ağaç alanları (`parent_message_uuid`, `current_leaf_message_uuid`). Keşif çıktısı yetenek matrisini (§3.4.2) doldurur; doğrulanamayan yetenek o sağlayıcıda kapatılır
+1. **Sağlayıcı keşfi (adaptör adayları için tam, taban adayları için yalnızca erişilebilirlik + `chatRoot`):** konuşma kimliği nereden okunur, API var mı ve yanıt şekli nedir, akış nasıl tespit edilir, `SEL` seçicileri, ek endpoint'i, enjeksiyonun framework'ü çökertip çökertmediği (§7 adım 2). Claude için ayrıca `tool_use` şeması **ve** ağaç alanları (`parent_message_uuid`, `current_leaf_message_uuid`). Keşif çıktısı yetenek matrisini (§3.4.2) doldurur; doğrulanamayan yetenek o sağlayıcıda kapatılır
 2. Çekirdek saf katman: `Item` modeli, `parse.js` (fold + `Item` doğrulama), adlandırma zinciri, `zip.js` — hepsi `selftest.js` ile TDD
 3. `manifest.json` iskeleti (sağlayıcı başına ayrı `content_scripts` bloğu, §5) + i18n altyapısı
 4. `content.js` çekirdeği: adaptör seçimi, observer, UI kabuğu (buton, menü, pill, toast). **Sağlayıcı seçicisi içermez** (§12)
-5. `common-dom.js` — sağlayıcıdan bağımsız kod bloğu çıkarımı + gezici düğme (§8.1.1); dört sağlayıcıda da doğrulanır. Bu adım tek başına dört sağlayıcıda çalışan bir ürün verir
+5. `common-dom.js` — sağlayıcıdan bağımsız kod bloğu çıkarımı + gezici düğme (§8.1.1); kayıttaki her sağlayıcıda doğrulanır. Bu adım tek başına **kayıttaki tüm sağlayıcılarda** çalışan bir ürün verir
 6. `claude.js`: aktif dal çıkarımı → op toplama → versiyonlar → versiyon menüsü + üç kademe
-7. `chatgpt.js`, `gemini.js`, `perplexity.js` — yetenek matrisine göre; doğrulanamayan yetenek kapatılır
+7. `chatgpt.js` ve keşifte belge/versiyon çıkan diğer adaptörler — yetenek matrisine göre; doğrulanamayan yetenek kapatılır. Taban sağlayıcılar adaptör almaz, kayıt satırıyla yetinir
 8. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
 9. `sw.js`: badge, nabız, kısayol, sistem bildirimi
 10. `panel.html/js`: öğe listesi, ayarlar, canlı önizleme, teşhis, acil durdurma
 11. Sürükle-bırak + klasöre kaydet (§8.7.1, §8.7.2)
 12. İkonlar (16/48/128 + nabız kareleri)
 13. CI kapıları + `tools/check-invariants.mjs` + `tools/pack.mjs` (§19.3, §19.4)
-14. Manuel doğrulama listesi — dört sağlayıcıda ayrı ayrı (§14)
+14. Manuel doğrulama listesi — örnekleme kuralına göre (§14)
 15. Performans bütçelerinin ölçümü (§19.2)
 16. `store/` teslimatları + gizlilik politikasının yayımlanması
 17. Yayın öncesi kapı (§19.5) → kademeli yayın (§19.7)
 
 ### MVP kesme çizgisi
 
-Kapsam bu dokümanın ömrü boyunca üç kat büyüdü (artifact → üç öğe türü → dört sağlayıcı). Tek kişilik bir projede bunun gerçek riski kod değil, **hiçbirinin bitmemesi**. Bu yüzden kesme çizgisi baştan yazılı:
+Kapsam bu dokümanın ömrü boyunca büyüdü (artifact → dört öğe türü → sağlayıcı kaydı + kullanıcı hostları). Tek kişilik bir projede bunun gerçek riski kod değil, **hiçbirinin bitmemesi**. Bu yüzden kesme çizgisi baştan yazılı:
 
-**MVP = 1-5. adımlar.** Yani: çekirdek + `common-dom.js` + gezici düğme, dört sağlayıcıda kod bloğu indirme, doğru ad ve uzantı, tekil dosya indirmesi. Versiyon yok, zip yok, ek yok, klasör yok, sürükleme yok.
+**MVP = 1-5. adımlar.** Yani: çekirdek + `common-dom.js` + gezici düğme, **kayıttaki her sağlayıcıda** kod bloğu indirme, doğru ad ve uzantı, tekil dosya indirmesi, adı düzeltebilme, kopyalama. Versiyon yok, zip yok, ek yok, klasör yok, sürükleme yok.
 
-Bu neden yayınlanabilir bir üründür: kod blokları dört sağlayıcıda **tek kod yolundan** çıkar (§3.4.2), yani MVP'nin bakım yükü dört değil bir. Ve indirilen kodun çoğu zaten artifact değil (§2) — kullanıcının en sık ihtiyacı burada.
+Bu neden yayınlanabilir bir üründür: kod blokları **kaç sağlayıcı olursa olsun tek kod yolundan** çıkar (§3.4.2), yani MVP'nin bakım yükü sağlayıcı sayısıyla değil, kayıt satırı sayısıyla artar — ve bir satır bir seçicidir. Ve indirilen kodun çoğu zaten artifact değil (§2) — kullanıcının en sık ihtiyacı burada.
 
 **Sonra sırayla:** 6-7 (artifact/canvas + versiyon, Claude'dan başlayarak) → 11 (sürükle-bırak, klasör) → 8 (ekler). Her biri bağımsız olarak yayınlanabilir ve her biri kendi başına bir sürüm notu eder.
 
 **Kesme çizgisinin altında kalanlar ertelenmez, kapatılır:** MVP'de versiyon menüsü *gizlenmez*, hiç çizilmez (§3.4.2'deki "yetenek yoksa kontrol de yok" kuralı). Kullanıcı eksik bir şey görmez, olmayan bir şeyi de beklemez.
 
-**Sıra gerekçesi:** 5. adım bilerek adaptörlerden önce — kod blokları dört sağlayıcıda tek kod yoluyla çalıştığı için, oraya kadar gelen bir yapı zaten yayınlanabilir bir üründür. Artifact/versiyon katmanı (6-7) onun üstüne eklenir, altına değil.
+**Sıra gerekçesi:** 5. adım bilerek adaptörlerden önce — kod blokları tüm sağlayıcılarda tek kod yoluyla çalıştığı için, oraya kadar gelen bir yapı zaten yayınlanabilir bir üründür. Artifact/versiyon katmanı (6-7) onun üstüne eklenir, altına değil.
