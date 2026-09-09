@@ -1757,6 +1757,14 @@ GitHub Actions, **with no npm dependency**, using only Node built-ins. If they a
 
     This gate is cheap and the failure it prevents is not: a malformed number costs a round trip through store review before anything else is even looked at
 
+18. **No user-visible string is written literally:** nothing reaches a toast, an `aria-label`, a `title` or a `placeholder` as a literal containing three consecutive letters (§13). The one exception is the orphaned-context message, which is precached because `chrome.i18n` is already gone by the time it is shown (§7.2)
+
+    §13 existed from the start with no gate, and rotted exactly as predicted: v1 shipped five English sentences and two `aria-label`s that no Turkish user would have seen translated. The rule was in the document the whole time
+
+19. **Safety mechanisms are connected:** a named list of protections that must have a caller outside the file defining them. A safety net with no caller is worse than none, because it reads as protection in review and in the tests
+
+    Both current entries shipped in v1 unwired. `readCodeTextComplete` — the DOM tier's completeness proof — was written, exported and never called, so a virtualised block would have been delivered truncated in silence. `fmtName`'s `-partial` suffix had a *passing unit test* while nothing in the product could set it. The unit was tested; the wiring was not, and no amount of unit testing would have found either
+
 ### 19.4 Versioning and packaging
 
 Semver, with the axes redefined for a product whose users cannot choose a version — the full policy is `docs/VERSIONING.md`, and the short form is: **major** when the product takes on a dependency it does not own (a provider's internal schema, a new surface), **minor** when a capability arrives on machinery already present, **patch** for repairs. A new permission, a `cfg` key changing meaning, or a provider being dropped forces a major whatever the diff size, because each of those can hurt someone who asked for nothing.

@@ -39,3 +39,19 @@ These are not bugs. They are deliberate boundaries or platform constraints. Sayi
 **For interfaces you host yourself, you grant the permission** (popup → "Also run on this site"). That is why the install-time permission list does not grow.
 
 **Thinking blocks are excluded by default.** You can turn them on; they are off because they triple the size of an export and because carrying another model's abandoned reasoning into a new chat is actively unhelpful.
+
+## The floating control is positioned physically, not logically (v1)
+
+`positionControl` pins the control with `style.right`, computed from the code block's `getBoundingClientRect().right`. §8.7 asks for logical properties so the interface follows the page's direction, and gate 12 enforces that for the injected stylesheet — but it only reads `SHELL_CSS`, so a physical property set from JavaScript passes it.
+
+In a right-to-left page the block's *inline start* is its right edge, so the control would sit over the beginning of the code rather than after it.
+
+**Not fixed blind.** Correcting it means reworking the rect arithmetic against `direction`, and there is no RTL provider page measured yet to check the result against — a change that cannot be verified is as likely to make this worse as better. §12's verification step (switch a provider's interface to another language and retry the whole flow) is where this gets settled, and it is on the pre-release list.
+
+Until then: the control may overlap the start of a code block on an RTL page. Everything else about the flow works, because the shadow host inherits `direction` from the page.
+
+## `readCodeTextComplete` runs at delivery, not at scan (v1)
+
+Completeness is proved for the one block being downloaded or copied, at the moment it is taken — not for every block on every rescan. Counting blocks needs one cheap read; handing one over needs the proof.
+
+The consequence is that the floating control's filename preview cannot know whether the block is complete, because that is only established after the read. When a read comes back incomplete the file is saved with `-partial` and a toast says so, which means the preview and the delivered name differ in exactly that case. The alternative — scrolling every block on the page on every DOM mutation — was worse.

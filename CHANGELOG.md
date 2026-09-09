@@ -26,6 +26,10 @@ The MVP: **code blocks, on every provider in the registry.** No documents, no ve
 
 - **The naming chain produced a confidently wrong name.** Measured on a live conversation: `const el = document.querySelector(...)` matched the JavaScript pattern and the block was named `el.js`. A two-letter local is worse than the positional fallback it displaced — `code-4.js` reads as "the extension did not know", `el.js` reads as a decision the user has no reason to check. `function` and `class` are now tried before `const`, and identifiers under three characters or in a small generic set are rejected so the chain falls through.
 
+- **Two safety mechanisms shipped disconnected.** `readCodeTextComplete` — the proof that a code block was read in full — was written, exported and never called, so on a provider that virtualises its code blocks a truncated file would have been delivered in silence. `fmtName`'s `-partial` suffix, the only signal a user gets that a file is incomplete, had a passing unit test while nothing in the product could set it. Both are now wired, and completeness is proved at delivery rather than at scan: counting blocks needs one cheap read, handing one over needs the proof.
+
+- **Seven user-visible strings were hardcoded English.** Five toasts and two `aria-label`s never went through `chrome.i18n`, so a Turkish user would have met them untranslated — including the clipboard failure message and the download button's screen-reader label. All routed through the catalogue, which gained four message keys.
+
 ### Notes
 
 - No telemetry, no external requests, no account. CI gate 8 checks that mechanically: no source file may name a host outside the registry origins.

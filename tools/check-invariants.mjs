@@ -1,5 +1,5 @@
 /**
- * Magpie — mechanical gates (design §19.3, gates 2–17)
+ * Magpie — mechanical gates (design §19.3, gates 2–19)
  *
  *   node tools/check-invariants.mjs
  *
@@ -275,6 +275,67 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
       }
     }
   } catch { /* no git, or no tags yet */ }
+}
+
+// ── gate 18: no user-visible string is written literally ─────────────────────
+// §13 forbids hardcoded user-visible text and had no gate, so it rotted: the
+// content script shipped five English sentences and two aria-labels that no
+// Turkish user would ever see translated. A rule the build does not check is
+// a rule that survives exactly as long as someone remembers reading it.
+//
+// A literal counts as user-visible when it reaches a person: a toast, an
+// aria-label, a title, or textContent. Symbols are not text — "↓" and "✕"
+// carry no language — so the test is three consecutive ASCII letters.
+{
+  const looksLikeProse = (lit) => /[A-Za-z]{3}/.test(lit);
+  const sinks = [
+    [/showToast\(\s*"([^"]*)"/g, "a toast"],
+    [/setAttribute\(\s*["']aria-label["']\s*,\s*"([^"]*)"/g, "an aria-label"],
+    [/\.title\s*=\s*"([^"]*)"/g, "a title attribute"],
+    [/\.placeholder\s*=\s*"([^"]*)"/g, "a placeholder"],
+  ];
+  for (const f of srcFiles) {
+    const body = read(f);
+    for (const [re, where] of sinks) {
+      for (const m of body.matchAll(re)) {
+        if (!looksLikeProse(m[1])) continue;
+        // The orphaned-context message is the one deliberate exception: by the
+        // time it is shown, chrome.i18n is gone (§7.2). It is precached under
+        // UPDATED_TEXT and never written at a sink literally.
+        const line = body.slice(0, m.index).split("\n").length;
+        fail(18, `${f}:${line} writes "${m[1].slice(0, 40)}" into ${where} — §13 requires chrome.i18n`);
+      }
+    }
+  }
+}
+
+// ── gate 19: safety mechanisms are connected ─────────────────────────────────
+// A safety net with no caller is worse than no safety net, because it reads
+// as protection in review and in the tests. Both entries below shipped in v1
+// unwired: readCodeTextComplete was written and exported and never called,
+// and fmtName's `partial` suffix had a passing unit test while nothing in the
+// product could ever set it. The unit was tested; the wiring was not.
+//
+// Each entry names what must exist and where, so adding a mechanism without
+// connecting it fails here rather than in someone's Downloads folder.
+{
+  const mechanisms = [
+    { what: "readCodeTextComplete", defined: "src/adapters/common-dom.js",
+      calledIn: /\bD\.readCodeTextComplete\s*\(|\breadCodeTextComplete\s*\(/,
+      why: "the DOM tier's completeness proof (§4) — without a caller, a virtualised block is delivered truncated and silent" },
+    { what: "the -partial filename suffix", defined: "src/parse.js",
+      calledIn: /partial\s*:\s*(?!false\b)/,
+      why: "the only signal a user gets that a file is incomplete (§8.4)" },
+  ];
+  // The defining file is never its own consumer. Leaving it in made this gate
+  // match the `async function readCodeTextComplete(` declaration and pass
+  // vacuously — the same failure it was written to catch, one level up.
+  const norm = (p) => p.split(/[\\/]/).join("/");
+  for (const m of mechanisms) {
+    const consumers = srcFiles.filter((f) => norm(f) !== norm(m.defined));
+    const wired = consumers.some((f) => m.calledIn.test(read(f)));
+    if (!wired) fail(19, `${m.what} is defined in ${m.defined} but nothing uses it — ${m.why}`);
+  }
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

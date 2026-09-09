@@ -42,6 +42,17 @@
   const UPDATED_TEXT = { en: "Magpie was updated — reload the page",
                          tr: "Magpie güncellendi — sayfayı yenile" };
 
+  /** Every user-visible string goes through here (§13). Returns the key itself
+   *  if the catalogue is unreachable, which is loud rather than silent: a bare
+   *  key on screen says "this string is missing", an empty toast says nothing. */
+  function t(key, subs) {
+    try {
+      return chrome.i18n.getMessage(key, subs) || key;
+    } catch {
+      return key;                                 // orphaned context (§7.2)
+    }
+  }
+
   function teardown(announce) {
     if (state.dead) return;
     state.dead = true;
@@ -117,7 +128,7 @@
     if (level === "err") {
       const close = document.createElement("button");
       close.textContent = "✕";
-      close.setAttribute("aria-label", "Dismiss");
+      close.setAttribute("aria-label", t("dismiss"));
       close.addEventListener("click", () => el.remove());
       el.appendChild(close);
     }
@@ -144,7 +155,7 @@
     name.textContent = middleTruncate(full, 26);  // the name it will produce (§8.1.1)
     c.append(arrow, name);
     c.title = full;
-    c.setAttribute("aria-label", "Download " + full);
+    c.setAttribute("aria-label", t("downloadNamed", [full]));
     c.dataset.key = item.key;
     const top = Math.max(8, box.top + 8);
     c.style.top = top + "px";
@@ -164,19 +175,43 @@
     return s.slice(0, keep) + "…" + s.slice(-keep);
   }
 
-  function displayName(item) {
+  function displayName(item, partial) {
     const base = state.renamed.get(item.key) || item.title;
     return P.fmtName(state.cfg.nameTemplate, {
       title: base, version: null, ext: item.ext, kind: item.kind,
-      date: P.isoLocalDate(),
+      date: P.isoLocalDate(), partial: !!partial,
     });
   }
 
+  /**
+   * Completeness is a delivery-time question, not a scan-time one (§4).
+   *
+   * Counting blocks needs one cheap synchronous read; handing one over needs
+   * the proof that what was read is all there is. Doing the proof during a
+   * scan would scroll every block on the page on every mutation, so it runs
+   * here instead — on one block, at the moment it is actually being taken.
+   *
+   * Returns { content, complete }. A stale node falls back to the scanned
+   * text rather than reading a detached clone as if it were the page.
+   */
+  async function resolveContent(item) {
+    const scanned = item.versions[item.versions.length - 1].content;
+    if (!item.node || !document.contains(item.node)) return { content: scanned, complete: true };
+    try {
+      const r = await D.readCodeTextComplete(item.node);
+      return { content: r.text, complete: r.complete };
+    } catch {
+      // A failed completeness pass must not block the download; the scanned
+      // text is what the user could see, so it is what they get.
+      return { content: scanned, complete: true };
+    }
+  }
+
   // ── download (§8.4: we can only claim what we know) ───────────────────────
-  function download(item) {
-    const version = item.versions[item.versions.length - 1];
-    const name = displayName(item);
-    const blob = new Blob([version.content], { type: mimeFor(item.ext) });
+  async function download(item) {
+    const { content, complete } = await resolveContent(item);
+    const name = displayName(item, !complete);
+    const blob = new Blob([content], { type: mimeFor(item.ext) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = name; a.rel = "noopener";
@@ -187,7 +222,11 @@
     // Released on a delay, never immediately: a consumer may still be reading.
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     state.tookThisSession.add(item.key);
-    showToast("↓ " + name, "ok");                  // "downloading", not "downloaded"
+    // An incomplete read is said out loud. The control's preview showed the
+    // ordinary name because completeness is only known after the read, so
+    // without this the user sees one name and gets another (§8.4).
+    if (complete) showToast("↓ " + name, "ok");    // "downloading", not "downloaded"
+    else showToast(t("toastPartial"), "warn", 6000);
     safe(() => chrome.runtime.sendMessage({ type: "downloaded" }));
   }
 
@@ -202,7 +241,7 @@
   async function copyItem(item) {
     const v = item.versions[item.versions.length - 1];
     try { await navigator.clipboard.writeText(v.content); showToast("⧉ " + displayName(item), "ok"); }
-    catch (e) { showToast("Could not copy — the page blocked clipboard access", "err"); }
+    catch (e) { showToast(t("toastCopyBlocked"), "err"); }
   }
 
   function onControlClick(ev) {
@@ -290,7 +329,7 @@
         return true;
       case "item:download": {
         const it = state.byKey.get(msg.key);
-        if (it) download(it); else showToast("That item is no longer on the page", "warn");
+        if (it) download(it); else showToast(t("toastItemGone"), "warn");
         reply({ ok: !!it }); return true;
       }
       case "item:copy": {
@@ -306,7 +345,7 @@
       case "cmd:download": {
         const it = state.hoverEl ? itemForNode(state.hoverEl) : state.items[0];
         if (it) download(it);
-        else showToast("Nothing to download on this page", "warn");
+        else showToast(t("toastNothingHere"), "warn");
         reply({ ok: !!it }); return true;
       }
       case "diag:get":
