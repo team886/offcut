@@ -57,6 +57,8 @@ Naif "son bloğu al" yaklaşımı, son op bir `update` ise kullanıcıya koca do
 
 **`old_str` tekil olmalı.** Gövdede birden fazla kez geçiyorsa hangisinin değiştirileceği belirsizdir — ilkini değiştirip devam etmek sessizce yanlış dosya üretir. Kural: **0 eşleşme → `ok:false`; 2+ eşleşme → `ok:false`, `reason:"old_str_ambiguous"`; tam 1 eşleşme → uygula.** JS `String.replace` ilk eşleşmeyi değiştirir; bu davranışa güvenilmez, eşleşme sayısı açıkça sayılır.
 
+**`old_str` eşleşmemesinin en olası sebebi satır sonudur.** Gövde `\r\n` taşıyıp `old_str` `\n` kullanıyorsa (veya tersi) eşleşme tutmaz. Bunu sessizce normalize edip uygulamak **içeriği değiştirmek** olur — yapmıyoruz. Bunun yerine mismatch raporlanır ve `docs/BREAKAGE.md` bu ihtimali ilk tanı maddesi olarak listeler. Aynı şekilde boş gövdeli bir `create` geçerli sayılır (0 baytlık dosya iner), çökme sebebi değildir.
+
 **Başlık versiyona göre değişebilir.** Claude bir güncellemede artifact'ı yeniden adlandırabilir. Her `Version` kendi `title`'ını taşır; dosya adı **indirilen versiyonun** başlığından üretilir, artifact'ın güncel başlığından değil.
 
 ### 3.1 Konuşma ağacı — dallanma tuzağı
@@ -82,6 +84,10 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 | 1 | **Structured `tool_use`** — konuşma JSON'unda `chat_messages[].content[]` içinde `name === "artifacts"` olan bloklar; `input` = `{command, id, type, title, language, content, old_str, new_str}` | Tam op-log, regex yok | Öncelikli |
 | 2 | **Ham metin `<antArtifact>`** — mesaj metnindeki inline bloklar, regex ile | Tam op-log | Kademe 1 boş dönerse (eski konuşmalar / format değişimi) |
 | 3 | **DOM** — panelin Code sekmesindeki `<code>` metni | Sadece görüntülenen versiyon | API 401 / şema tanınmazsa |
+
+**Kademe 2 kendi içeriğine karşı savunmasız.** Bir artifact'ın gövdesi `</antArtifact>` metnini içerebilir — artifact yazmayı anlatan bir doküman, bu spec'in kendisi, ya da o etiketi örnek olarak gösteren bir HTML. Regex ilk kapanış etiketinde durur ve kullanıcıya **sessizce kesilmiş dosya** verir. Uzunluk makul göründüğü için fark edilmesi de zordur.
+
+Kural: Kademe 2'de, çıkarılan gövde içinde başka bir açılış/kapanış işareti kalıntısı varsa versiyon `ok:false`, `reason:"tier2_ambiguous"` işaretlenir. Kademe 1 (yapısal JSON) bu soruna tanım gereği bağışık — sınırlar veriden değil şemadan gelir. Kademe sıralamasının ikinci gerekçesi budur.
 
 Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görünür ve sarı toast çıkar — kullanıcı versiyon geçmişinin neden yok olduğunu bilir.
 
@@ -213,6 +219,18 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
 
    Kabul ölçütü: uzun bir yanıt akarken extension'ın CPU payı ölçülebilir olmamalı. Bu, manuel doğrulama listesinde Performance profili ile kontrol edilir.
 2. Panel görülünce split buton enjekte edilir (`data-adl` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
+
+   **Daha kötüsü: React'i çökertebiliriz.** React, yönettiği bir kapsayıcının çocuklarını referansla kaldırır. O kapsayıcıya yabancı bir düğüm soktuğumuzda reconciliation sırasında `NotFoundError: Failed to execute 'removeChild' on 'Node'` fırlayabilir — ve bu bizim butonumuzu değil, **claude.ai'ın kendisini** düşürür. Kullanıcı için sonuç: "Claude bozuldu", sebebi görünmez, suç extension'da olduğu hâlde Anthropic'e yazılır.
+
+   Bu, kabul edilebilir bir risk değil. **İlke: kullanıcının Claude'unu bozma ihtimali, bizim feature'ımızdan önce gelir.**
+
+   Kural, sırayla:
+   1. Buton, action bar'ın **son çocuğu** olarak eklenir — React'in kaldırma/sıralama işlemlerinin en az dokunduğu konum
+   2. React'in hiçbir düğümü **kaldırılmaz, taşınmaz, sırası değiştirilmez**; yalnızca ekleme yapılır
+   3. Adım 1'de bu gerçek claude.ai üzerinde **kasten zorlanır**: buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
+   4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama Claude'u asla düşürmez
+
+   Menü, pill ve toast zaten shadow root içinde ve `body`'ye bağlı (§8.7); risk yalnızca butona ait.
 
    **React enjekte edilen düğümü siler.** claude.ai React ile çizilir; action bar yeniden render edildiğinde bizim butonumuz DOM'dan uçar. Bu, React uygulamalarına enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
 3. Buton tıklanınca `getConversation(convUuid)` — bellek içi cache; DOM mesaj sayısı değiştiğinde veya 60 sn geçince geçersiz. Her mutation'da fetch **yok**.
@@ -412,6 +430,10 @@ Yani panel açıkken kimlik **panelden**, kapalıyken **kullanıcının seçimin
 
 **Hiçbir boş durum sessiz olmaz.** Boş kart her zaman "neden boş" ve "ne yapmalı" söyler; kullanıcı extension'ın bozuk mu yoksa doğru mu çalıştığını ayırt edebilmeli.
 
+**Acil durdurma.** Popup'ın altında `⏻ Bu sekmede devre dışı bırak`. Basıldığında content script tüm enjekte UI'ı kaldırır, observer'ı durdurur ve sayfa yenilenene kadar sessiz kalır. Ayrıca `storage`'da `disabled: true` ile kalıcı kapatma seçeneği.
+
+Gerekçe: bir gün claude.ai'da bir şey ters gidecek ve kullanıcı bunun bizden mi kaynaklandığını bilmeyecek. Extension'ı tamamen kaldırmadan iki saniyede kapatabilmek, hem kullanıcının hem bizim lehimize — çünkü "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.
+
 ### 8.9 Teşhis — telemetri olmadan hata raporu
 
 Telemetri yok (§17), dolayısıyla bir şey bozulduğunda bunu **yalnızca kullanıcı anlatabilirse** öğreniriz. "Çalışmıyor" mesajı ise tamir için yetersizdir.
@@ -488,6 +510,10 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | claude.ai site verisi temizlendi | Klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
 | `showDirectoryPicker` content script'te yok | Seçim options sayfasına taşınır (adım 1'de doğrulanır) |
 | Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
+| Enjeksiyon React'i çökertiyor | Plan B: buton `body`'ye bağlı hizalı katman olur (§7 adım 2) |
+| Kademe 2 gövdesinde artifact işareti kalıntısı | Versiyon `ok:false`, `reason:"tier2_ambiguous"` |
+| `old_str` satır sonu farkından tutmuyor | Mismatch raporlanır; içerik **normalize edilmez**, BREAKAGE.md ilk tanı maddesi |
+| Boş gövdeli `create` | Geçerli; 0 baytlık dosya iner |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
 | Kısayol basıldı, artifact yok | `! Bu sayfada indirilecek artifact yok` toast'ı |
@@ -541,7 +567,7 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
