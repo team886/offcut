@@ -17,8 +17,11 @@ Bu extension o boşluğu kapatır: **panelden tek tıkla, doğru uzantıyla, ist
 **Hedefler**
 - Açık artifact'ı tek tıkla doğru uzantıyla indir
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
-- Tüm versiyonları tek `.zip` olarak ver
-- Artifact açıldığında görünür ama rahatsız etmeyen bir sinyal ver
+- Bir artifact'ın tüm versiyonlarını tek `.zip` olarak ver
+- **Sohbetteki tüm artifact'ları** tek `.zip` olarak ver
+- Dosyayı **sürükleyip** editöre/masaüstüne bırakabil
+- İstenirse sabit bir **klasöre** kaydet, her seferinde sormadan
+- Artifact **tamamlandığında** görünür ama rahatsız etmeyen bir sinyal ver
 - Her davranış kapatılabilir olsun
 - Kullanıcı verisi cihazdan çıkmasın
 
@@ -254,10 +257,22 @@ v1   31 dk önce · 6.2 KB
 ```
 Zip satırı ayarla kapatılabilir.
 
+### 8.2.1 Sohbet seviyesi zip
+
+Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 4 artifact → zip`.
+
+İçerik: her artifact'ın **son** versiyonu, düz adlarla (`Sales-Dashboard.tsx`, `Rapor.md`). Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
+
+Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`. Başlık okunamazsa `claude-artifacts-<tarih>.zip`.
+
+`⚠ kısmi` veya `⚠ yazılıyor` işaretli artifact'lar arşive **girer** ama adlarında `-partial` taşır ve toast kaç tanesinin şüpheli olduğunu söyler. Sessizce dışarıda bırakmak, kullanıcının eksiği fark etmemesi demek olurdu.
+
 ### 8.3 Pulse pill — panelin sağ altı
 `● 3 versiyon indirilebilir` — 2 nabız atar, 4 sn sonra kaybolur, tıklanınca menüyü açar. Yalnızca `notify === "inpage"` iken gösterilir. Konum gerekçesi: kodu kapatmıyor ve toast'larla aynı bölgeyi paylaşıyor — kullanıcı "bu extension buradan konuşur" diye tek yer öğreniyor.
 
 Aynı artifact için oturum başına **bir kez** gösterilir; panel her açılıp kapandığında tekrar nabız atmaz.
+
+**Tetikleyici panel açılışı değil, artifact'ın tamamlanmasıdır.** Claude yazmaya başladığı anda panel zaten açılıyor; o anda "indirebilirsin" demek yanlış — dosya henüz yarım (§3.2). Sinyal, akışın bittiği tespit edildiğinde çıkar. Zaten açık ve tamamlanmış bir artifact'a geçildiğinde ise hemen çıkar. Aynı kural badge nabzı ve sistem bildirimi için de geçerli.
 
 ### 8.4 Toast
 | tür | süre | örnek |
@@ -322,6 +337,37 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 **`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
 
+### 8.7.1 Sürükle-bırak
+
+`↓` butonu `draggable`. Sürüklenince dosya doğrudan VS Code'a, Finder'a, Explorer'a bırakılabilir — indirilenler klasöründen geçmeden.
+
+```js
+e.dataTransfer.setData("DownloadURL", `${mime}:${filename}:${blobUrl}`)
+```
+
+**Tuzak: `dragstart` senkron.** Bu satırın çalıştığı anda içeriğin **hazır olması** gerekir; orada `await fetch(...)` yapılamaz. Sürükleme ancak versiyonlar zaten yüklenmişse mümkün.
+
+Çözüm **hover ön-yükleme**: kullanıcı butonun üzerine geldiğinde (veya klavyeyle odaklandığında) fetch sessizce başlar. İnsan sürüklemeye başlamadan önce neredeyse her zaman fareyi butonun üstünde bir an tutar; o an bize yetiyor. Hazır değilse buton `draggable` olmaz — yarım dosya sürüklemektense sürüklenememek iyidir.
+
+Sürüklenen versiyon: varsayılan versiyon (`defaultVersion` ayarı). `blobUrl` bırakma sonrası `dragend`'de serbest bırakılır.
+
+Hover ön-yükleme aynı zamanda tıklama gecikmesini de düşürür — feature'ın ikinci kazancı.
+
+### 8.7.2 Klasöre kaydet (File System Access)
+
+Ayarda `Kayıt yeri: Tarayıcı indirmeleri | Seçilen klasör`. İkincisi seçilince `showDirectoryPicker()` açılır, dönen `FileSystemDirectoryHandle` IndexedDB'de saklanır (handle'lar `storage.sync`'e serialize edilemez; claude.ai origin'inde IndexedDB tutulur).
+
+**Tuzak: izin oturumla birlikte solar.** Tarayıcı yeniden başlatıldığında handle duruyor ama yazma izni yok; `handle.requestPermission({mode:"readwrite"})` yeni bir **kullanıcı hareketi** ister. İndirme tıklaması bu hareketi sağlar, ama kullanıcı istemi reddedebilir veya kapatabilir.
+
+Kural — üç kademeli davranış:
+1. İzin zaten varsa → klasöre doğrudan yazılır, toast `✓ dosya · ~/Projects/artifacts`
+2. İzin istenmeli ve verilirse → yazılır, aynı toast
+3. İzin reddedilir/iptal edilirse → **normal tarayıcı indirmesine düşülür**, sarı toast: `Klasör izni yok, indirilenlere kaydedildi`
+
+Hiçbir durumda "hiçbir şey olmadı" yok. Ayar kapatılmaz, kullanıcı bir sonraki indirmede yeniden izin verebilir.
+
+Aynı adlı dosya varsa üzerine yazılmaz; `-2`, `-3` soneki eklenir. Tarayıcı indirmesinde bunu Chrome yapıyor; klasöre yazarken **biz** yapmak zorundayız, yoksa sessiz veri kaybı olur.
+
 ### 8.8 İlk çalıştırma ve boş durumlar
 
 Tasarımın buraya kadarki her ekranı **dolu durumu** gösteriyor. Gerçekte kullanıcının göreceği ilk şey boş durum.
@@ -381,7 +427,9 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   autoDownload: false,
   defaultVersion: "current", // "current" | "latest" | "ask"
   nameTemplate: "{title}",   // {title} {version} {date} {ext}
-  zipAll: true
+  zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
+  saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
+  dragEnabled: true          // §8.7.1
 }
 ```
 Eksik alanlar okuma anında varsayılanla doldurulur (şema evrimi için migration gerekmez).
