@@ -290,6 +290,34 @@ test("ZIP64 thresholds refuse rather than emit a broken archive (§6)", () => {
   assert.throws(() => Z.buildZip(many), RangeError);
 });
 
+
+// ── heuristic chat root (§3.4.1, bug found by measurement) ───────────────────
+function fakeTree() {
+  // minimal parentElement/contains shims — no DOM needed
+  const mk = (name) => ({ name, children: [], parentElement: null,
+    contains(n){ if(n===this) return true; return this.children.some(c=>c.contains(n)); } });
+  const root = mk("root"), mid = mk("mid"), a = mk("a"), b = mk("b");
+  root.children = [mid]; mid.parentElement = root;
+  mid.children = [a, b]; a.parentElement = mid; b.parentElement = mid;
+  return { root, mid, a, b };
+}
+
+test("heuristic root finds the common container with two blocks (§3.4.1)", () => {
+  const t = fakeTree();
+  assert.strictEqual(P.heuristicRoot([t.a, t.b]), t.mid);
+});
+
+test("heuristic root does not return the block itself when there is only one (§3.4.1)", () => {
+  const t = fakeTree();
+  const r = P.heuristicRoot([t.a], { singleBlockClimb: 1 });
+  assert.notStrictEqual(r, t.a, "measured on Claude: this returned the code element");
+  assert.strictEqual(r, t.mid);
+});
+
+test("heuristic root stays silent with no blocks", () => {
+  assert.strictEqual(P.heuristicRoot([]), null);
+});
+
 // ── run ──────────────────────────────────────────────────────────────────────
 const failures = [];
 for (const [name, fn] of cases) {

@@ -189,7 +189,7 @@ The shared test is explicit: **if it can be done with data already present in th
 
 None need credentials; all work from data already in hand.
 
-**Context handoff.** In a long conversation the model starts forgetting the early parts, and users usually notice late. The threshold measure varies by tier, and **the message count is not always available**: the API tier reports it directly, while in the DOM tier message nodes may not be countable (virtualisation, §4). Rule: where the message count is unreliable, use the **character total** (code blocks plus visible text); where neither is available, no suggestion appears at all — an uninvited suggestion on a wrong threshold is worse than no suggestion. Once a conversation grows noticeably long, a quiet row appears in the popup: `This conversation is long — move the context to a new chat`. Transfer already exists (§3.3.3); the only addition is a **prepared handoff prompt** at the top of the Markdown: *"Below is my earlier conversation. Summarise it and continue from where we left off."* No model call, only correct formatting of text the user will paste.
+**Context handoff.** In a long conversation the model starts forgetting the early parts, and users usually notice late. The threshold measure varies by tier, and **the message count is not always available** — measured on Claude, `[data-testid*="message"]` matched two nodes in a twenty-two message conversation, so the DOM count is not merely unreliable in theory: the API tier reports it directly, while in the DOM tier message nodes may not be countable (virtualisation, §4). Rule: where the message count is unreliable, use the **character total** (code blocks plus visible text); where neither is available, no suggestion appears at all — an uninvited suggestion on a wrong threshold is worse than no suggestion. Once a conversation grows noticeably long, a quiet row appears in the popup: `This conversation is long — move the context to a new chat`. Transfer already exists (§3.3.3); the only addition is a **prepared handoff prompt** at the top of the Markdown: *"Below is my earlier conversation. Summarise it and continue from where we left off."* No model call, only correct formatting of text the user will paste.
 
 **Finding lost work.** This is only possible **with history enabled** (§4.3) — with it off there is no "never taken" information and the indicator is not drawn at all (§3.4.5 rule). With history on, items produced in a long conversation but never downloaded are knowable. Popup: `6 items in this conversation, you never took 2`. The most common loss is the one nobody noticed.
 
@@ -539,7 +539,9 @@ The registry row has exactly one fragile field: `chatRoot`. When a provider chan
 The solution is to stop making the selector load-bearing: **`chatRoot` is a hint, not a foundation.**
 
 1. If `SEL.chatRoot` exists and matches, it is used (fast path)
-2. If not, the heuristic: compute the **nearest common ancestor** of every `pre > code` node on the page. The container holding the code blocks is, by definition, the root we were looking for
+2. If not, the heuristic: compute the **nearest common ancestor** of every `pre > code` node on the page. The container holding the code blocks is, by definition, the root we were looking for.
+
+   **With fewer than two blocks the heuristic degenerates and must not be used.** Measured on Claude: with a single code block on the page, "the nearest common ancestor of all of them" resolves to the code element itself, and event delegation would bind to the block rather than to a container. Rule: the ancestor walk requires **at least two** blocks; with exactly one, walk up a fixed four levels from it and stop; with none, stay silent (step 3)
 3. If the page has no `pre > code` at all there is nothing to do — stay silent (the same condition as §3.4.2)
 
 The heuristic path costs a few more DOM queries than the selector and **works on every provider**, because it uses no provider-specific knowledge.
@@ -610,14 +612,16 @@ This is the **precondition** for every provider entering the registry: before it
 
 | | Claude | ChatGPT | Gemini | Perplexity |
 |---|---|---|---|---|
-| **DOM reachable** (no closed shadow root / iframe) | ? | ? | ? | ? |
-| Code blocks (DOM) | ✓* | ✓* | ✓* | ✓* |
+| **DOM reachable** (no closed shadow root / iframe) | **✓ measured** | ? | ? | ? |
+| Code blocks (DOM) | **✓ measured** (`pre > code`, `language-*`) | ✓* | ✓* | ✓* |
 | **Tool output** (`tool_output`) | api-dependent | api-dependent | api-dependent | api-dependent |
-| **Citations** (`citations`) | with search on | with search on | with search on | **always** |
+| **Citations** (`citations`) | **✓ measured** — a field on text blocks | with search on | with search on | **always** |
 | Panel / canvas document | ✓ artifact | ✓ canvas | — | — |
-| **Version history** | ✓ op-log (§3) | ? canvas versions | ✗ | ✗ |
-| Attachments | ? | ? | ? | ? |
-| API tier | ? | ? | ? | ? |
+| **Version history** | ? op-log — **schema unmeasured** (§4.1) | ? canvas versions | ✗ | ✗ |
+| Attachments | **✓ measured** — `file_size` and `preview_url` present | ? | ? | ? |
+| API tier | **✓ measured** | ? | ? | ? |
+
+Claude's column was filled by measurement on 2026-09-09; the run and its limits are in `docs/DISCOVERY-claude.md`. The remaining `?` in that column is the artifacts schema, which could not be measured because **no artifact existed in 25 conversations** — while the same conversations held 360 code fences. That ratio is why v1 is code blocks (§ MVP).
 
 `✓*` = valid if the first row is positive. `?` = **to be discovered per provider in step 1.** This document claims no knowledge of any provider's internal API schema; even for Claude, schema verification is the first job (§4). The discovery output per adapter: where the conversation id is read from, whether an API exists, the response shape, how streaming is detected, the `SEL` selectors, the attachment endpoint.
 
@@ -1193,7 +1197,7 @@ The consequence: the badge says how many documents exist in this conversation, n
 
 16. **Call parameters in tool outputs** (`includeCall`): on/off. Turning it off gives the raw result; leaving it on means knowing what the file is six months later.
 
-17. **Attachment size shown before downloading.** Attachment content arrives in a separate request (§3.3.2); where the size is readable from metadata it appears in the row, and where it is not the row says `size unknown` — it is never guessed.
+17. **Attachment size shown before downloading.** Attachment content arrives in a separate request (§3.3.2); where the size is readable from metadata it appears in the row, and where it is not the row says `size unknown` — it is never guessed. On Claude this is settled: `attachments[]` carries `file_size`, and `extracted_content` means text attachments arrive inline and need no second request at all.
 
 18. **Progress, when the work is long.** A conversation zip can hold forty items and attachments; operations exceeding 300 ms show a determinate progress bar in the bottom bar (`12/40`). Short operations show none — a bar for 80 ms is a flicker. The operation is **cancellable**; cancelling produces no partial zip.
 
