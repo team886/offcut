@@ -585,7 +585,8 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 4. **Bildirim** (`badge`, `notify`): toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok.
 5. **İndirme** (`defaultVersion`, `zipAll`, `autoDownload`, `dragEnabled`): varsayılan versiyon (görüntülenen / son / sor) · menüde zip satırı (aç/kapa) · sürükle-bırak (aç/kapa — bazı kullanıcılar kazara sürüklemeyi sevmez) · otomatik indirme (aç/kapa, **varsayılan kapalı**).
 6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
-7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**.
+7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**. Önizleme, yer tutucu bir örnek değil **o an listedeki ilk öğenin gerçek adı** üzerinden hesaplanır (`Sales-Dashboard-v3.tsx`); liste boşsa jenerik örneğe düşer. Kullanıcının göreceği şeyle önizlemenin aynı olmaması, önizlemenin varlık sebebini yok eder.
+   Şablondaki `/` ve `\` **temizlenir**, alt klasör oluşturmaz. Alt klasör desteği izin, iç içelik ve hata yollarını çoğaltır; karşılığında kazandırdığı şey nadir bir düzen tercihi. Token yardımında bu açıkça yazılır ki kullanıcı denemesin.
 8. **Siteler** (`sites`): dört sağlayıcı için aç/kapa. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
 9. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
 10. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
@@ -824,6 +825,21 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Content script yüklenmemiş sekmede kısayol | Sessiz no-op (hata yutulur) |
 
 İlke: bozuk dosya vermektense hiç dosya vermemek.
+
+### 11.2 Etkileşim semantiği — ayarların kesiştiği yerler
+
+Tek tek her ayar tanımlı, ama **birlikte** ne yaptıkları değildi. Her biri gerçek bir karar:
+
+| Durum | Karar | Gerekçe |
+|---|---|---|
+| `defaultVersion: "current"` ama panel kapalı | "Görüntülenen" diye bir şey yok → **son sürüme** düşülür ve menüde `son sürüm` etiketiyle gösterilir | Tanımsız bir tercihi sessizce yorumlamak yerine, hangi kuralın uygulandığını söylemek |
+| `cfg.sites[adapter] === false` | Content script'in **ilk işi** bu kontrol; false ise hiçbir observer kurulmaz, hiçbir DOM okunmaz, hemen çıkılır | Manifest eşleşmesi zaten yükledi; kapatma ancak koddan uygulanabilir ve en erken noktada uygulanmalı |
+| `autoDownload` açık, `kinds.code` kapalı | Kod blokları otomatik inmez | Görünmeyen bir türün arka planda inmesi, kullanıcının kapatma niyetinin tersi |
+| Tek öğe seçiliyken "Seçilenleri indir" | **Zip değil, düz dosya** iner | Tek dosyalık arşiv kullanıcıya fazladan bir açma adımı yükler |
+| Filtre aktifken tümünü seç | Yalnızca **görünen** öğeler seçilir | Gördüğün şey aldığın şeydir; filtrenin gizlediğini seçmek sürpriz üretir |
+| Seçim varken "Tümü → zip" | Bar **seçime** dönüşür; "tümü" yalnızca seçim yokken görünür | İki toplu eylemin aynı anda görünmesi hangisinin çalışacağını belirsizleştirir |
+| Kısayol, odakta öğe yokken | Açık belge indirilir; o da yoksa `! Bu sayfada indirilecek öğe yok` | Sessiz no-op, kısayolun bozuk olduğunu düşündürür |
+| `kinds` ile gizlenen tür, sohbet zip'inde | Zip **görünen türleri** kapsar | Zip, listenin toplu hâlidir; listede olmayanı içermesi tutarsızlık olurdu |
 
 ### 11.1 Hangi sayılar ayarlanabilir, hangileri değil
 
