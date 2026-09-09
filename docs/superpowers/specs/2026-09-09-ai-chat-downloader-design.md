@@ -852,6 +852,7 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
 - `tools/pack.mjs` — mağaza zip'i üretir, dev dosyalarını hariç tutar
 - `tools/check-invariants.mjs` — §19.3'teki mekanik kapılar (8-13); npm bağımlılığı yok
+- `tools/check-spec.mjs` — §19.3 kapı 14; spec'in kendi tutarlılığı
 - `.github/workflows/ci.yml` — §19.3'ün yedi kapısı
 - `.github/ISSUE_TEMPLATE/bug.yml` — teşhis bloğu zorunlu alan (§19.9)
 - `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
@@ -898,6 +899,9 @@ GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriy
 11. **Ayar kapsaması:** `cfg` şemasındaki her anahtarın panelde bir kontrolü var, panelde şemada olmayan kontrol yok (§8.6). Ayar eklenip UI unutulması bu kapıyla imkânsız
 12. **Mantıksal CSS:** `overlay.css` fiziksel yön özelliği içermiyor (`left:`, `right:`, `margin-left`, `padding-right`); yalnızca `inset-inline-*`, `margin-inline-*` (§8.7). RTL bozulmasını sonradan aramak yerine yazarken engeller
 13. **Adaptör tazeliği:** her adaptörde `LAST_VERIFIED` var; 90 günden eski **uyarı**, 180 günden eski **kırmızı** (§19.8). Doğrulanmamış bir adaptörle yeni sürüm çıkmaz
+14. **Spec tutarlılığı** (`tools/check-spec.mjs`): kırık `§` referansı yok (kod blokları **dahil** — bir kırık referans tam orada bulunmuştu) · bölüm numaraları artan · `cfg` şeması ile ayar paneli iki yönlü örtüşüyor · spec'te adı geçen her dosya mimari ağaçta veya teslimat listesinde var · `SEL.*` ve `cfg.*` referansları tanımlı · 2+ kez geçen sayısal eşikler raporlanır (tutarsızlık insan gözüyle bakılsın diye)
+
+   Bu kapının gerekçesi doğrudan bu dokümanın geçmişi: kusurların büyük çoğunluğu **aynı değerin iki yerde yazılıp birinin güncellenmemesinden** çıktı. Dokümanda derleyici yok; onun yerini bu kapı alır. Spec de kod gibi bakım gerektirir, ve bakım gerektiren her şey bir kapı hak eder
 
 ### 19.4 Sürümleme ve paketleme
 
@@ -982,5 +986,17 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 15. Performans bütçelerinin ölçümü (§19.2)
 16. `store/` teslimatları + gizlilik politikasının yayımlanması
 17. Yayın öncesi kapı (§19.5) → kademeli yayın (§19.7)
+
+### MVP kesme çizgisi
+
+Kapsam bu dokümanın ömrü boyunca üç kat büyüdü (artifact → üç öğe türü → dört sağlayıcı). Tek kişilik bir projede bunun gerçek riski kod değil, **hiçbirinin bitmemesi**. Bu yüzden kesme çizgisi baştan yazılı:
+
+**MVP = 1-5. adımlar.** Yani: çekirdek + `common-dom.js` + gezici düğme, dört sağlayıcıda kod bloğu indirme, doğru ad ve uzantı, tekil dosya indirmesi. Versiyon yok, zip yok, ek yok, klasör yok, sürükleme yok.
+
+Bu neden yayınlanabilir bir üründür: kod blokları dört sağlayıcıda **tek kod yolundan** çıkar (§3.4.1), yani MVP'nin bakım yükü dört değil bir. Ve indirilen kodun çoğu zaten artifact değil (§2) — kullanıcının en sık ihtiyacı burada.
+
+**Sonra sırayla:** 6-7 (artifact/canvas + versiyon, Claude'dan başlayarak) → 11 (sürükle-bırak, klasör) → 8 (ekler). Her biri bağımsız olarak yayınlanabilir ve her biri kendi başına bir sürüm notu eder.
+
+**Kesme çizgisinin altında kalanlar ertelenmez, kapatılır:** MVP'de versiyon menüsü *gizlenmez*, hiç çizilmez (§3.4.2'deki "yetenek yoksa kontrol de yok" kuralı). Kullanıcı eksik bir şey görmez, olmayan bir şeyi de beklemez.
 
 **Sıra gerekçesi:** 5. adım bilerek adaptörlerden önce — kod blokları dört sağlayıcıda tek kod yoluyla çalıştığı için, oraya kadar gelen bir yapı zaten yayınlanabilir bir üründür. Artifact/versiyon katmanı (6-7) onun üstüne eklenir, altına değil.
