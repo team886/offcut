@@ -397,10 +397,13 @@
     if (isOptions) document.body.classList.add("options");
     localise();
 
-    cfg = await new Promise((res) =>
-      chrome.storage.sync.get("cfg", (o) => res(Object.assign({}, DEFAULTS, (o && o.cfg) || {}))));
-
-    const tabs = await new Promise((res) => chrome.tabs.query({ active: true, currentWindow: true }, res));
+    // These two are independent, so they go together. Serially they cost two
+    // round trips before anything below can start (§8.6.1).
+    const [storedCfg, tabs] = await Promise.all([
+      new Promise((res) => chrome.storage.sync.get("cfg", (o) => res((o && o.cfg) || {}))),
+      new Promise((res) => chrome.tabs.query({ active: true, currentWindow: true }, res)),
+    ]);
+    cfg = Object.assign({}, DEFAULTS, storedCfg);
     tabId = tabs && tabs[0] ? tabs[0].id : null;
 
     // The tab's URL is readable without the "tabs" permission for any origin

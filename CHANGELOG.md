@@ -38,6 +38,8 @@ The MVP: **code blocks, on every provider in the registry.** No documents, no ve
 
 - The line count inside a row's `aria-label` was hardcoded English inside an otherwise localised string, so a Turkish screen reader announced "3 lines".
 
+- **The popup was slow to open.** Three costs, all avoidable. It asked the content script for a list, and the content script ran a full rescan before answering — cloning and reading every code node on the page while the popup's list sat blank, even though the MutationObserver already keeps that list current. Its two startup round trips (settings, active tab) ran one after the other instead of together. And `rescan` itself resolved the code nodes twice per pass, once to find the chat root and once to build the items; it now walks once. The shadow-root search no longer touches every element on the page either — only custom elements, which is where an open shadow root actually lives.
+
 ### Notes
 
 - No telemetry, no external requests, no account. CI gate 8 checks that mechanically: no source file may name a host outside the registry origins.

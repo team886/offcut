@@ -263,12 +263,22 @@
   // ── scanning and observation (§7 step 1) ─────────────────────────────────
   function rescan() {
     if (state.dead) return;
-    const resolved = D.resolveChatRoot(state.row);
+    const sel = state.row && state.row.codeBlock;
+    const nodes = state.cfg.kinds.code ? D.codeNodes(document, sel) : [];
+    const resolved = D.resolveChatRoot(state.row, nodes);
     state.root = resolved.node;
     state.rootVia = resolved.via;
+    // The nodes are already resolved; passing them keeps rescan to one walk.
+    // They were collected from the document, so when the root came from a
+    // registry selector they are narrowed to it — otherwise the first row to
+    // define a chatRoot would silently widen what the panel lists. No row
+    // defines one today, which is exactly why this would have gone unnoticed.
+    const scoped = resolved.via === "selector" && state.root
+      ? nodes.filter((n) => state.root.contains(n))
+      : nodes;
     state.items = state.cfg.kinds.code
-      ? D.collectCodeItems(state.root || document, state.row && state.row.codeBlock,
-                           { includeShort: state.includeShort })
+      ? D.collectCodeItems(state.root || document, sel,
+                           { includeShort: state.includeShort, nodes: scoped })
       : [];
     state.skipped = state.items.skipped || 0;
     state.byKey = new Map(state.items.map((i) => [i.key, i]));
@@ -335,7 +345,11 @@
     if (state.dead) return;
     switch (msg && msg.type) {
       case "items:list":
-        rescan();
+        // Deliberately no rescan here. The MutationObserver already keeps
+        // state.items current, so scanning again on every popup open bought
+        // nothing and made the user wait for it: the scan clones and reads
+        // every code node on the page, and the popup cannot paint its list
+        // until this reply arrives (§7).
         reply({ provider: state.row ? state.row.name : null,
                 items: state.items.map(serialiseItem),
                 skipped: state.skipped, includeShort: state.includeShort });

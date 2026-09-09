@@ -23,7 +23,15 @@ const MagpieDom = (() => {
   function queryDeep(root, selector, acc) {
     const out = acc || [];
     out.push(...root.querySelectorAll(selector));
+    // Only custom elements are searched for an open shadow root. The naive
+    // version iterated querySelectorAll("*") — every element on the page,
+    // twice per scan, on a scan that reruns on every mutation while a reply
+    // streams (§7). A shadow root can technically hang off a plain <div>,
+    // but in practice it hangs off a custom element, and paying an O(all
+    // elements) walk on every frame to cover the theoretical case is the
+    // wrong trade for a UI that must not slow the page down.
     for (const el of root.querySelectorAll("*")) {
+      if (el.tagName.indexOf("-") === -1) continue;
       if (el.shadowRoot) queryDeep(el.shadowRoot, selector, out);
     }
     return out;
@@ -134,7 +142,11 @@ const MagpieDom = (() => {
    * (§3.3). A shifting key would rebind an open menu to another item.
    */
   function collectCodeItems(root, selector, opts) {
-    const nodes = codeNodes(root, selector);
+    // A caller that has already resolved the nodes passes them in: rescan()
+    // needs the same list twice (once to find the chat root, once to build
+    // items) and computing it twice doubled a walk that reruns on every
+    // mutation during streaming (§7).
+    const nodes = (opts && opts.nodes) || codeNodes(root, selector);
     const items = [];
     let skipped = 0;
     nodes.forEach((el, i) => {
@@ -173,14 +185,15 @@ const MagpieDom = (() => {
 
   /** The chat root: the registry hint when it matches, the heuristic when it
    *  does not, so a provider redesign is not an emergency (§3.4.1). */
-  function resolveChatRoot(row) {
+  function resolveChatRoot(row, nodes) {
     if (row && row.chatRoot) {
       const el = document.querySelector(row.chatRoot);
-      if (el) return { node: el, via: "selector" };
+      if (el) return { node: el, via: "selector", nodes: nodes || null };
     }
-    const nodes = codeNodes(document, (row && row.codeBlock) || "pre > code");
-    const el = P.heuristicRoot(nodes);
-    return el ? { node: el, via: "heuristic" } : { node: null, via: "none" };
+    const found = nodes || codeNodes(document, (row && row.codeBlock) || "pre > code");
+    const el = P.heuristicRoot(found);
+    return el ? { node: el, via: "heuristic", nodes: found }
+              : { node: null, via: "none", nodes: found };
   }
 
   return { queryDeep, codeNodes, languageOf, readCodeText, readCodeTextComplete,
