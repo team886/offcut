@@ -113,10 +113,16 @@ function buildZip(entries, opts) {
     raw(p.nameBytes);
   });
 
+  // Read the directory's size BEFORE writing the EOCD: every u16/u32 below
+  // advances `off`, so computing it inline would report the directory as 12
+  // bytes longer than it is, and a reader locating the directory by walking
+  // back from the EOCD lands 12 bytes short of the signature.
+  const centralEnd = off;
+
   u32(ZIP_EOCD_SIG);
   u16(0); u16(0);
   u16(prepared.length); u16(prepared.length);
-  u32(off - centralStart);
+  u32(centralEnd - centralStart);
   u32(centralStart);
   u16(0);                        // comment length
 
@@ -150,6 +156,10 @@ function dedupeNames(names) {
     throw new RangeError("zip: more than 99 name collisions for " + name);
   });
 }
+
+const MagpieZip = { crc32, buildZip, zipEntryPath, dedupeNames,
+                    ZIP_LOCAL_SIG, ZIP_CENTRAL_SIG, ZIP_EOCD_SIG, ZIP_VERSION_NEEDED, ZIP_UTF8_FLAG };
+if (typeof globalThis !== "undefined") globalThis.MagpieZip = MagpieZip;
 
 if (typeof module !== "undefined") {
   module.exports = { crc32, buildZip, zipEntryPath, dedupeNames,

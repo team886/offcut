@@ -255,6 +255,46 @@ test("central directory offset equals the total size of the local headers", () =
   assert.strictEqual(u16at(zip, zip.length - 14), 2, "entry count");
 });
 
+test("the EOCD's directory-size field is the directory's real size (§6)", () => {
+  // The offset field was checked above and the size field was not, which is
+  // how a directory size 12 bytes too large shipped: `off` had already been
+  // advanced by the EOCD's own leading fields when the size was computed.
+  const entries = [
+    { name: "one.txt", bytes: enc.encode("hello") },
+    { name: "two.txt", bytes: enc.encode("world!") },
+  ];
+  const zip = Z.buildZip(entries);
+  const expected = entries.reduce((n, e) => n + 46 + enc.encode(e.name).length, 0);
+  assert.strictEqual(u32at(zip, zip.length - 10), expected, "size of the central directory");
+});
+
+test("an archive can be walked the way a reader walks it (§6)", () => {
+  // The three fields above can each be right on their own while the archive
+  // still does not open. This asserts what a reader actually does: find the
+  // EOCD, derive where the directory starts, and expect a signature there.
+  const entries = [
+    { name: "a.txt", bytes: enc.encode("A") },
+    { name: "klasör/çıktı.txt", bytes: enc.encode("üğş") },
+  ];
+  const zip = Z.buildZip(entries);
+  const eocd = zip.length - 22;
+  const sizeCD = u32at(zip, eocd + 12);
+  const offCD = u32at(zip, eocd + 16);
+
+  assert.strictEqual(offCD + sizeCD, eocd, "directory must end exactly where the EOCD begins");
+  assert.strictEqual(u32at(zip, offCD), Z.ZIP_CENTRAL_SIG, "no central header at the stated offset");
+
+  // Walk every directory entry and land exactly on the EOCD.
+  let p = offCD;
+  for (let i = 0; i < entries.length; i++) {
+    assert.strictEqual(u32at(zip, p), Z.ZIP_CENTRAL_SIG, `entry ${i} signature`);
+    const local = u32at(zip, p + 42);
+    assert.strictEqual(u32at(zip, local), Z.ZIP_LOCAL_SIG, `entry ${i} local header offset`);
+    p += 46 + u16at(zip, p + 28) + u16at(zip, p + 30) + u16at(zip, p + 32);
+  }
+  assert.strictEqual(p, eocd, "walking the directory did not end at the EOCD");
+});
+
 test("size fields are byteLength, not character count (§6)", () => {
   const name = "şğü-🐦.txt";
   const body = enc.encode("içerik 🐦");
