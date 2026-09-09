@@ -186,6 +186,8 @@ Konuşmanın tamamı zaten elimizde (§4). Onu **Markdown'a** çevirmek yeni ver
 
 İki eylem:
 
+Panoya yazma `navigator.clipboard.writeText` ile ve **kullanıcı hareketiyle** yapılır; popup'ta tık zaten hareket sayılır, ayrı bir izin gerekmez. Adım 1'de doğrulanır — gerekirse `clipboardWrite` izni eklenir, ama gereksizse eklenmez (izin yüzeyi).
+
 **`↓ Sohbeti .md indir`** — dosya olarak iner. Diğer her şeyle aynı boru hattı; ayrı bir mekanizma yok.
 
 **`→ Başka sağlayıcıda devam et`** — hedef seçilir, konuşma Markdown'ı **panoya** yazılır ve hedefin yeni sohbet sayfası yeni sekmede açılır. Kullanıcı yapıştırır.
@@ -375,16 +377,21 @@ ai-chat-downloader/
                         "https://gemini.google.com/*", "https://www.perplexity.ai/*"],
   "background": { "service_worker": "src/sw.js" },
   "content_scripts": [{
-    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*"],
-    "js": ["src/parse.js", "src/zip.js", "src/adapters/common-dom.js",
-           "src/adapters/claude.js", "src/content.js"],
+    // TABAN: kayıttaki tüm sağlayıcılar tek blok — hepsi aynı dosyaları yükler,
+    // ayrı blok yalıtım kazandırmaz (§3.4.4 yalnızca adaptör dosyaları için geçerli)
+    "matches": ["https://gemini.google.com/app/*", "https://www.perplexity.ai/search/*",
+                "https://chat.deepseek.com/*", "https://chat.mistral.ai/*", "…"],
+    "js": ["src/parse.js", "src/zip.js", "src/registry.js",
+           "src/adapters/common-dom.js", "src/content.js"],
     "css": ["src/overlay.css"], "run_at": "document_idle"
   }, {
-    "matches": ["https://chatgpt.com/c/*"],
-    "js": ["src/parse.js", "src/zip.js", "src/adapters/common-dom.js",
-           "src/adapters/chatgpt.js", "src/content.js"],
+    // ADAPTÖRLÜ: her biri kendi bloğunda — bir adaptör dosyasındaki hata
+    // yalnızca kendi sağlayıcısını düşürsün (§3.4.4)
+    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*"],
+    "js": ["src/parse.js", "src/zip.js", "src/registry.js",
+           "src/adapters/common-dom.js", "src/adapters/claude.js", "src/content.js"],
     "css": ["src/overlay.css"], "run_at": "document_idle"
-  }],   // gemini ve perplexity için aynı kalıpta iki blok daha
+  }],   // chatgpt için aynı kalıpta bir blok daha
   "action": { "default_popup": "src/panel.html" },
   "options_ui": { "page": "src/panel.html", "open_in_tab": true },
   "commands": { "download-current": {
@@ -590,6 +597,8 @@ Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı i
 
 Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-indirilenler.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
 
+Sohbetin Markdown'ı (§3.3.3) arşivin **kökünde** `sohbet.md` olarak yer alır — arşivi altı ay sonra açan kişi dosyaların hangi konuşmadan çıktığını bilmeli; bağlamsız bir dosya yığını arşivin yarısını değersizleştirir.
+
 `⚠ kısmi` veya `⚠ yazılıyor` işaretli artifact'lar arşive **girer** ama adlarında `-partial` taşır ve toast kaç tanesinin şüpheli olduğunu söyler. Sessizce dışarıda bırakmak, kullanıcının eksiği fark etmemesi demek olurdu.
 
 ### 8.3 Pulse pill — panelin sağ altı
@@ -670,13 +679,19 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
 7. **Dosya adı** (`nameTemplate`): şablon input + tıklanabilir token chip'leri + **canlı önizleme**. Önizleme, yer tutucu bir örnek değil **o an listedeki ilk öğenin gerçek adı** üzerinden hesaplanır (`Sales-Dashboard-v3.tsx`); liste boşsa jenerik örneğe düşer. Kullanıcının göreceği şeyle önizlemenin aynı olmaması, önizlemenin varlık sebebini yok eder.
    Şablondaki `/` ve `\` **temizlenir**, alt klasör oluşturmaz. Alt klasör desteği izin, iç içelik ve hata yollarını çoğaltır; karşılığında kazandırdığı şey nadir bir düzen tercihi. Token yardımında bu açıkça yazılır ki kullanıcı denemesin.
-8. **Siteler** (`sites`): dört sağlayıcı için aç/kapa. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
-9. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
-10. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
-11. **Bu oturumda indirilenler işaretlidir.** İnen satır soluk bir `✓` alır (oturum içi, kalıcı değil). Kullanıcı listeye geri döndüğünde neyi aldığını hatırlamak zorunda kalmaz — aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcıdır.
-12. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
-13. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
-14. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+8. **Siteler** (`sites`): kayıttaki sağlayıcılar için aç/kapa. Liste uzun olduğundan **arama kutusu** ve `Tümünü kapat / aç` bulunur; varsayılan hepsi açık. Kullanıcının eklediği hostlar (§3.4.0) ayrı bir grupta, her biri **kaldır** düğmesiyle — verdiği izni geri almanın yolu extension ayarlarında aranmamalı. Kullanmadığın sağlayıcıda extension hiç çalışmasın diyebilmek, izin listesini daraltmasa da davranışı daraltır.
+9. **Adı indirmeden önce düzeltebilme.** Satırdaki ada tıklamak onu yerinde düzenlenebilir yapar; `Enter` onaylar, `Esc` iptal eder. Uzantı ayrı ve düzenlenmez (yanlış uzantı sessiz bir hata kaynağı).
+
+   Gerekçe: ad dört basamaklı bir **sezgisel** zincirden geliyor (§3.3.1) ve sezgisel her zaman yanılabilir — `kod-7.py`, `use-cart.ts` yerine `index.ts`. Düzeltmenin tek yolu indirip dosyayı yeniden adlandırmak olurdu. Türetme ne kadar iyi olursa olsun, kullanıcıya son sözü vermeyen bir ad üreticisi eksiktir. Düzeltilen ad o oturum boyunca o öğe için hatırlanır.
+
+10. **İçeriği panoya kopyala.** Her satırda `↓` yanında bir kopyala eylemi. Çoğu zaman insanın gerçek ihtiyacı dosya değil, içeriğin kendisidir — ve indirip açıp kopyalamak üç adımdır. Sağlayıcının kendi kopyala düğmesi yalnızca kod bloklarında ve yalnızca güncel sürümde var; bizimki **eski bir sürümü** de, **belgeyi** de, **sohbetin Markdown'ını** da kopyalayabiliyor. Aynı içerik boru hattı, yeni bir hedef.
+
+11. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
+12. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
+13. **Bu oturumda indirilenler işaretlidir.** İnen satır soluk bir `✓` alır (oturum içi, kalıcı değil). Kullanıcı listeye geri döndüğünde neyi aldığını hatırlamak zorunda kalmaz — aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcıdır.
+14. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
+15. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
+16. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -829,8 +844,9 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
-  kinds: { artifact:true, code:true, attachment:true },  // hangi öğe türleri gösterilsin
-  sites: { claude:true, chatgpt:true, gemini:true, perplexity:true },  // sağlayıcı bazında kapatma
+  kinds: { artifact:true, code:true, attachment:true, conversation:true },  // hangi öğe türleri
+  sites: { … },              // kayıt id → bool; eksik id varsayılan açık
+  extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.0)
   dragEnabled: true          // §8.7.1
 }
 ```
@@ -1007,7 +1023,9 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set; `version needed = 20`; veri tanımlayıcısı **yok**
 
-Manuel doğrulama listesi — **dört sağlayıcıda ayrı ayrı koşulur**; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işaretlenir, atlanmaz. Ek olarak her sağlayıcıda: kod bloğu gezici düğmesinin doğru bloğa hizalanması, üç satırdan kısa blokların kontrol almaması, ad türetme zincirinin dört basamağının da denenmesi, ek indirmenin ikili dosyayı bozmaması, ve klasör tercihinin sağlayıcı başına ayrı sorulması. Claude'a özgü liste: gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **dokunmatik ekranda kod bloğu indirme** (hover yokken düğme erişilebilir mi); %200 tarayıcı yakınlaştırmasında hizalanan katmanların kayması; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; **Kademe 1 çıktısının sağlayıcının kopyala düğmesiyle bayt bayt karşılaştırılması**; 200+ mesajlık sohbette API'nin tüm mesajları döndürmesi; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi — **her adaptörlü sağlayıcıda tam, taban sağlayıcılarda örnekleme ile** koşulur: her sürümde adaptörlerin tamamı + taban listesinden rastgele üç sağlayıcı, ve `LAST_VERIFIED`'ı 90 günü aşan her taban sağlayıcı. Yirmi sağlayıcıyı her sürümde elle denemek sürdürülemez; tazelik mekanizması (§19.8) kalanı zamana yayar. Seçilen örnek `docs/SMOKE.md`'ye tarihle yazılır ki rastgelelik kapsamı gerçekten dolaşsın.
+
+Koşulan liste; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işaretlenir, atlanmaz. Ek olarak her sağlayıcıda: kod bloğu gezici düğmesinin doğru bloğa hizalanması, üç satırdan kısa blokların kontrol almaması, ad türetme zincirinin dört basamağının da denenmesi, ek indirmenin ikili dosyayı bozmaması, ve klasör tercihinin sağlayıcı başına ayrı sorulması. Claude'a özgü liste: gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **dokunmatik ekranda kod bloğu indirme** (hover yokken düğme erişilebilir mi); %200 tarayıcı yakınlaştırmasında hizalanan katmanların kayması; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; **Kademe 1 çıktısının sağlayıcının kopyala düğmesiyle bayt bayt karşılaştırılması**; 200+ mesajlık sohbette API'nin tüm mesajları döndürmesi; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
@@ -1078,7 +1096,7 @@ Aşağıdakiler mağaza beyanının ve kullanıcı güveninin **taşıyıcı** u
 
 1. Dış origin'e hiçbir istek yok (§19.3 kapı 8 bunu korur)
 2. Telemetri, analytics, hata raporlama servisi yok
-3. Konuşma içeriği yalnızca bellekte; diske **yalnızca kullanıcının açıkça indirdiği dosya** yazılır
+3. Konuşma içeriği yalnızca bellekte. Cihazdan çıkışı **yalnızca kullanıcının açık eylemiyle** olur ve üç yolu vardır: indirdiği dosya, seçtiği klasöre yazılan dosya, ve taşıma özelliğinde **panoya** yazılan Markdown (§3.3.3). Panoyu üçüncü bir hedef olarak burada saymak zorundayız — saymamak bu listeyi yanlış yapardı
 4. `storage`'da yalnızca ayarlar; IndexedDB'de yalnızca klasör handle'ı
 5. Teşhis bloğu konuşma verisi taşımaz (§8.9)
 
@@ -1142,7 +1160,7 @@ GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriy
 10. **Katman ihlali:** `content.js` hiçbir sağlayıcı seçicisi içermiyor; `SEL` yalnızca `adapters/` altında (§3.4.3, §12). Adaptör yalıtımının tek koruyucusu bu kapı
 11. **Ayar kapsaması:** `cfg` şemasındaki her anahtarın panelde bir kontrolü var, panelde şemada olmayan kontrol yok (§8.6). Ayar eklenip UI unutulması bu kapıyla imkânsız
 12. **Mantıksal CSS:** `overlay.css` fiziksel yön özelliği içermiyor (`left:`, `right:`, `margin-left`, `padding-right`); yalnızca `inset-inline-*`, `margin-inline-*` (§8.7). RTL bozulmasını sonradan aramak yerine yazarken engeller
-13. **Adaptör tazeliği:** her adaptörde `LAST_VERIFIED` var; 90 günden eski **uyarı**, 180 günden eski **kırmızı** (§19.8). Doğrulanmamış bir adaptörle yeni sürüm çıkmaz
+13. **Kayıt/adaptör tazeliği:** her kayıt satırında ve her adaptörde `LAST_VERIFIED` var; 90 günden eski **uyarı**, 180 günden eski **kırmızı** (§19.8). Doğrulanmamış bir adaptörle yeni sürüm çıkmaz
 14. **Spec tutarlılığı** (`tools/check-spec.mjs`): kırık `§` referansı yok (kod blokları **dahil** — bir kırık referans tam orada bulunmuştu) · bölüm numaraları artan · `cfg` şeması ile ayar paneli iki yönlü örtüşüyor · spec'te adı geçen her dosya mimari ağaçta veya teslimat listesinde var · `SEL.*` ve `cfg.*` referansları tanımlı · 2+ kez geçen sayısal eşikler raporlanır (tutarsızlık insan gözüyle bakılsın diye)
 
    Bu kapının gerekçesi doğrudan bu dokümanın geçmişi: kusurların büyük çoğunluğu **aynı değerin iki yerde yazılıp birinin güncellenmemesinden** çıktı. Dokümanda derleyici yok; onun yerini bu kapı alır. Spec de kod gibi bakım gerektirir, ve bakım gerektiren her şey bir kapı hak eder
