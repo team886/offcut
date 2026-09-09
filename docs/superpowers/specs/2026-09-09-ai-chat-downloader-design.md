@@ -190,17 +190,30 @@ Bunu mümkün kılan gözlem: **DOM kod-bloğu çıkarımı neredeyse sağlayıc
 
 Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyonuyla çalışır; her blok için ayrı dinleyici bağlanmaz (uzun sohbette yüzlerce dinleyici demek olurdu). Çekirdek bunun **ortak varsayılan implementasyonunu** taşır; adaptör yalnızca farklıysa geçersiz kılar. Kod blokları — yani değerin büyük kısmı — dört sağlayıcıda tek kod yoluyla çalışır.
 
+### 3.4.1.1 DOM tabanı da garanti değil — erişilebilirlik ön koşulu
+
+"DOM kademesi her zaman çalışır" (§3.4.1) bir varsayım, kanıt değil. İki durumda **hiç** çalışmaz ve ikisi de adım 1'de ölçülmeli:
+
+**Kapalı shadow root.** Sağlayıcı sohbet arayüzünü `attachShadow({mode:"closed"})` ile çizdiyse, content script o ağacı **hiçbir biçimde** okuyamaz — `querySelector` girmez, `shadowRoot` `null` döner. Açık shadow root sorun değil (`element.shadowRoot` üzerinden inilir, `SEL` yolları shadow sınırlarını geçecek şekilde yazılır); kapalı olan kesin engeldir. Web bileşeni kullanan modern arayüzlerde gerçek bir ihtimal.
+
+**iframe.** Konuşma ayrı bir `iframe` içinde çiziliyorsa content script ana çerçevede kalır ve içeriği göremez. Çözüm `all_frames: true` + çerçeve kaynağının host iznine eklenmesi — ama bu izin yüzeyini genişletir ve inceleme sorusu üretir, o yüzden gerçekten gerekliyse yapılır, ihtimale karşı değil.
+
+**Bir sağlayıcı erişilemezse ne olur.** Kapalı shadow root varsa ve API kademesi de yoksa o sağlayıcı için yapılabilecek bir şey yoktur. Karar: o sağlayıcı **kapsamdan çıkarılır** — manifest'ten host izni ve `content_scripts` bloğu silinir, mağaza listelemesinde adı geçmez, `sites` ayarında görünmez. Yarım çalışan bir sağlayıcı hem kullanıcı için hem inceleme için hem bakım için üçlü zarardır.
+
+Bu, dört sağlayıcı iddiasının **ön koşuludur**: adım 1'de her sağlayıcı için sırayla `chatRoot` bulunabiliyor mu, kod bloğu metni okunabiliyor mu, ana çerçevede mi. Üçü de olumluysa sağlayıcı listede kalır. Mağaza metni ancak bu ölçümden sonra yazılır — desteklenmeyen bir sağlayıcıyı listelemek, incelemede yanlış beyandır.
+
 ### 3.4.2 Yetenek matrisi
 
 | | Claude | ChatGPT | Gemini | Perplexity |
 |---|---|---|---|---|
-| Kod blokları (DOM) | ✓ | ✓ | ✓ | ✓ |
+| **DOM erişilebilir** (kapalı shadow root / iframe yok) | ? | ? | ? | ? |
+| Kod blokları (DOM) | ✓* | ✓* | ✓* | ✓* |
 | Panel/canvas belgesi | ✓ artifact | ✓ canvas | — | — |
 | **Versiyon geçmişi** | ✓ op-log (§3) | ? canvas sürümleri | ✗ | ✗ |
 | Ekler | ? | ? | ? | ? |
 | API kademesi | ? | ? | ? | ? |
 
-`?` = **adım 1'de sağlayıcı bazında keşfedilecek.** Bu spec hiçbir sağlayıcının dahilî API şemasını bildiğini iddia etmiyor; Claude için bile şema doğrulaması ilk iş (§4). Keşif çıktısı her adaptör için: konuşma kimliği nereden okunur, API var mı, yanıt şekli, akış tespiti, `SEL` seçicileri, ek endpoint'i.
+`✓*` = ilk satır olumluysa geçerli. `?` = **adım 1'de sağlayıcı bazında keşfedilecek.** Bu spec hiçbir sağlayıcının dahilî API şemasını bildiğini iddia etmiyor; Claude için bile şema doğrulaması ilk iş (§4). Keşif çıktısı her adaptör için: konuşma kimliği nereden okunur, API var mı, yanıt şekli, akış tespiti, `SEL` seçicileri, ek endpoint'i.
 
 **`capabilities` statik yazılır, çalışma anında yalnızca *daralabilir*.** Adaptör dosyasında keşif sonucuna göre sabit tanımlanır; oturum sırasında API 401 verirse `api` o sekme için kapanır ve UI hemen buna göre çizilir (versiyon menüsü kaybolur). Genişleme yönü yoktur — çalışma anında "acaba destekliyor mu" diye yoklama yapılmaz, çünkü yoklama hem gereksiz istek hem de bot koruması riskidir (§16).
 
@@ -824,6 +837,8 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.3) |
 | Sağlayıcıda yetenek yok | Kontrol hiç çizilmez — gri/pasif kontrol de gösterilmez |
 | Ek indirme endpoint'i bulunamadı | Ekler o sağlayıcıda kapsam dışı; UI'da hiç söz edilmez |
+| Sağlayıcı kapalı shadow root kullanıyor | O sağlayıcı **kapsamdan çıkarılır** (§3.4.1.1); yarım destek verilmez |
+| Konuşma iframe içinde | `all_frames` gerekiyorsa eklenir; gerekmiyorsa eklenmez (izin yüzeyi) |
 | Ek ikili dosya | `ArrayBuffer` olarak yazılır; metin dönüşümüne **sokulmaz** |
 | Kademe 1 ile DOM %5'ten fazla ayrışıyor | İndirme engellenmez; sarı toast + teşhise yazılır (§4.1) |
 | Konuşma endpoint'i pencereliyor | Sayfalama; mümkün değilse en eski versiyonlar `⚠ erişilemedi` |
