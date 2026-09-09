@@ -1,0 +1,150 @@
+<style>
+/* Magpie palette — §8.0.1 */
+.mg { --ink:#17161A; --surface:#201F24; --line:#35333B; --fg:#F2F0EC; --dim:#9C99A3;
+      --gold:#E8B44A; --ok:#3F8F5E; --warn:#E0A32E; --err:#C0392B; }
+.pp { width:356px; background:#201F24; border:1px solid #35333B; border-radius:12px; overflow:hidden;
+      font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:#F2F0EC; }
+.hd { display:flex; align-items:center; gap:8px; padding:9px 13px; border-bottom:1px solid #35333B; font-weight:600; font-size:12.5px; }
+.hd s { text-decoration:none; margin-left:auto; font-size:10px; color:#9C99A3; font-weight:400; }
+.tabs { display:flex; gap:2px; padding:0 9px; border-bottom:1px solid #35333B; background:#17161A; }
+.tab { padding:6px 10px; font-size:11.5px; color:#9C99A3; border-bottom:2px solid transparent; }
+.tab.on { color:#F2F0EC; border-bottom-color:#E8B44A; }
+.site { display:flex; align-items:center; gap:6px; padding:6px 13px; background:#17161A; border-bottom:1px solid #35333B; font-size:11px; color:#9C99A3; }
+.site .d { width:6px; height:6px; border-radius:99px; background:#3F8F5E; box-shadow:0 0 6px #3F8F5E; }
+.filt { margin:9px 13px 4px; display:flex; align-items:center; gap:7px; background:#17161A; border:1px solid #35333B; border-radius:7px; padding:5px 9px; font-size:11.5px; color:#9C99A3; }
+.grp { padding:8px 13px 3px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:#9C99A3; display:flex; }
+.grp i { font-style:normal; margin-left:auto; text-transform:none; letter-spacing:0; font-size:10px; }
+.it { display:flex; align-items:center; gap:8px; padding:6px 13px; border-bottom:1px solid rgba(53,51,59,.6); font-size:12px; }
+.it.foc { background:rgba(232,180,74,.10); box-shadow:inset 2px 0 0 #E8B44A; }
+.cb { width:13px; height:13px; border-radius:3px; border:1px solid #55535C; flex:0 0 auto; }
+.cb.on { background:#E8B44A; border-color:#E8B44A; position:relative; }
+.cb.on:after { content:"✓"; position:absolute; inset:0; font-size:9px; color:#17161A; display:grid; place-items:center; }
+.ic { width:22px; height:19px; border-radius:5px; display:grid; place-items:center; font-size:8px; flex:0 0 auto; background:#2B2A31; color:#C9C6CE; }
+.ic.t { background:rgba(232,180,74,.16); color:#E8B44A; }
+.nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mono { font:11.5px ui-monospace,Menlo,monospace; }
+.mt { margin-left:auto; font-size:10px; color:#9C99A3; white-space:nowrap; }
+.warn { color:#E0A32E; }
+.act { display:flex; gap:3px; flex:0 0 auto; }
+.b { width:21px; height:19px; border-radius:5px; display:grid; place-items:center; font-size:10px; background:#2B2A31; color:#C9C6CE; }
+.b.pri { background:rgba(232,180,74,.18); box-shadow:0 0 0 1px #E8B44A; color:#F2F0EC; }
+.bar { padding:8px 13px; border-top:1px solid #35333B; background:#17161A; display:flex; align-items:center; gap:8px; font-size:11.5px; }
+.btn { background:#E8B44A; color:#17161A; font-weight:600; border-radius:7px; padding:5px 10px; font-size:11.5px; }
+.ghost { border:1px solid #35333B; border-radius:7px; padding:5px 9px; font-size:11.5px; color:#C9C6CE; }
+.ft { padding:7px 13px; border-top:1px solid #35333B; background:#17161A; display:flex; gap:7px; align-items:center; font-size:10.5px; color:#9C99A3; }
+
+.tr { background:#201F24; border:1px solid #35333B; border-radius:10px; padding:13px; position:relative;
+      font:13px ui-sans-serif,system-ui,sans-serif; color:#F2F0EC; }
+.blk { background:#141317; border:1px solid #2B2A31; border-radius:8px; padding:9px 11px;
+       font:11px/1.65 ui-monospace,Menlo,monospace; color:#8C8A93; white-space:pre; }
+.blk b { color:#C9C6CE; font-weight:400; }
+.fl { position:absolute; top:46px; right:20px; display:flex; align-items:center; gap:5px; padding:4px 9px 4px 7px;
+      border-radius:7px; background:#2B2A31; border:1px solid #E8B44A; font:11px ui-sans-serif,sans-serif;
+      color:#F2F0EC; box-shadow:0 6px 18px -6px #000; }
+.vm { width:268px; background:#2B2A31; border:1px solid #35333B; border-radius:9px; overflow:hidden;
+      font:12px ui-sans-serif,system-ui,sans-serif; color:#F2F0EC; box-shadow:0 12px 32px -8px #000; }
+.vh { padding:7px 11px; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:#9C99A3; border-bottom:1px solid #35333B; }
+.vr { display:flex; align-items:center; gap:8px; padding:7px 11px; border-bottom:1px solid rgba(53,51,59,.6); }
+.vr.on { background:rgba(232,180,74,.13); }
+.vr b { min-width:20px; font-size:12px; }
+.dif { font:10.5px ui-monospace,Menlo,monospace; }
+.plus { color:#3F8F5E; } .minus { color:#C0705F; }
+.vr s { text-decoration:none; color:#9C99A3; font-size:10.5px; margin-left:auto; }
+.vf { padding:7px 11px; background:#252429; font-size:11.5px; }
+
+.two { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.two>div:first-child { flex:0 0 auto; }
+.note { flex:1 1 290px; }
+.note p { font-size:12.5px; color:#9C99A3; line-height:1.55; margin:0 0 11px; }
+.note .k { color:#C9C6CE; }
+h3.sec { margin:28px 0 8px; }
+.sw { display:flex; gap:14px; margin:10px 0 4px; }
+.sw div { text-align:center; font:10px ui-sans-serif,sans-serif; color:#8C8A93; }
+.sw i { display:block; width:52px; height:34px; border-radius:7px; border:1px solid #35333B; margin-bottom:5px; }
+</style>
+
+<h2>Magpie — current design</h2>
+<p class="subtitle">Supersedes the earlier screens in this folder. New palette (§8.0.1), new mark (§8.5), English interface (<code>default_locale: en</code>), and the simplicity rules from §8.0 applied: one visible action per row, secondary actions on hover.</p>
+
+<div class="sw mg">
+  <div><i style="background:#17161A"></i>ink</div>
+  <div><i style="background:#201F24"></i>surface</div>
+  <div><i style="background:#F2F0EC"></i>fg</div>
+  <div><i style="background:#E8B44A"></i>gold</div>
+  <div><i style="background:#8A6212"></i>gold · light</div>
+</div>
+<p class="note" style="margin-top:2px">Gold carries the meaning from the name — the shiny thing in the beak. It is also the one warm accent none of the providers occupy; the iridescent teals that came to mind first were Perplexity and ChatGPT.</p>
+
+<h3 class="sec">Popup — items</h3>
+<div class="two">
+<div>
+  <div class="pp">
+    <div class="hd">
+      <svg width="17" height="17" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#17161A"/><circle cx="26" cy="30" r="15" fill="#F2F0EC"/><path d="M38 24l16 5-16 6z" fill="#F2F0EC"/><circle cx="49" cy="29" r="6" fill="#E8B44A"/></svg>
+      Magpie <s>v1.0.0</s>
+    </div>
+    <div class="tabs"><span class="tab on">Items</span><span class="tab">History</span></div>
+    <div class="site"><span class="d"></span> Claude · documents + code + tools · versions</div>
+
+    <div class="filt">🔍 <span style="color:#F2F0EC">py</span><span style="margin-left:auto">3 matches</span></div>
+
+    <div class="grp">Documents <i>1</i></div>
+    <div class="it"><span class="cb"></span><span class="ic">◧</span><span class="nm">Sales Dashboard</span>
+      <span class="mt"><span class="warn">took v3 · this is v5</span></span>
+      <span class="act"><span class="b pri">↓</span></span></div>
+
+    <div class="grp">Code blocks <i>2 matches</i></div>
+    <div class="it foc"><span class="cb on"></span><span class="ic">py</span><span class="nm mono">backfill.py</span>
+      <span class="mt">14 lines</span>
+      <span class="act"><span class="b">⧉</span><span class="b pri">↓</span></span></div>
+    <div class="it"><span class="cb on"></span><span class="ic">py</span><span class="nm mono">order-service.py</span>
+      <span class="mt">✓ 3 days ago</span>
+      <span class="act"><span class="b pri">↓</span></span></div>
+
+    <div class="grp">Tool outputs <i>2</i></div>
+    <div class="it"><span class="cb"></span><span class="ic t">json</span><span class="nm mono">search_events-1</span>
+      <span class="mt">214 rows</span><span class="act"><span class="b pri">↓</span></span></div>
+
+    <div class="grp">Conversation</div>
+    <div class="it"><span class="cb"></span><span class="ic">md</span><span class="nm">Migration plan.md</span>
+      <span class="mt">18 messages</span><span class="act"><span class="b pri">↓</span></span></div>
+
+    <div class="bar"><span class="btn">Download selected (2)</span><span class="ghost">🗜 All</span></div>
+    <div class="ft">🔒 Data stays on your device<div style="flex:1"></div>⏻ Disable on this site</div>
+  </div>
+</div>
+
+<div class="note">
+  <p><span class="k">One visible action per row.</span> Only <code>↓</code> is permanent; copy, versions and transfer appear on hover (§8.0 rule 3). Four buttons per row would turn a 47-item list into a wall of controls — the focused row here shows what hover reveals.</p>
+  <p><span class="k">Version drift is persistent when history is on.</span> <code>took v3 · this is v5</code> comes from comparing hashes. Downloading the same file twice is harmless; mistaking a different version for the same one is a real error.</p>
+  <p><span class="k">Settings are not a tab.</span> A popup is for doing work; configuration lives on the options page. History appears as a tab only because it is on — with it off there is no tab at all.</p>
+  <p><span class="k">The badge counts documents only.</span> Two code blocks and two tool outputs here produce no badge number, and that is correct — they are reached on demand and produce no uninvited signal.</p>
+</div>
+</div>
+
+<h3 class="sec">In-page control and version menu</h3>
+<div class="two">
+<div>
+  <div class="tr" style="width:356px">
+    <div style="font-size:12.5px;color:#C9C6CE;margin-bottom:9px">Two steps for the migration:</div>
+    <div class="blk"><b>def</b> backfill(session):
+    <b>for</b> row <b>in</b> session.query(Order):
+        row.currency = "TRY"
+    session.commit()</div>
+    <div class="fl">↓ <span class="mono">backfill.py</span></div>
+  </div>
+
+  <div class="vm" style="margin-top:16px">
+    <div class="vh">Select version · Sales Dashboard</div>
+    <div class="vr on"><b>v3</b><span class="dif"><span class="plus">+12</span> <span class="minus">−3</span></span><s>2 min · 8.4 KB · displayed</s></div>
+    <div class="vr"><b>v2</b><span class="dif"><span class="plus">+180</span> <span class="minus">−164</span></span><s>14 min · 8.1 KB</s></div>
+    <div class="vr"><b>v1</b><span class="dif" style="color:#6B6870">first version</span><s>31 min · 6.2 KB</s></div>
+    <div class="vf">🗜 All versions → .zip</div>
+  </div>
+</div>
+<div class="note">
+  <p><span class="k">The control names the file it will produce.</span> The name comes from a four-step heuristic chain; without showing it, the user hunts the downloads folder for something called <code>code-7.txt</code>.</p>
+  <p><span class="k">Nothing is inserted into the provider's DOM here.</span> One floating control, bound by event delegation and aligned to the hovered block, living in a shadow root on <code>body</code>. On touch devices, where there is no hover, each block gets a small permanent control instead.</p>
+  <p><span class="k">The version menu says what changed.</span> <code>+180 −164</code> against <code>+12 −3</code> is the difference between "rewritten" and "corrected", and it is the only real input to the choice the user is making. Multiset difference over lines, not set difference — a file is full of repeated <code>}</code> and blank lines, and a set would report a 40-line deletion as −3.</p>
+</div>
+</div>
