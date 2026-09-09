@@ -102,9 +102,24 @@ FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip oldu�
 | **API/endpoint var** | Taşıma hedefi olarak: `→ FindAgent'a gönder`. Ama bu, veriyi bizim gönderdiğimiz ilk yol olur — kimlik bilgisi, §17.2'nin gözden geçirilmesi, mağaza veri beyanının değişmesi | Yüksek. Ayrı bir güven tasarımı gerekir |
 | **MCP sunucusu var** | §4.2'deki MCP yüzeyiyle aynı yön: yerel indirme kütüphanesini FindAgent ajanlarına açmak. Extension'ı değiştirmez, kütüphaneyi tüketir | Orta; ama klasöre kaydetme + geçmiş yaygınlaşmadan anlamsız |
 
-**Cevaplanması gereken:** FindAgent'ın kullanıcıya görünen yüzü bir web arayüzü mü, bir ajan platformu mu, yoksa MCP üzerinden mi kullanılıyor? Kullanıcı FindAgent'ta bir "sohbet" yapıyor mu, yoksa ajanlar arka planda mı çalışıyor?
+### 2.2.1 Gözlem: FindAgent bir ajan platformu, sohbet arayüzü değil
 
-Cevap "web arayüzü" ise iş bitmiş demektir — bir kayıt satırı. Diğer iki dal gerçek tasarım kararları içeriyor ve bu dokümanın kurduğu gizlilik çerçevesini yeniden açar; o yüzden karar verilmeden yazılmaz.
+2026-09-09'da bu oturumda görülenler (varsayım değil, gözlem): ajanlar **ajan başına ayrı MCP sunucuları** olarak sunuluyor (`mcp.findagent.cloud`, `findagent-bot.fly.dev`), OAuth ile yetkilendiriliyor, ve hepsi aynı araç kalıbını paylaşıyor: `list_capabilities` → `plan_inputs` → salt-okunur `fetch_*` → deterministik `score_*` / `detect_*` → LLM anlatısı üreten `run_full`. Örnekler: GA4 Anomaly Detector, MLS Listing Sync Analyzer.
+
+**Sonuç: birinci dal (kayıt satırı) elenir.** Scrape edilecek bir sohbet arayüzü yok. Doğru dal üçüncüsü — MCP.
+
+**Ama yön kritik ve gizlilik çerçevesini belirliyor:**
+
+| Yön | Değerlendirme |
+|---|---|
+| **Bizim yerel MCP sunucumuz, FindAgent ajanlarının tükettiği** | Uyumlu. §4.2'deki v3 yüzeyi **stdio/yerel** çalıştığı sürece veri cihazdan çıkmaz ve §17.2 korunur. Kütüphane yerelde durur, ajan yerelde okur |
+| **Bizim verimizi FindAgent bulutuna göndermek** | **Uyumsuz.** `findagent.cloud` ve `fly.dev` uzak host'lar; oraya konuşma içeriği ya da indirme kütüphanesi göndermek "dış istek yok" taahhüdünü (§17.2) ve mağaza veri beyanını (§19.6) doğrudan bozar. Yapılacaksa ayrı bir onay akışı, ayrı bir gizlilik politikası ve muhtemelen ayrı bir ürün gerekir |
+
+**Karar:** entegrasyon **yerel MCP** yönünde tasarlanır. Bizim tarafımızdaki iş, §4.2'deki MCP yüzeyini FindAgent'ın araç kalıbıyla **uyumlu** yazmaktır — `list_capabilities` ile ne sunduğumuzu bildiren, `plan_inputs` ile girdi şemasını veren, salt-okunur `fetch_*` ile kütüphaneyi açan bir sunucu. Aynı kalıbı izlemek, FindAgent ajanlarının bizi ekstra uyarlama olmadan tüketebilmesi demek.
+
+**Önkoşul sırası değişmiyor:** klasöre kaydetme (v1) → indirme geçmişi (§4.3) → yerel MCP sunucusu (§4.2 v3) → FindAgent uyumu. Kütüphane birikmeden ajana açılacak bir şey yok.
+
+**Hâlâ cevaplanmamış tek soru:** FindAgent ajanları yalnızca bulutta mı çalışıyor, yoksa kullanıcının makinesindeki bir MCP sunucusunu da tüketebiliyor mu? Cevap "yalnızca bulut" ise bu entegrasyon **yapılmaz** — çünkü tek yolu veriyi dışarı göndermek olurdu ve bu ürün onu yapmaz.
 
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
