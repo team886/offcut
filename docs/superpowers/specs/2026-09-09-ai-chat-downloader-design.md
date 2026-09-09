@@ -204,7 +204,7 @@ Bu, "AI sohbetlerinde üretilen işin" **en hızlı büyüyen kısmı** ve şu a
 
 | Alan | Kaynak |
 |---|---|
-| Ad | Araç adı + çağrı sırası: `search_events-2`, `list_agent_runs-1` |
+| Ad | Araç adı + çağrı sırası: `search_events-2`, `list_agent_runs-1`. Sıra numarası **her zaman** eklenir — aynı araç bir kez çağrılmış olsa bile; sonradan ikinci çağrı geldiğinde adların yeniden numaralanması, geçmişteki (§4.3) kaydı geçersiz kılardı |
 | Uzantı | İçerik şekline göre: nesne/dizi → `.json`; düz satır+sütun → `.csv`; metin → `.md`; ikili → sunucunun verdiği tip |
 | İçerik | `tool_result` bloğunun **tamamı** — arayüzün gösterdiği kısaltılmış hâli değil |
 | Sürüm | Yok; her çağrı ayrı bir öğedir (aynı araç 5 kez çağrıldıysa 5 öğe) |
@@ -414,7 +414,9 @@ Aynı disiplin belge/kod için gerekmiyor: onlar zaten çekilmiş konuşma yanı
 
 ### 3.3.3 Konuşmayı taşıma — Markdown ve "başka sağlayıcıda devam et"
 
-Konuşmanın tamamı zaten elimizde (§4). Onu **Markdown'a** çevirmek yeni veri gerektirmiyor, yalnızca biçimlendirme: mesaj rolleri başlık, kod blokları fenced (dili korunarak), belgeler `## <başlık>` + fenced gövde, ekler ad listesi olarak. Bu, ürünün zaten sahip olduğu veriden çıkan **üçüncü öğe türü**: `kind: "conversation"`.
+Konuşmanın tamamı zaten elimizde (§4). Onu **Markdown'a** çevirmek yeni veri gerektirmiyor, yalnızca biçimlendirme: mesaj rolleri başlık, kod blokları fenced (dili korunarak), belgeler `## <başlık>` + fenced gövde, ekler ad listesi olarak.
+
+**Araç çıktıları Markdown'a gömülmez.** 500 satırlık bir JSON'u konuşma metnine koymak, dosyayı okunamaz ve taşınamaz yapar — üstelik taşımanın amacı bağlam aktarmak, veri dökmek değil. Kural: araç çağrısı **özetlenir** (`> 🔧 search_events → 214 sonuç · ayrı dosyada`), tam içerik ayrı bir `tool_output` öğesi olarak kalır. Sohbet zip'inde ikisi birlikte gider: `sohbet.md` özeti taşır, `arac-ciktilari/` tamını. Kullanıcı bağlamı yapıştırırken 500 satır yapıştırmaz. Bu, ürünün zaten sahip olduğu veriden çıkan **üçüncü öğe türü**: `kind: "conversation"`.
 
 İki eylem:
 
@@ -971,6 +973,8 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 
 **Boş badge "indirilecek bir şey yok" demek değildir.** Badge yalnızca belgeleri sayar; 12 kod bloğu olan bir sohbette badge boştur ve bu doğrudur — kod blokları davetsiz sinyal üretmez, talep üzerine erişilir. Popup açıldığında ikisi de listelenir (§8.6), yani bilgi kaybolmaz, sadece rozete taşınmaz.
 
+**Badge yalnızca belge sınıfını sayar** — kod blokları gibi araç çıktıları da sayılmaz. Bir sohbette 30 araç çağrısı olabilir; rozette `30` görmek "indirilecek bir şey var" sinyalini yine değersizleştirirdi. Aynı gerekçe, aynı kural.
+
 **Badge kod bloklarını saymaz.** Uzun bir sohbette 40+ kod bloğu olabilir; `40` yazan bir rozet bilgi değil gürültüdür ve "indirilecek bir şey var" sinyalini değersizleştirir. Badge yalnızca **belge sınıfı** öğeleri sayar: artifact/canvas. Kod blokları talep üzerine, gezici düğmeyle erişilir; sinyal üretmezler.
 
 **Sayı nereden geliyor — ağdan değil, DOM'dan.** Burada bir çelişki riski var: §7 boru hattı konuşmayı **yalnızca butona basılınca** çekiyor. Badge'in sayıyı gösterebilmesi için sayfa açılır açılmaz fetch yapmak gerekirdi ve bu, hiç indirme yapmayacak kullanıcı için her sohbette birkaç MB'lık istek demektir — sessiz, gereksiz, pil yakan.
@@ -989,7 +993,7 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 Üstte **eylem**, altta ayarlar. Her `cfg` anahtarının (§9) burada bir karşılığı vardır; şemada olup panelde olmayan ayar bırakılmaz.
 
 1. **Sağlayıcı şeridi:** aktif sağlayıcı + o sağlayıcıda ne alınabileceği (`ChatGPT · canvas + kod · versiyon yok`). Kullanıcı eksik yeteneği bozukluk sanmasın diye.
-2. **Öğe listesi**, `kind` başına gruplu: *Belgeler* (artifact/canvas), *Kod blokları · N*, *Ekler · N*. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
+2. **Öğe listesi**, `kind` başına gruplu: *Belgeler* (artifact/canvas), *Kod blokları · N*, ***Araç çıktıları · N***, *Ekler · N*, *Sohbet*. Araç çıktısı satırında araç adı ve sonuç büyüklüğü görünür (`search_events · 214 satır`) — hangi çağrının hangisi olduğu ancak böyle ayırt edilir. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
    Eski tek-kartlı "şu an" tasarımının yerini bu aldı: artık öğe tek değil ve panel açık olmak zorunda değil (§8.8).
 3. **Neleri göster** (`kinds`): artifact/canvas · kod blokları · ekler — üç anahtar. Kod bloklarını kapatmak, uzun teknik sohbetlerde listeyi sadeleştirmenin tek yolu.
 4. **Bildirim** (`badge`, `notify`): toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok.
