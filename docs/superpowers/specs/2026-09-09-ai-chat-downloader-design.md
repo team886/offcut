@@ -20,15 +20,15 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 ## 2. Hedefler / Hedef olmayanlar
 
 **Hedefler**
-- Açık artifact'ı tek tıkla doğru uzantıyla indir
+- Açık artifact/canvas'ı tek tıkla doğru uzantıyla indir
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
 - Bir artifact'ın tüm versiyonlarını tek `.zip` olarak ver
-- **Sohbetteki tüm artifact'ları** tek `.zip` olarak ver
+- **Sohbetteki tüm öğeleri** (belge + kod + ek) tek `.zip` olarak ver
 - Dosyayı **sürükleyip** editöre/masaüstüne bırakabil
 - İstenirse sabit bir **klasöre** kaydet, her seferinde sormadan
-- Artifact **tamamlandığında** görünür ama rahatsız etmeyen bir sinyal ver
+- Bir belge **tamamlandığında** görünür ama rahatsız etmeyen bir sinyal ver
 - Her davranış kapatılabilir olsun
 - Kullanıcı verisi cihazdan çıkmasın
 
@@ -40,7 +40,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Sunucu, hesap, senkronizasyon
 - **Çalıştırılabilir paket üretmek.** React artifact'ı tek başına `.tsx` olarak iner; `package.json`, bundler yapılandırması veya HTML sarmalayıcı üretmeyiz. Kullanıcı dosyayı kendi projesine taşır. Bu bilinçli bir sınır: "çalışan proje" üretmek ayrı bir üründür ve her framework için ayrı bakım demektir
 
-**Doğrulanacak ön koşul.** Adım 1'de, claude.ai'ın bazı artifact tipleri için **kendi indirme düğmesini** eklemiş olup olmadığı kontrol edilir. Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
+**Doğrulanacak ön koşul — dört sağlayıcı için ayrı ayrı.** Adım 1'de her sağlayıcının kendi indirme/dışa aktarma düğmesini eklemiş olup olmadığı kontrol edilir (Claude'da artifact indirme, ChatGPT'de canvas dışa aktarma, Gemini'de Docs'a aktar, Perplexity'de dışa aktar). Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
 
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
@@ -92,13 +92,15 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 ```js
 Item = {
   kind: "artifact" | "code" | "attachment",
-  key,               // sohbet içinde kararlı kimlik
+  key,               // sohbet içinde kararlı kimlik (bkz. aşağıdaki kararlılık kuralı)
   title,             // görünen ad (kind'e göre türetilir)
   ext,               // ".tsx" | ".py" | ".csv" ...
   versions,          // Version[] — yalnızca artifact'ta >1 olur
   bytes | fetchBytes // ek'lerde içerik ayrı istekle gelir
 }
 ```
+
+**`key` akış sırasında kaymamalı.** Artifact/canvas'ta kimlik sağlayıcının kendi id'sinden gelir, sorun yok. Kod bloğunda doğal kimlik "mesaj indeksi + blok indeksi"dir; ama Claude yazarken **yeni bloklar araya değil sona eklenir**, dolayısıyla mevcut blokların indeksi sabit kalır — kural: kod bloğu anahtarı `msgIndex:blockIndex` olarak hesaplanır ve akış sırasında yeniden numaralandırılmaz. Anahtar kayarsa açık menü yanlış öğeye bağlanır ve kullanıcı beklediğinden başka bir dosya indirir.
 
 **Bu genelleştirme bugün bedava, sonra pahalı.** Normalde tek implementasyonlu soyutlama YAGNI'dir; ama ikinci ve üçüncü implementasyonun **isteneceğini bildiğimiz** an kural tersine döner. Kritik gözlem: `getConversation` zaten konuşmanın tamamını getiriyor — artifact'lar onun içinden süzdüğümüz bir alt küme. Kod blokları aynı yanıtın içinde, **ek ağ maliyeti sıfır**. "Artifact indirici" olmak mimari bir sınır değildi, sadece bir filtreydi.
 
@@ -113,6 +115,8 @@ Kaynak: API kademesi varsa asistan mesajlarının metin blokları (Claude'da **a
 4. Sırayla: `kod-3.py`
 
 Uzantı fence dilinden gelir; dil yoksa ve içerik ayırt edilemiyorsa `.txt`. Versiyon kavramı yok (`versions` tek elemanlı).
+
+**Türetilen adlar çakışabilir.** Aynı sohbette iki blok da `class OrderService` içerebilir; ikisi de `order-service.py` olur. Tek dosya indirmede Chrome `(1)` ekler, ama **zip içinde iki özdeş ad bozuk arşiv demektir**. Kural: zip'e eklenirken `kod/` altında ad çakışması sayılır ve ikinciden itibaren `-2`, `-3` eklenir. Aynı kural klasöre kaydetmede de geçerli (§8.7.2).
 
 **Üç satırdan kısa bloklar atlanır.** Tek satırlık `npm install x` veya bir değişken adı dosya değildir; her birine kontrol koymak arayüzü çöplüğe çevirir.
 
@@ -138,9 +142,15 @@ Adapter = {
   fetchConversation(),   // API kademesi; desteklenmiyorsa null döner
   parse(raw),            // Item[] — çekirdek yalnızca Item bilir
   isStreaming(),         // DOM ya da yanıt üzerinden
-  mountPoints(),         // butonların nereye gireceği
+  mountPoints(),         // belge butonunun nereye gireceği
+  conversationTitle(),   // zip adı için; okunamazsa null (§8.2.1)
+  fetchAttachment(item), // capabilities.attachments ise ArrayBuffer döner (§3.3.2)
+  codeBlocks(),          // opsiyonel — common-dom.js varsayılanını geçersiz kılar (§3.4.1)
+  LAST_VERIFIED,         // "YYYY-MM-DD" — CI tazelik kapısı (§19.3 kapı 13)
 }
 ```
+
+Sözleşme **tam** olmak zorunda: bir feature'ın (ek indirme, sohbet zip'i, tazelik kapısı) adaptörden bir şey istemesi ama sözleşmede karşılığının bulunmaması, o feature'ı adaptör yazarken keşfedilen bir sürprize çevirir. Yukarıdaki liste §2'deki her hedefi karşılar.
 
 **Çekirdekte ne var:** öğe modeli, versiyon fold'u, zip, `sanitize`, adlandırma zinciri, indirme yolları, sürükle-bırak, klasöre kaydet, UI kabuğu (buton, menü, pill, toast), ayarlar, teşhis. Bunlar bir kez yazılır.
 
@@ -223,7 +233,11 @@ ai-chat-downloader/
     panel.js        # popup VE options aynı dosya
   icons/16.png 48.png 128.png
   selftest.js       # node selftest.js
-  store/            # Web Store teslimatları (§13)
+  store/            # Web Store teslimatları (§15)
+  test/fixtures/<sağlayıcı>/   # gerçek yanıtlardan temizlenmiş örnekler (§14)
+  tools/pack.mjs tools/check-invariants.mjs   # (§19.3, §19.4)
+  .github/workflows/ci.yml .github/ISSUE_TEMPLATE/bug.yml
+  docs/BREAKAGE.md docs/LIMITATIONS.md docs/SMOKE.md
   docs/superpowers/specs/
 ```
 
@@ -240,16 +254,16 @@ ai-chat-downloader/
                         "https://gemini.google.com/*", "https://www.perplexity.ai/*"],
   "background": { "service_worker": "src/sw.js" },
   "content_scripts": [{
-    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*",
-                "https://chatgpt.com/c/*", "https://gemini.google.com/app/*",
-                "https://www.perplexity.ai/search/*"],
+    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*"],
     "js": ["src/parse.js", "src/zip.js", "src/adapters/common-dom.js",
-           "src/adapters/claude.js", "src/adapters/chatgpt.js",
-           "src/adapters/gemini.js", "src/adapters/perplexity.js",
-           "src/content.js"],
-    "css": ["src/overlay.css"],
-    "run_at": "document_idle"
-  }],
+           "src/adapters/claude.js", "src/content.js"],
+    "css": ["src/overlay.css"], "run_at": "document_idle"
+  }, {
+    "matches": ["https://chatgpt.com/c/*"],
+    "js": ["src/parse.js", "src/zip.js", "src/adapters/common-dom.js",
+           "src/adapters/chatgpt.js", "src/content.js"],
+    "css": ["src/overlay.css"], "run_at": "document_idle"
+  }],   // gemini ve perplexity için aynı kalıpta iki blok daha
   "action": { "default_popup": "src/panel.html" },
   "options_ui": { "page": "src/panel.html", "open_in_tab": true },
   "commands": { "download-current": {
@@ -257,6 +271,8 @@ ai-chat-downloader/
     "description": "__MSG_cmdDownload__" } }
 }
 ```
+
+**Her sağlayıcı kendi `content_scripts` bloğunu alır ve yalnızca kendi adaptörünü yükler.** Hepsini tek blokta yüklemek, §3.4.3'teki yalıtım iddiasını çürütürdü: `gemini.js`'teki bir sözdizimi hatası o dosyayı değil, **paketin tamamının o sekmedeki yüklemesini** düşürür ve Claude'da da extension ölür. Ayrı bloklar bunu imkânsız kılar; bedeli birkaç satır manifest tekrarı.
 
 `downloads` izni **yok** — `Blob` + `<a download>` yeterli. `tabs` izni **yok** — `sw.js` mesajın geldiği `sender.tab.id`'yi kullanır.
 
@@ -291,7 +307,7 @@ Bilinmeyen token (`{foo}`) olduğu gibi bırakılır — sessizce silmek, kullan
 
 Zip'in kendi adı **en son versiyonun** başlığından üretilir (başlık versiyonlar arasında değişmiş olabilir, §3).
 
-**Uzantı tablosu**
+**Uzantı tablosu.** Aşağıdaki MIME tablosu **Claude adaptörüne** aittir (`vnd.ant.*` yalnızca orada geçer). Kod blokları ve diğer sağlayıcılar için çekirdek, ortak bir **dil → uzantı** tablosu kullanır; adaptör yalnızca kendi özel tiplerini ekler.
 ```
 text/html                       → .html
 application/vnd.ant.react       → .tsx  (language "jsx" ise .jsx)
@@ -302,7 +318,7 @@ application/vnd.ant.code        → language'a göre (~20 dil: py js ts go rs ja
 bilinmeyen                      → .txt
 ```
 
-**sanitize kuralları:** `<>:"/\|?*` ve kontrol karakterleri → `-`; ardışık `-` teke iner; baş/son `.` ve boşluk kırpılır; Windows rezerve adları (`CON PRN AUX NUL COM1-9 LPT1-9`) `_` önek alır; boş kalırsa `artifact`.
+**sanitize kuralları:** `<>:"/\|?*` ve kontrol karakterleri → `-`; ardışık `-` teke iner; baş/son `.` ve boşluk kırpılır; Windows rezerve adları (`CON PRN AUX NUL COM1-9 LPT1-9`) `_` önek alır; boş kalırsa `kind`'e göre `belge` / `kod` / `ek`.
 
 **Kırpma kod noktasına göre yapılır, UTF-16 birimine göre değil.** `slice(0,120)` bir emoji'nin ortasından keserse geriye yarım surrogate çifti kalır — dosya adı geçersiz karaktere düşer, bazı sistemlerde yazma başarısız olur. `[...str]` ile kod noktalarına ayrılıp kırpılır. Ayrıca dosya sistemleri adı **bayt** olarak sınırlar (ext4/APFS: 255 bayt): Türkçe ve emoji karakterler 2-4 bayt tuttuğu için sınır hem 120 kod noktası hem 200 bayt olarak uygulanır, hangisi önce dolarsa.
 
@@ -312,7 +328,7 @@ Store-only (compression method 0) ZIP yazıcı: CRC32 tablosu + local file heade
 buildZip([{name, bytes}]) → Uint8Array
 ```
 
-**Zip içi ad çakışması:** kullanıcının şablonunda `{version}` yoksa (varsayılan `{title}`) tüm versiyonlar aynı ada çıkar ve zip 3 özdeş adlı girdi taşır. Kural: **zip modunda `-v{n}` şablondan bağımsız olarak her zaman eklenir.** Zip'in kendi adı şablondan üretilir: `Sales-Dashboard-3-versiyon.zip`.
+**Zip içi ad çakışması:** kullanıcının şablonunda `{version}` yoksa (varsayılan şablonda vardır ama kullanıcı silebilir) tüm versiyonlar aynı ada çıkar ve zip 3 özdeş adlı girdi taşır. Kural: **zip modunda `-v{n}` şablondan bağımsız olarak her zaman eklenir.** Zip'in kendi adı şablondan üretilir: `Sales-Dashboard-3-versiyon.zip`.
 
 UTF-8 dosya adları için general purpose bit 11 (language encoding flag) set edilir; aksi halde Türkçe karakterli adlar bazı arşivleyicilerde bozulur.
 
@@ -410,11 +426,11 @@ Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırı
 
 ### 8.2.1 Sohbet seviyesi zip
 
-Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 4 artifact → zip`.
+Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 9 öğe → zip`.
 
 İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`. Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
-Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
+Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-indirilenler.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
 
 `⚠ kısmi` veya `⚠ yazılıyor` işaretli artifact'lar arşive **girer** ama adlarında `-partial` taşır ve toast kaç tanesinin şüpheli olduğunu söyler. Sessizce dışarıda bırakmak, kullanıcının eksiği fark etmemesi demek olurdu.
 
@@ -432,11 +448,12 @@ Ayrım şu ilkeye dayanıyor: davetsiz bildirim ancak **yeni bir şey olduysa** 
 ### 8.4 Toast
 | tür | süre | örnek |
 |---|---|---|
-| başarı | 2.5 sn | `✓ Sales-Dashboard-v3.tsx indirildi` |
-| başarı (zip) | 2.5 sn | `✓ Sales-Dashboard-3-versiyon.zip · 3 dosya` |
+| başlatıldı (tarayıcı indirmesi) | 2.5 sn | `↓ Sales-Dashboard-v3.tsx indiriliyor` |
+| tamamlandı (seçilen klasör) | 2.5 sn | `✓ Sales-Dashboard-v3.tsx · ~/Projects/artifacts` |
+| zip | 2.5 sn | `↓ Sales-Dashboard-3-versiyon.zip · 3 dosya` |
 | uyarı | 5 sn | `! Sayfadan okundu — versiyon geçmişi yok` |
 | uyarı | 5 sn | `! v2 kısmi: old_str eşleşmedi` |
-| hata | **elle kapatılana kadar** | `✕ İndirilemedi — artifact okunamadı` |
+| hata | **elle kapatılana kadar** | `✕ İndirilemedi — öğe okunamadı` |
 
 Hata sessizce kaybolmaz; kullanıcı dosyanın inmediğini fark etmek zorunda.
 
@@ -462,8 +479,8 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 | durum | badge |
 |---|---|
 | Desteklenmeyen sitede | ikon soluk, badge yok |
-| sohbette artifact yok | badge yok |
-| artifact açık | artifact **sayısı**, coral zemin + `setIcon` ile 3 nabız |
+| sohbette belge yok | badge yok |
+| belge var | belge **sayısı**, coral zemin + `setIcon` ile 3 nabız |
 | indi | yeşil `✓`, 2 sn sonra eski hâl |
 | hata | kırmızı `!`, kalır |
 
@@ -471,11 +488,11 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 
 **Sayı nereden geliyor — ağdan değil, DOM'dan.** Burada bir çelişki riski var: §7 boru hattı konuşmayı **yalnızca butona basılınca** çekiyor. Badge'in sayıyı gösterebilmesi için sayfa açılır açılmaz fetch yapmak gerekirdi ve bu, hiç indirme yapmayacak kullanıcı için her sohbette birkaç MB'lık istek demektir — sessiz, gereksiz, pil yakan.
 
-Çözüm: badge sayısı **sohbet akışındaki artifact kartları sayılarak** elde edilir (`SEL.artifactCard`). Ağ isteği yok, maliyet sıfır. Ağ yalnızca kullanıcı indirmek istediğinde devreye girer.
+Çözüm: badge sayısı **sohbet akışındaki belge kartları sayılarak** elde edilir (`SEL.docCard`). Ağ isteği yok, maliyet sıfır. Ağ yalnızca kullanıcı indirmek istediğinde devreye girer.
 
 Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez — versiyon bilgisi ancak fetch sonrası bilinir ve zaten menüde görünür. Ucuz sinyalle pahalı bilgiyi karıştırmamak.
 
-**Badge sekmeye özgüdür.** `chrome.action.setBadgeText({text, tabId})` — `tabId` verilmezse badge global olur ve açık beş claude.ai sekmesi birbirinin sayısını ezer.
+**Badge sekmeye özgüdür.** `chrome.action.setBadgeText({text, tabId})` — `tabId` verilmezse badge global olur ve aynı anda açık beş sohbet sekmesi birbirinin sayısını ezer.
 
 **Nabız MV3 service worker'da ImageData ile yapılamaz** — SW'de `document` yok, `canvas` yok. Çözüm: `icons/pulse-1.png … pulse-3.png` önceden render edilir, `setIcon({path})` ile sırayla gösterilir. `OffscreenCanvas` yazmaya gerek yok.
 
@@ -499,7 +516,7 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 ### 8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı
 
-**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. sağlayıcının global CSS'i (Tailwind/Angular Material reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için sağlayıcının action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
+**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. Sağlayıcının global CSS'i (Tailwind/Angular Material reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için sağlayıcının action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
 
 **Erişilebilirlik.** Buton `role="button"` + `aria-label` (i18n) + `title`. Menü `role="menu"`, satırlar `role="menuitem"`; ok tuşlarıyla gezinilir, `Enter` seçer, `Esc` kapatır ve odağı butona geri verir. Odak halkası görünür bırakılır. Toast'lar `role="status"` (hata: `role="alert"`).
 
@@ -509,7 +526,7 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 **Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı modelin ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
 
-**`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
+**`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada indirilecek öğe yok" toast'ı gösterilir.
 
 ### 8.7.1 Sürükle-bırak
 
