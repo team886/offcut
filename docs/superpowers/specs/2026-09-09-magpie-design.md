@@ -432,11 +432,12 @@ Source: where an API tier exists, the text blocks of assistant messages (on Clau
 **A code block has no title.** The name is derived by the following chain, first match wins. The chain produces a **base name**; the extension is determined separately (below):
 
 1. **A filename in the fence** — ```` ```python:app.py ```` → base `app`, extension `.py` (at this step the extension comes from the fence and the language table is not consulted)
-2. **The first meaningful definition in the code.** One regex per language, the first match converted to kebab-case:
+2. **The first meaningful definition in the code.** Regexes per language in priority order, the first *acceptable* match converted to kebab-case:
 
    ```
    py            ^\s*(?:class|def)\s+(\w+)
-   js ts jsx tsx ^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|const)\s+(\w+)
+   js ts jsx tsx ^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class)\s+(\w+)
+                 ^\s*(?:export\s+)?(?:default\s+)?const\s+(\w+)          # only after the above
    go            ^\s*(?:func|type)\s+(\w+)
    java kt cs    ^\s*(?:public\s+|private\s+)?(?:final\s+)?(?:class|interface|enum)\s+(\w+)
    rs            ^\s*(?:pub\s+)?(?:fn|struct|enum|trait)\s+(\w+)
@@ -445,6 +446,11 @@ Source: where an API tier exists, the text blocks of assistant messages (on Clau
    sql           ^\s*(?:CREATE|ALTER)\s+(?:TABLE|VIEW|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)
    sh bash       ^\s*(\w+)\s*\(\)\s*\{
    ```
+
+   **"Meaningful" is enforced, not assumed.** An identifier shorter than three characters, or one of a small generic set (`data`, `config`, `res`, `req`, `tmp`, `item`, `value`, `handler`, …), is rejected and the chain moves on. Live measurement produced **`el.js`** from `const el = document.querySelector(...)` — a throwaway local promoted to a filename.
+
+   That is worse than the positional fallback it displaced, and the asymmetry is the point: `code-4.js` reads as "the extension did not know", while `el.js` reads as a decision, so the user has no reason to check it until the file is on disk. A naming chain is allowed to give up; it is not allowed to be confidently wrong. The same reasoning puts `const` behind `function` and `class`: a binding is a weaker signal about what a file *is* than a declaration.
+
 
    Languages with no entry **skip** this step — an invented rule produces confidently wrong names, whereas skipping falls through to the next step. The step is best-effort and never raises.
 3. **The markdown heading immediately before the block** (`### Migration script` → `migration-script`)

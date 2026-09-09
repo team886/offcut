@@ -30,17 +30,40 @@ const LANG_EXT = {
 /** First meaningful definition, per language. Languages without an entry skip
  *  this step — an invented rule produces confidently wrong names (§3.3.1). */
 const NAME_PATTERNS = {
-  py: /^\s*(?:class|def)\s+(\w+)/m,
-  js: /^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|const)\s+(\w+)/m,
-  go: /^\s*(?:func|type)\s+(\w+)/m,
-  java: /^\s*(?:public\s+|private\s+)?(?:final\s+)?(?:class|interface|enum)\s+(\w+)/m,
-  rs: /^\s*(?:pub\s+)?(?:fn|struct|enum|trait)\s+(\w+)/m,
-  rb: /^\s*(?:class|module|def)\s+(\w+)/m,
-  php: /^\s*(?:class|function)\s+(\w+)/m,
-  sql: /^\s*(?:CREATE|ALTER)\s+(?:TABLE|VIEW|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)/im,
-  sh: /^\s*(\w+)\s*\(\)\s*\{/m,
+  py: [/^\s*(?:class|def)\s+(\w+)/gm],
+  // Declarations in priority order. A `const` is tried only after function and
+  // class, because measurement on a live conversation named a file `el.js`
+  // from `const el = ...` — a throwaway local, and a worse name than the
+  // positional fallback it displaced (§3.3.1).
+  js: [/^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class)\s+(\w+)/gm,
+       /^\s*(?:export\s+)?(?:default\s+)?const\s+(\w+)/gm],
+  go: [/^\s*(?:func|type)\s+(\w+)/gm],
+  java: [/^\s*(?:public\s+|private\s+)?(?:final\s+)?(?:class|interface|enum)\s+(\w+)/gm],
+  rs: [/^\s*(?:pub\s+)?(?:fn|struct|enum|trait)\s+(\w+)/gm],
+  rb: [/^\s*(?:class|module|def)\s+(\w+)/gm],
+  php: [/^\s*(?:class|function)\s+(\w+)/gm],
+  sql: [/^\s*(?:CREATE|ALTER)\s+(?:TABLE|VIEW|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)/gim],
+  sh: [/^\s*(\w+)\s*\(\)\s*\{/gm],
 };
-const PATTERN_ALIAS = {
+
+/**
+ * An identifier only earns the filename if it would still mean something on
+ * disk six months later. Two characters never does, and neither does the
+ * handful of names every codebase uses for a throwaway. Rejecting one sends
+ * the chain to the next step rather than to a confidently wrong name.
+ */
+const NAME_MIN_IDENT = 3;
+const GENERIC_IDENTS = new Set([
+  "app", "data", "res", "req", "tmp", "temp", "test", "main", "init", "run",
+  "obj", "arr", "val", "var", "out", "src", "foo", "bar", "baz", "item", "self",
+  "result", "response", "options", "config", "value", "index", "handler", "cb",
+]);
+function isMeaningfulIdent(name) {
+  if (!name) return false;
+  const s = String(name);
+  if ([...s].length < NAME_MIN_IDENT) return false;
+  return !GENERIC_IDENTS.has(s.toLowerCase());
+}const PATTERN_ALIAS = {
   python: "py", javascript: "js", node: "js", ts: "js", typescript: "js", jsx: "js", tsx: "js",
   golang: "go", kt: "java", kotlin: "java", cs: "java", ruby: "rb", rust: "rs",
   bash: "sh", shell: "sh", zsh: "sh",
@@ -131,12 +154,17 @@ function deriveCodeName(block) {
   const lang = (colon > -1 ? info.slice(0, colon) : info).toLowerCase();
   const ext = extForLanguage(lang);
 
-  // 2. first meaningful definition
+  // 2. first meaningful definition — "meaningful" is enforced, not assumed
   const patternKey = NAME_PATTERNS[lang] ? lang : PATTERN_ALIAS[lang];
-  const pattern = patternKey && NAME_PATTERNS[patternKey];
-  if (pattern) {
-    const m = pattern.exec(code || "");
-    if (m && m[1]) return { base: kebab(m[1]), ext };
+  const patterns = patternKey && NAME_PATTERNS[patternKey];
+  if (patterns) {
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;                      // these are /g and hold state
+      let m;
+      while ((m = pattern.exec(code || "")) !== null) {
+        if (isMeaningfulIdent(m[1])) return { base: kebab(m[1]), ext };
+      }
+    }
   }
 
   // 3. the markdown heading immediately before the block
@@ -269,7 +297,8 @@ function validateItem(item) {
 }
 
 const MagpieParse = {
-  MIN_CODE_LINES, NAME_MAX_CODEPOINTS, NAME_MAX_BYTES, ITEM_KINDS,
+  MIN_CODE_LINES, NAME_MAX_CODEPOINTS, NAME_MAX_BYTES, ITEM_KINDS, NAME_MIN_IDENT,
+  isMeaningfulIdent,
   sanitize, extForLanguage, isoLocalDate, fmtName,
   deriveCodeName, countCodeLines, isDownloadableCodeBlock, heuristicRoot,
   buildVersions, lineDelta, validateItem,
@@ -278,7 +307,8 @@ if (typeof globalThis !== "undefined") globalThis.MagpieParse = MagpieParse;
 
 if (typeof module !== "undefined") {
   module.exports = {
-    MIN_CODE_LINES, NAME_MAX_CODEPOINTS, NAME_MAX_BYTES, ITEM_KINDS,
+    MIN_CODE_LINES, NAME_MAX_CODEPOINTS, NAME_MAX_BYTES, ITEM_KINDS, NAME_MIN_IDENT,
+  isMeaningfulIdent,
     sanitize, extForLanguage, isoLocalDate, fmtName,
     deriveCodeName, countCodeLines, isDownloadableCodeBlock, heuristicRoot,
     buildVersions, lineDelta, validateItem,

@@ -24,6 +24,8 @@ The MVP: **code blocks, on every provider in the registry.** No documents, no ve
 
 - **The ZIP writer produced archives no reader would open.** The End of Central Directory record stated a directory size 12 bytes too large — `off` had already advanced past the EOCD's own leading fields when the size was computed — so a reader walking back from the EOCD landed short of the signature. Found by opening a packaged build with an independent reader; the three separate field assertions in the test suite were each correct on their own. Two tests were added: one for the size field, one that walks the directory the way a reader does.
 
+- **The naming chain produced a confidently wrong name.** Measured on a live conversation: `const el = document.querySelector(...)` matched the JavaScript pattern and the block was named `el.js`. A two-letter local is worse than the positional fallback it displaced — `code-4.js` reads as "the extension did not know", `el.js` reads as a decision the user has no reason to check. `function` and `class` are now tried before `const`, and identifiers under three characters or in a small generic set are rejected so the chain falls through.
+
 ### Notes
 
 - No telemetry, no external requests, no account. CI gate 8 checks that mechanically: no source file may name a host outside the registry origins.

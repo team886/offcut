@@ -86,3 +86,46 @@ Two things follow.
 - Injection crash behaviour (§7 step 2) — needs the extension loaded
 
 These stay open. They do not block v1, which is code blocks.
+
+---
+
+# Step 5 verification — the v1 path, on live conversations
+
+**Measured:** 2026-09-09, signed-in claude.ai, read-only except one reversible view expand.
+**Method:** the real `parse.js` and `common-dom.js` extraction path, injected into the page. Counts, class names and derived filenames only — no code content was read out.
+
+## The DOM tier holds
+
+| Assumption (§3.4.4, §12.1) | Result |
+|---|---|
+| Code blocks are `pre > code` | ✓ `pre.code-block__code > code` matches; the compound selector does not double-count |
+| Language in a `language-*` class | ✓ every block, step 2 of `languageOf` |
+| UI elements inside the code node | none present — the strip runs and removes nothing |
+| Zero-width characters | none found |
+| Code node scrolls (virtualisation) | **no** — `scrollHeight <= clientHeight`, so `readCodeTextComplete` takes the single-read path |
+| Message list virtualised | **no** — 4474px of scroll traversed, block count unchanged |
+| `heuristicRoot` resolves to a container | ✓ a `div` with 14 children, containing every block, and **not** a code node |
+
+## The branch walk is not academic
+
+On a 9-message conversation, the leaf→root walk yielded **8** messages: one message (index 3) sits on an abandoned branch and carries 3 fenced blocks. Ordering by `created_at` or taking `chat_messages` flat would have offered the user code from a branch they discarded. §3.1 pays for itself on the first conversation measured.
+
+## Two findings about what counts as a code block
+
+**1. Most fences are not code.** One conversation held 12 fenced blocks on the active branch; **11 were a single line** and one was two. Only one block — 8 lines of `json` — was worth a download control, and `MIN_CODE_LINES = 3` selected exactly it.
+
+Claude also renders an untagged one-line fence as inline `code` rather than `pre`, so the DOM tier never saw those 11 at all. The two tiers agreed on the answer by different routes, which is the outcome §4.1 wants.
+
+The earlier estimate of "360 code fences" in step 1 counted backtick triples. That number measures typing, not downloadable code. **Blocks worth offering are far rarer than fences**, which strengthens rather than weakens the MVP ordering: the list stays short without any effort from the user.
+
+**2. The naming chain produced a confidently wrong name.** On a live block, `const el = document.querySelector(...)` matched the JavaScript pattern and the file was named **`el.js`**.
+
+That is worse than the positional fallback it displaced. `code-4.js` reads as "the extension did not know"; `el.js` reads as a deliberate choice, and the user has no reason to doubt it until the file is on disk. Fixed: `function` and `class` are tried before `const`, and an identifier under three characters or in a small generic list (`data`, `config`, `res`, …) is rejected so the chain falls through to the next step. Re-measured on the same conversation, the four items are now `code-1.css`, `code-3.js`, `code-5.js`, `code-6.js` — four honest names instead of three honest ones and a lie.
+
+## End to end
+
+On a conversation the API said held 4 qualifying blocks, the extraction path found 6 code nodes, admitted 4, and produced a filename preview (`code-1-v2026-09-09.css`). The API's independent count and the DOM's count agree.
+
+## Not verified here
+
+Loading the extension unpacked needs a native file dialog, which cannot be automated. The remaining manual pass is `docs/SMOKE.md`: the shadow-root UI mounting, the floating control's placement, the actual download, the badge, and `Alt+Shift+D`.

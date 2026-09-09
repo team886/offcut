@@ -325,6 +325,51 @@ test("duplicate entry names are suffixed, never repeated (§3.3.1)", () => {
   );
 });
 
+test("a throwaway identifier does not become the filename (§3.3.1)", () => {
+  // Measured on a live conversation: `const el = document.querySelector(...)`
+  // produced el.js. A two-letter local is a worse name than the positional
+  // fallback, because it looks deliberate.
+  const n = P.deriveCodeName({
+    fenceInfo: "js",
+    code: "const el = document.querySelector('.x');\nel.addEventListener('click', wireUp);\nfunction wireUp() {}",
+    index: 4,
+  });
+  assert.strictEqual(n.base, "wire-up", "should skip `el` and take the function");
+});
+
+test("a generic identifier is skipped even at full length (§3.3.1)", () => {
+  const n = P.deriveCodeName({
+    fenceInfo: "js",
+    code: "const config = {};\nconst parseInvoice = (x) => x;\n",
+    index: 7,
+  });
+  assert.strictEqual(n.base, "parse-invoice");
+});
+
+test("function and class outrank const, whatever the order in the file", () => {
+  const n = P.deriveCodeName({
+    fenceInfo: "js",
+    code: "const cartTotals = 1;\nfunction renderCart() {}\n",
+    index: 2,
+  });
+  assert.strictEqual(n.base, "render-cart", "a declaration beats a binding");
+});
+
+test("with nothing meaningful to find, the positional fallback wins", () => {
+  const n = P.deriveCodeName({ fenceInfo: "js", code: "const el = 1;\nconst x = 2;\n", index: 9 });
+  assert.strictEqual(n.base, "code-9");
+});
+
+test("the /g patterns do not carry lastIndex between calls", () => {
+  // A stateful regex reused across blocks silently starts mid-file and names
+  // the second block after something in the middle of it.
+  const block = { fenceInfo: "py", code: "class Ledger:\n    pass\n", index: 1 };
+  const a = P.deriveCodeName(block);
+  const b = P.deriveCodeName(block);
+  assert.strictEqual(a.base, "ledger");
+  assert.strictEqual(b.base, a.base, "second call must match the first");
+});
+
 test("ZIP64 thresholds refuse rather than emit a broken archive (§6)", () => {
   const many = new Array(65536).fill(0).map((_, i) => ({ name: "f" + i, bytes: new Uint8Array(0) }));
   assert.throws(() => Z.buildZip(many), RangeError);
