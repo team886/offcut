@@ -362,6 +362,7 @@ Bugün "bu oturumda indirildi" işareti (§8.6) oturum bitince kayboluyor. Oysa 
 Kazandırdıkları:
 - **`✓ indirildi` kalıcı olur** ve sürüm farkını bilir: aynı ad + aynı hash → `zaten aldın`; aynı ad + farklı hash → `v3'ü aldın, bu v5` (kullanıcının en sık kaçırdığı durum)
 - **Yinelenen indirmeyi engeller** — klasöre kaydetmede `-2` üretmek yerine "bu dosya zaten burada, aynısı" diyebilir
+- **Sohbetler arası tanıma:** hash aynıysa öğe başka bir sohbette indirilmiş olsa bile tanınır — `bunu 3 gün önce başka bir sohbetten almıştın`. Aynı artifact'ı iki konuşmada üretmek yaygın; aynı dosyayı iki kez indirmek gereksiz
 - **Geçmişte arama:** popup'ta `Geçmiş` sekmesi, ad/sağlayıcı/tarihe göre. "Şu dashboard'u geçen ay indirmiştim" sorusunun cevabı
 - İleride **MCP yüzeyinin** (§4.2) indeksleyeceği şey tam olarak budur — o yüzden bu adım MCP'den önce gelir
 
@@ -745,6 +746,20 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 16. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
+
+### 8.6.1 Popup etkileşim modeli
+
+Popup, kod bloklarının **tek erişilebilir yolu** (§8.1.1). O iddia ancak popup'ın klavye ve ekran okuyucu modeli tanımlıysa geçerli — aksi hâlde erişilebilirliği bir yerden alıp başka bir yere taşımış, çözmemiş oluruz.
+
+**Klavye.** Açılışta odak: liste 10'dan uzunsa filtre kutusu, kısaysa ilk öğe satırı. `↑`/`↓` satırlar arasında gezer (filtredeyken de çalışır, odak kutuyu terk etmez). `Enter` indirir, `Space` seçim kutusunu değiştirir, `Shift+↑/↓` aralık seçer. `E` odaktaki satırın adını düzenlemeye açar, `C` içeriğini kopyalar, `V` sürüm menüsünü açar. `Esc` sırayla: düzenlemeyi iptal → filtreyi temizle → popup'ı kapat. `Tab` gruplar arası değil **bölümler** arası gezer (filtre → liste → toplu bar → alt satır); listenin 47 elemanı `Tab` sırasına girmez, bu klavye kullanıcısını cezalandırırdı.
+
+**Semantik.** Liste `role="listbox"`, satırlar `role="option"` + `aria-selected`. Her satırın erişilebilir adı: `<ad>, <tür>, <meta>` (`backfill.py, kod bloğu, 14 satır`) — görsel ikonların taşıdığı bilgi metne de girer. Filtre sonucu `aria-live="polite"` bir bölgede duyurulur (`3 eşleşme`); her tuş vuruşunda değil, 300 ms sonra bir kez. İlerleme çubuğu `role="progressbar"` + `aria-valuenow`.
+
+**Boyut.** Chrome popup'ı en fazla 800×600. Liste bölümüne `max-height` verilir ve **kendi içinde** kaydırılır; başlık, sağlayıcı şeridi, toplu bar ve alt satır sabit kalır. Aksi hâlde 47 öğelik listede toplu bar ekranın dışına çıkar ve seçim yapılıp indirilemez — sessiz bir çıkmaz.
+
+**Tema ve yön.** Popup bizim sayfamız: `prefers-color-scheme` ile açık/koyu, `dir` arayüz diline göre. Sayfadan renk okuma (§12) yalnızca enjekte edilen UI için geçerli; burada geçerli değil.
+
+**Ekran okuyucu doğrulaması yayın öncesi kapıda** (§19.5): bir kod bloğu, popup üzerinden **yalnızca klavye ve ekran okuyucu ile** indirilebiliyor mu. Bu tek test, §8.1.1'deki iddianın kanıtı.
 
 ### 8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı
 
@@ -1235,7 +1250,7 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] Manuel doğrulama listesi (§14) örnekleme kuralına göre koşuldu ve örnek `SMOKE.md`'ye yazıldı
 - [ ] Performans bütçeleri (§19.2) ölçüldü ve aşılmadı
 - [ ] Enjeksiyon çökme testi (§7 adım 2) adaptörlü sağlayıcılarda temiz
-- [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`, **popup öğe listesi tam klavye + `aria`** (kod bloklarının tek erişilebilir yolu, §8.1.1)
+- [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`, **bir kod bloğu yalnızca klavye + ekran okuyucu ile popup'tan indirildi** (§8.6.1) (kod bloklarının tek erişilebilir yolu, §8.1.1)
 - [ ] Açık + koyu tema, TR + EN arayüz, RTL kontrolü
 - [ ] Dokunmatik cihazda kod bloğu indirme erişilebilir (§8.1.1) · %200 yakınlaştırmada hizalama
 - [ ] Yayıncı hesabında donanım anahtarı/passkey aktif, CI'da yayın yetkisi yok (§17.1)
