@@ -3,6 +3,8 @@
 **Tarih:** 2026-09-09
 **Durum:** Tasarım onaylandı ve 23 turluk denetimden geçti; implementation plan bekliyor. **Yetenek matrisindeki `?` alanları hâlâ açık** (§3.4.6) — adım 1 tamamlanmadan hiçbir adaptör yazılmaz
 **Hedef:** Chrome MV3 extension, Chrome Web Store'a yayınlanacak
+**Yazar:** Ömer Faruk Ceylandağ · faruk@katatechnology.co
+**Destek / sorun bildirimi:** team@katatechnology.co
 **Kapsam:** **Claude, ChatGPT, Gemini, Perplexity** sohbetlerindeki artifact/canvas'lar, mesaj içi kod blokları ve yüklenen ekler
 
 ---
@@ -1444,6 +1446,7 @@ Koşulan liste; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işar
 ## 15. Chrome Web Store teslimatları
 
 `store/` klasöründe:
+- **İletişim ve sahiplik** — mağaza kaydında, gizlilik politikasında ve `README`'de aynı bilgiler görünür: yayıncı **Ömer Faruk Ceylandağ**, iletişim **faruk@katatechnology.co**, kullanıcı desteği **team@katatechnology.co**. Web Store gizlilik politikasında **erişilebilir bir iletişim adresi zorunlu**; destek adresini kişisel adresten ayırmak, yayıncı değişse bile kanalın açık kalmasını sağlar
 - **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (kayıttaki sağlayıcılarda ve kullanıcının izin verdiği hostlarda konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
   **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
 - **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı,
@@ -1520,7 +1523,7 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 
 ## 18. Depo teslimatları
 
-- `LICENSE` — MIT
+- `LICENSE` — MIT, telif sahibi: Ömer Faruk Ceylandağ (Kata Technology)
 - `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`
 - `docs/BREAKAGE.md` — **kırılma runbook'u**, sağlayıcı başına bölüm: belirti → tanı → tamir. "Buton görünmüyor" → `SEL.actionBar` tut(a)mıyor, DevTools'ta yeni seçiciyi bul, `SEL`i güncelle, sürüm bump. "Versiyonlar tek satır" → API kademesi düştü, Network sekmesinde konuşma isteğinin durumuna bak (401 → oturum, 404 → org çözümü, 200 ama boş → şema değişti, `parseOps` testlerini gerçek JSON'la güncelle). Bu dosya olmadan extension'ı altı ay sonra ben de tamir edemem
 - `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
@@ -1534,7 +1537,8 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `tools/check-invariants.mjs` — §19.3'teki mekanik kapılar (8-13); npm bağımlılığı yok
 - `tools/check-spec.mjs` — §19.3 kapı 14; spec'in kendi tutarlılığı
 - `.github/workflows/ci.yml` — §19.3'ün yedi kapısı
-- `.github/ISSUE_TEMPLATE/bug.yml` — teşhis bloğu zorunlu alan (§19.9)
+- `.github/ISSUE_TEMPLATE/bug.yml` — teşhis bloğu zorunlu alan (§19.9); şablon, GitHub kullanmayanlar için **team@katatechnology.co** alternatifini de gösterir
+- `SECURITY.md` — güvenlik açığı bildirimi **team@katatechnology.co**'ya, herkese açık issue'ya değil; bu extension özel sohbetleri okuyan bir yazılım, açığın sessiz bildirim kanalı olmalı
 - `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
 
 ## 19. Production readiness
