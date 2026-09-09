@@ -1,7 +1,7 @@
 # AI Chat Downloader — Tasarım Dokümanı
 
 **Tarih:** 2026-09-09
-**Durum:** Onaylandı, implementation plan bekliyor
+**Durum:** Tasarım onaylandı ve 23 turluk denetimden geçti; implementation plan bekliyor. **Yetenek matrisindeki `?` alanları hâlâ açık** (§3.4.2) — adım 1 tamamlanmadan hiçbir adaptör yazılmaz
 **Hedef:** Chrome MV3 extension, Chrome Web Store'a yayınlanacak
 **Kapsam:** **Claude, ChatGPT, Gemini, Perplexity** sohbetlerindeki artifact/canvas'lar, mesaj içi kod blokları ve yüklenen ekler
 
@@ -456,7 +456,11 @@ Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek ü
 
 Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
 
-Klavye kullanıcıları için: kod bloğu odaklanabilir olduğunda düğme aynı şekilde hizalanır; ayrıca `Alt+Shift+D` odaktaki bloğu indirir.
+**Klavye ve ekran okuyucu yolu ayrıdır — ve olması gereken de bu.** Hover'a bağlı bir kontrol ekran okuyucu kullanıcısı için **yok** hükmündedir. İlk çözüm "kod bloğunu odaklanabilir yap" olurdu, ama bu `tabindex` eklemek demek, yani sağlayıcının DOM'unu değiştirmek — §8.1.1'in "hiç düğüm eklenmez" kuralıyla aynı aileden bir ihlal (öznitelik de yeniden render'da ezilir ve her ezilişte geri yazmak, kaçındığımız enjeksiyon döngüsünün ta kendisi).
+
+Doğru çözüm zaten tasarımda var: **popup'taki öğe listesi erişilebilir yoldur** (§8.6). Kod blokları orada ad, dil ve satır sayısıyla listeleniyor; klavye ve ekran okuyucu kullanıcısı hiç sayfa içi kontrole ihtiyaç duymadan indirebiliyor. Gezici düğme bir **işaretçi kolaylığı**, tek erişim yolu değil.
+
+Bunun sonucu: kod bloğu erişilebilirliği popup'ın erişilebilirliğine bağlıdır, o yüzden popup listesi tam klavye gezinmesi ve `aria` etiketleriyle yayın öncesi kapıya girer (§19.5). Blok zaten odaklanabilirse (sağlayıcı kendi `tabindex`'ini vermişse) düğme ona da hizalanır — bu bir bonus, dayanak değil. `Alt+Shift+D` odaktaki bloğu indirir.
 
 **Dokunmatikte hover yoktur.** Tasarım olduğu gibi bırakılırsa dokunmatik ekranlı dizüstü ve tabletlerde kod bloğu indirme **hiç erişilemez** olur — fare yok, hover yok, düğme hiç belirmez. Kural: `(hover: none)` medya sorgusunda düğme davranışı değişir; her kod bloğunun köşesinde küçük, kalıcı bir `↓` durur (hover'a bağlı değil). Aynı kural kalem/dokunmatik karışık cihazlarda da geçerli — cihaz tipi tahmin edilmez, `hover` yeteneği sorulur.
 
@@ -780,6 +784,18 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 
 İlke: bozuk dosya vermektense hiç dosya vermemek.
 
+### 11.1 Hangi sayılar ayarlanabilir, hangileri değil
+
+Spec'teki eşiklerin bir kısmı **ilkeden** çıkıyor, bir kısmı **tahmin**. İkisini ayırt edememek, implementer'ın ya dokunmaması gereken bir şeyi değiştirmesine ya da gerçekten kötü seçilmiş bir sayıyla yaşamasına yol açar.
+
+**Değişmez (ilkeden çıkar, dokunma):**
+`old_str` tam 1 eşleşme kuralı · zip alanlarının bayt cinsinden olması · 120 kod noktası **ve** 200 bayt ad sınırı (dosya sistemi sınırı) · ZIP64 eşikleri (65535 / 4 GB) · `version needed = 20` · toast'ın "indiriliyor" demesi (bilgi sınırı, tercih değil)
+
+**Ayarlanabilir (ölçümle iyileştir):**
+`MIN_CODE_LINES = 3` · konuşma cache TTL'i 60 sn · pill süresi 4 sn, tanıtım 6 sn · toast 2.5/5 sn · çapraz kademe uyuşmazlık eşiği %5 · sürükleme blob'unun serbest bırakılma gecikmesi 60 sn · `LAST_VERIFIED` 90/180 gün · performans bütçeleri (§19.2) · kademeli yayın %10/%50/%100 ve 48 saat
+
+Ayarlanabilir sayılar tek yerde adlandırılmış sabit olarak tutulur; koda dağılmış çıplak sayı bırakılmaz. Bir sayının kaynağı belirsizse **ayarlanabilir** sayılır — ilke iddiası kanıt ister.
+
 ## 12. DOM bağımlılık katmanı
 
 Bir sağlayıcıya ait **tüm** selector'lar, o adaptörün dosyasındaki tek `SEL` objesinde. `content.js` hiçbir sağlayıcı seçicisi içermez — içerirse adaptör yalıtımı (§3.4.3) delinir ve bir sağlayıcının değişimi çekirdeği tamir etmeyi gerektirir:
@@ -998,7 +1014,7 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] Manuel doğrulama listesi (§14) dört sağlayıcıda ayrı ayrı koşuldu
 - [ ] Performans bütçeleri (§19.2) ölçüldü ve aşılmadı
 - [ ] Enjeksiyon çökme testi (§7 adım 2) dört sağlayıcıda temiz
-- [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`
+- [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`, **popup öğe listesi tam klavye + `aria`** (kod bloklarının tek erişilebilir yolu, §8.1.1)
 - [ ] Açık + koyu tema, TR + EN arayüz, RTL kontrolü
 - [ ] Dokunmatik cihazda kod bloğu indirme erişilebilir (§8.1.1) · %200 yakınlaştırmada hizalama
 - [ ] Yayıncı hesabında donanım anahtarı/passkey aktif, CI'da yayın yetkisi yok (§17.1)
