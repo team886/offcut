@@ -858,7 +858,7 @@ application/vnd.ant.code        → by language (~20: py js ts go rs java rb php
 unknown                         → .txt
 ```
 
-**`sanitize` rules:** `<>:"/\|?*` and control characters → `-`; consecutive `-` collapse to one; leading and trailing `.` and spaces trimmed; Windows reserved names (`CON PRN AUX NUL COM1-9 LPT1-9`) get an `_` prefix; if it ends up empty, a fallback by `kind` (`document` / `code` / `attachment`).
+**`sanitize` rules:** `<>:"/\|?*` and control characters → `-`; runs of whitespace → a single `-` (these are filenames, not prose — every example in this document assumes it); consecutive `-` collapse to one; leading and trailing `.` and spaces trimmed; Windows reserved names (`CON PRN AUX NUL COM1-9 LPT1-9`) get an `_` prefix; if it ends up empty, a fallback by `kind` (`document` / `code` / `attachment`).
 
 **Truncation is by code point, not by UTF-16 unit.** `slice(0,120)` cutting through an emoji leaves half a surrogate pair — the filename lands on an invalid character and writing fails on some systems. Splitting with `[...str]` truncates by code point. Filesystems also limit names in **bytes** (ext4/APFS: 255), and Turkish or emoji characters take 2–4 bytes each, so the limit is applied as both 120 code points and 200 bytes, whichever fills first.
 

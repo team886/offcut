@@ -11,5 +11,10 @@ Every released version records the SHA-256 of its package here, so that the arch
 - Provider discovery script (`tools/discover.js`) — turns the open items in the capability matrix into one console run
 - Contributor documentation: adding a provider, breakage runbook, known limitations, monthly smoke test
 
+### Added (code)
+- `src/parse.js` — the pure core: sanitize, extension mapping, filename templates, the code-block naming chain, the version fold and its edge cases, multiset line delta, Item validation
+- `src/zip.js` — store-only ZIP writer, byte-denominated, conservative header shape
+- `selftest.js` — 38 assertions, each pinning a decision the design argues for
+
 ### Notes
-- No code yet. The implementation order is at the end of the design document; MVP is steps 1–5.
+- Step 2 of the implementation order is done. Steps 3–5 (manifest, content.js core, common-dom.js) are next; MVP is steps 1–5.
