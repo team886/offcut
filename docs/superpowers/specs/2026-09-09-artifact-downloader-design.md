@@ -27,6 +27,9 @@ Bu extension o boşluğu kapatır: **panelden tek tıkla, doğru uzantıyla, ist
 - Artifact düzenleme / geri yükleme
 - claude.ai dışı siteler
 - Sunucu, hesap, senkronizasyon
+- **Çalıştırılabilir paket üretmek.** React artifact'ı tek başına `.tsx` olarak iner; `package.json`, bundler yapılandırması veya HTML sarmalayıcı üretmeyiz. Kullanıcı dosyayı kendi projesine taşır. Bu bilinçli bir sınır: "çalışan proje" üretmek ayrı bir üründür ve her framework için ayrı bakım demektir
+
+**Doğrulanacak ön koşul.** Adım 1'de, claude.ai'ın bazı artifact tipleri için **kendi indirme düğmesini** eklemiş olup olmadığı kontrol edilir. Eklemişse bu extension'ın değeri "indirme"den "**versiyon geçmişi + zip + toplu erişim**"e kayar; ürün yine geçerli ama mağaza metni ve README buna göre yazılır. Var olan bir düğmenin yanına ikinci düğme koymak, incelemede de kullanıcıda da zayıf durur.
 
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
@@ -92,6 +95,7 @@ GET /api/organizations/{orgUuid}/chat_conversations/{convUuid}?tree=True&renderi
 1. `document.cookie` içindeki `lastActiveOrg` (content script okuyabilir, `HttpOnly` değil)
 2. Yoksa `GET /api/organizations` → dönen org'lar **sırayla** denenir, ilk `200` kazanır
 3. Çözülen org, konuşma UUID'siyle birlikte cache'lenir; her tıklamada arama tekrarlanmaz
+
 `convUuid` → `location.pathname`'den. Pathname bir konuşma UUID'si vermiyorsa (`/project/<id>` liste sayfası, `/new`, henüz kaydedilmemiş sohbet) extension **hiçbir şey yapmaz**: buton enjekte edilmez, badge yazılmaz, hata gösterilmez. Proje içi sohbetlerin gerçekten `/chat/<uuid>` yoluna mı düştüğü implementation'ın ilk adımında doğrulanır; düşüyorsa `/project/*` eşleşmesi manifest'ten çıkarılır (kullanılmayan host eşleşmesi, incelemede gereksiz yüzey demektir).
 
 ## 5. Mimari
@@ -163,6 +167,12 @@ sanitize(title)        → dosya sistemi güvenli ad
 fmtName(template, ctx) → "Sales-Dashboard-v3.tsx"
 ```
 
+**`{date}` her zaman ISO `YYYY-MM-DD`, kullanıcının yerel saatiyle.** Yerelleştirilmiş biçim kullanılamaz: `en-US` `9/9/2026` üretir ve içindeki `/` dosya adında yol ayırıcıdır — `sanitize` onu `-`'ye çevirir, kullanıcı istediğinden farklı bir ad alır. ISO ayrıca dosya listesinde doğru sıralanır. Saat dilimi **yerel**, UTC değil: kullanıcı dosyayı kendi takvimindeki güne göre arar; gece yarısına yakın indirilen bir dosyanın "dün" görünmesi kafa karıştırır.
+
+Bilinmeyen token (`{foo}`) olduğu gibi bırakılır — sessizce silmek, kullanıcının şablonunun çalıştığını sanmasına yol açar.
+
+Zip'in kendi adı **en son versiyonun** başlığından üretilir (başlık versiyonlar arasında değişmiş olabilir, §3).
+
 **Uzantı tablosu**
 ```
 text/html                       → .html
@@ -195,6 +205,10 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
 ## 7. Boru hattı
 
 1. `MutationObserver` artifact panelini izler. SPA route değişiminde (`navigation` API, fallback `popstate` + pathname karşılaştırma) durum sıfırlanır.
+
+   **Observer `document.body`'yi izleyemez.** Claude yanıt üretirken sayfa saniyede yüzlerce kez mutasyona uğrar — token token. `body` + `subtree:true` dinleyen bir callback, her akış boyunca CPU'yu yakar; kullanıcı bunu extension olarak değil "Claude yavaşladı, fanlar döndü" olarak yaşar ve sebebini bulamaz. Kural: iki kademeli izleme. (a) Panelin **kapsayıcısı** bulunana kadar `body` üzerinde `childList` (subtree yok, ucuz). (b) Kapsayıcı bulununca observer ona daraltılır ve `characterData` dinlenmez — sadece düğüm ekleme/çıkarma bizi ilgilendiriyor. Callback `requestAnimationFrame` ile debounce edilir ve tek bir "durumu yeniden değerlendir" fonksiyonuna iner. Panel kapanınca observer tekrar (a)'ya döner.
+
+   Kabul ölçütü: uzun bir yanıt akarken extension'ın CPU payı ölçülebilir olmamalı. Bu, manuel doğrulama listesinde Performance profili ile kontrol edilir.
 2. Panel görülünce split buton enjekte edilir (`data-adl` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
 
    **React enjekte edilen düğümü siler.** claude.ai React ile çizilir; action bar yeniden render edildiğinde bizim butonumuz DOM'dan uçar. Bu, React uygulamalarına enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
@@ -321,6 +335,25 @@ Son satır bir tasarım kazancı: veri panelden değil API'den geldiği için **
 
 **Hiçbir boş durum sessiz olmaz.** Boş kart her zaman "neden boş" ve "ne yapmalı" söyler; kullanıcı extension'ın bozuk mu yoksa doğru mu çalıştığını ayırt edebilmeli.
 
+### 8.9 Teşhis — telemetri olmadan hata raporu
+
+Telemetri yok (§17), dolayısıyla bir şey bozulduğunda bunu **yalnızca kullanıcı anlatabilirse** öğreniriz. "Çalışmıyor" mesajı ise tamir için yetersizdir.
+
+Popup'ın alt satırında **Teşhis bilgisini kopyala** bağlantısı: panoya, hassas veri içermeyen bir metin bloğu yazar.
+
+```
+Artifact Downloader 1.0.0 · Chrome 141 · tr
+Kademe: 3 (DOM)            ← hangi kaynak kullanıldı
+Org çözümü: cookie ✓
+Konuşma isteği: 404
+SEL: panel ✓ · actionBar ✓ · codeBlock ✗ · versionIndicator ✗
+Son hata: TypeError: ... (ilk satır)
+```
+
+**İçinde ne yok:** konuşma metni, artifact içeriği, artifact başlığı, konuşma/org UUID'si, kullanıcı adı, e-posta, URL. Yalnızca hangi kademenin çalıştığı, hangi selector'ın tuttuğu, hata tipi.
+
+Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tanı tablosuyla doğrudan eşleşir. Sıfır telemetriyle, gerçek bir hata raporu.
+
 ## 9. Ayar şeması
 
 `chrome.storage.sync`, tek anahtar `cfg`:
@@ -421,7 +454,7 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
