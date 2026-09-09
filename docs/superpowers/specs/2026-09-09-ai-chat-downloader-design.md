@@ -1,7 +1,7 @@
 # AI Chat Downloader — Tasarım Dokümanı
 
 **Tarih:** 2026-09-09
-**Durum:** Tasarım onaylandı ve 23 turluk denetimden geçti; implementation plan bekliyor. **Yetenek matrisindeki `?` alanları hâlâ açık** (§3.4.2) — adım 1 tamamlanmadan hiçbir adaptör yazılmaz
+**Durum:** Tasarım onaylandı ve 23 turluk denetimden geçti; implementation plan bekliyor. **Yetenek matrisindeki `?` alanları hâlâ açık** (§3.4.4) — adım 1 tamamlanmadan hiçbir adaptör yazılmaz
 **Hedef:** Chrome MV3 extension, Chrome Web Store'a yayınlanacak
 **Kapsam:** **Claude, ChatGPT, Gemini, Perplexity** sohbetlerindeki artifact/canvas'lar, mesaj içi kod blokları ve yüklenen ekler
 
@@ -24,6 +24,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
+- **Sohbetin tamamını Markdown olarak** indir; istenirse başka bir sağlayıcıda devam ettir (§3.3.3)
 - Bir artifact'ın tüm versiyonlarını tek `.zip` olarak ver
 - **Sohbetteki tüm öğeleri** (belge + kod + ek) tek `.zip` olarak ver
 - Dosyayı **sürükleyip** editöre/masaüstüne bırakabil
@@ -91,7 +92,7 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 
 ```js
 Item = {
-  kind: "artifact" | "code" | "attachment",
+  kind: "artifact" | "code" | "attachment" | "conversation",
   key,               // sohbet içinde kararlı kimlik (bkz. aşağıdaki kararlılık kuralı)
   title,             // görünen ad (kind'e göre türetilir)
   ext,               // ".tsx" | ".py" | ".csv" ...
@@ -162,7 +163,53 @@ Aynı disiplin belge/kod için gerekmiyor: onlar zaten çekilmiş konuşma yanı
 
 **Doğrulanacak (adım 1):** ek indirme endpoint'i ve yanıt biçimi. Belirlenemezse ekler kapsamdan **çıkarılır** — artifact ve kod tek başına ürünü ayakta tutar; çalışmayan bir feature'ı yarım bırakmaktansa hiç söz vermemek iyidir.
 
-### 3.4 Sağlayıcı adaptörü
+### 3.4 Sağlayıcı kaydı ve adaptörler
+
+**Neden dört değil.** Önceki sürüm sağlayıcı başına bir adaptör varsayıyordu ve dört sağlayıcıyı "kabul edilmiş bakım riski" olarak yazıyordu. Bu yanlış muhasebeydi: kod bloğu çıkarımı **zaten sağlayıcıdan bağımsız** (§3.4.2), yani bir sağlayıcıyı taban seviyede desteklemenin maliyeti bir adaptör değil, **bir kayıt satırı**. Pahalı olan belge/versiyon/ek katmanı — ve o katman AI sohbet arayüzlerinin çoğunda **hiç yok**.
+
+Doğru model iki katmanlı:
+
+**1. Kayıt (registry) — taban destek.** Paket içinde gömülü bir tablo (uzak kod yok, §17):
+```js
+{ id: "deepseek", host: "chat.deepseek.com", chatRoot: "…",
+  name: "DeepSeek", newChatUrl: "https://chat.deepseek.com/" }
+```
+Bir satır = kod bloğu indirme, doğru ad ve uzantı, sürükle-bırak, klasöre kaydet, zip, filtre, seçim. Yeni sağlayıcı eklemek bir PR'da bir satır ve bir fixture; adaptör yazılmaz.
+
+**2. Adaptör — gelişmiş destek.** Yalnızca belge/canvas, versiyon geçmişi, ek veya API kademesi sunan sağlayıcılar için. Sözleşme aşağıdaki gibidir ve kayıt satırının üstüne biner. Claude (artifact + op-log) ve ChatGPT (canvas) buraya girer; Gemini Canvas ve benzerleri adım 1'de ölçülür.
+
+**Bakım muhasebesi düzeliyor:** taban sağlayıcı kırıldığında tamir tek bir `chatRoot` seçicisidir ve `LAST_VERIFIED` mekanizması (§19.8) zaten sağlayıcı başına çalışıyor. Yirmi taban sağlayıcı, dört adaptörden **daha ucuz**dur.
+
+### 3.3.3 Konuşmayı taşıma — Markdown ve "başka sağlayıcıda devam et"
+
+Konuşmanın tamamı zaten elimizde (§4). Onu **Markdown'a** çevirmek yeni veri gerektirmiyor, yalnızca biçimlendirme: mesaj rolleri başlık, kod blokları fenced (dili korunarak), belgeler `## <başlık>` + fenced gövde, ekler ad listesi olarak. Bu, ürünün zaten sahip olduğu veriden çıkan **üçüncü öğe türü**: `kind: "conversation"`.
+
+İki eylem:
+
+**`↓ Sohbeti .md indir`** — dosya olarak iner. Diğer her şeyle aynı boru hattı; ayrı bir mekanizma yok.
+
+**`→ Başka sağlayıcıda devam et`** — hedef seçilir, konuşma Markdown'ı **panoya** yazılır ve hedefin yeni sohbet sayfası yeni sekmede açılır. Kullanıcı yapıştırır.
+
+**Neden yazma kutusuna otomatik enjekte etmiyoruz** — üç sebep, üçü de kalıcı:
+1. Sağlayıcı başına yeni bir seçici yüzeyi (composer) demek; kırılma yüzeyimizi bir kat daha artırır ve kayıt modelinin (§3.4) ucuzluğunu bozar
+2. Veriyi başka bir şirkete gönderen eylem **kullanıcının kendi eylemi** olmalı. Pano + yapıştır bunu sağlıyor; otomatik doldurma, gizlilik taahhüdümüzün (§17.2) kenarına yaslanıyor
+3. Uzun konuşma hedefin bağlam sınırını sessizce aşar; yapıştırmayı kullanıcı yaptığında ne kadarının gittiğini görür
+
+**Boyut uyarısı.** Markdown 100 KB'ı aşıyorsa panoya yazmadan önce uyarı çıkar: `Sohbet ~N bin kelime — hedef sağlayıcı tamamını kabul etmeyebilir` + `Yalnızca son 20 mesaj` seçeneği. Sessizce kırpmıyoruz, seçeneği kullanıcıya veriyoruz.
+
+**Ne kaybolur, açıkça yazılır.** Hedefte artifact'lar artifact olmaz, kod blokları kod bloğu kalır ama sürüm geçmişi yoktur, ekler taşınmaz (dosyaların kendisi gitmez, adları listelenir). Bu `docs/LIMITATIONS.md`'de ve taşıma ekranında yazılıdır — "devam ettirme" tam bir kopya değil, **bağlam aktarımı**.
+
+Kayıt satırına tek alan ekler: `newChatUrl`. Adaptör gerektirmez; taban seviyedeki her sağlayıcı hem kaynak hem hedef olabilir.
+
+### 3.4.0 Listede olmayan siteler — kullanıcı izniyle
+
+Kendi barındırdığı arayüzler (Open WebUI, LibreChat, kurum içi kurulumlar) sabit bir hosta sahip değil; kuyruğu kayıtla kapatmak imkânsız. Çözüm **`optional_host_permissions`**: popup'ta `Bu sitede de çalıştır` düğmesi, `chrome.permissions.request({origins:[…]})` çağırır ve izin verilirse `chrome.scripting.registerContentScripts` ile taban script o hosta kaydedilir.
+
+Neden doğru çözüm bu: kurulumda istenen izin listesi **büyümüyor**, karar kullanıcıya ait ve o an veriliyor, `<all_urls>` yok. Kullanıcı istediği zaman geri alabiliyor. Verilen hostlar `storage`'da tutulur ve popup'ta listelenip tek tek kaldırılabilir.
+
+Bu düğme yalnızca sayfada `pre > code` bulunan yerlerde etkinleşir — rastgele bir sitede izin istemek anlamsız ve incelemede kötü görünür.
+
+### 3.4.1 Adaptör sözleşmesi
 
 Çekirdek sağlayıcıyı bilmez. Her sağlayıcı tek bir dosyada, tek bir sözleşmeyi uygular:
 
@@ -179,7 +226,7 @@ Adapter = {
   mountPoints(),         // belge butonunun nereye gireceği
   conversationTitle(),   // zip adı için; okunamazsa null (§8.2.1)
   fetchAttachment(item), // capabilities.attachments ise ArrayBuffer döner (§3.3.2)
-  codeBlocks(),          // opsiyonel — common-dom.js varsayılanını geçersiz kılar (§3.4.1)
+  codeBlocks(),          // opsiyonel — common-dom.js varsayılanını geçersiz kılar (§3.4.2)
   LAST_VERIFIED,         // "YYYY-MM-DD" — CI tazelik kapısı (§19.3 kapı 13)
 }
 ```
@@ -188,7 +235,7 @@ Sözleşme **tam** olmak zorunda: bir feature'ın (ek indirme, sohbet zip'i, taz
 
 **Çekirdekte ne var:** öğe modeli, versiyon fold'u, zip, `sanitize`, adlandırma zinciri, indirme yolları, sürükle-bırak, klasöre kaydet, UI kabuğu (buton, menü, pill, toast), ayarlar, teşhis. Bunlar bir kez yazılır.
 
-### 3.4.1 DOM tabanı zorunlu, API isteğe bağlı
+### 3.4.2 DOM tabanı zorunlu, API isteğe bağlı
 
 Her adaptör **DOM kademesini uygulamak zorundadır**; API kademesi opsiyoneldir. Böylece bir sağlayıcının dahilî API'si bulunamasa, değişse veya direnç gösterse bile ürün o sağlayıcıda çalışmaya devam eder — sadece daha az yetenekle.
 
@@ -196,9 +243,9 @@ Bunu mümkün kılan gözlem: **DOM kod-bloğu çıkarımı neredeyse sağlayıc
 
 Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyonuyla çalışır; her blok için ayrı dinleyici bağlanmaz (uzun sohbette yüzlerce dinleyici demek olurdu). Çekirdek bunun **ortak varsayılan implementasyonunu** taşır; adaptör yalnızca farklıysa geçersiz kılar. Kod blokları — yani değerin büyük kısmı — dört sağlayıcıda tek kod yoluyla çalışır.
 
-### 3.4.1.1 DOM tabanı da garanti değil — erişilebilirlik ön koşulu
+### 3.4.2.1 DOM tabanı da garanti değil — erişilebilirlik ön koşulu
 
-"DOM kademesi her zaman çalışır" (§3.4.1) bir varsayım, kanıt değil. İki durumda **hiç** çalışmaz ve ikisi de adım 1'de ölçülmeli:
+"DOM kademesi her zaman çalışır" (§3.4.2) bir varsayım, kanıt değil. İki durumda **hiç** çalışmaz ve ikisi de adım 1'de ölçülmeli:
 
 **Kapalı shadow root.** Sağlayıcı sohbet arayüzünü `attachShadow({mode:"closed"})` ile çizdiyse, content script o ağacı **hiçbir biçimde** okuyamaz — `querySelector` girmez, `shadowRoot` `null` döner. Açık shadow root sorun değil (`element.shadowRoot` üzerinden inilir, `SEL` yolları shadow sınırlarını geçecek şekilde yazılır); kapalı olan kesin engeldir. Web bileşeni kullanan modern arayüzlerde gerçek bir ihtimal.
 
@@ -208,7 +255,7 @@ Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyon
 
 Bu, dört sağlayıcı iddiasının **ön koşuludur**: adım 1'de her sağlayıcı için sırayla `chatRoot` bulunabiliyor mu, kod bloğu metni okunabiliyor mu, ana çerçevede mi. Üçü de olumluysa sağlayıcı listede kalır. Mağaza metni ancak bu ölçümden sonra yazılır — desteklenmeyen bir sağlayıcıyı listelemek, incelemede yanlış beyandır.
 
-### 3.4.2 Yetenek matrisi
+### 3.4.3 Yetenek matrisi
 
 | | Claude | ChatGPT | Gemini | Perplexity |
 |---|---|---|---|---|
@@ -225,13 +272,13 @@ Bu, dört sağlayıcı iddiasının **ön koşuludur**: adım 1'de her sağlayı
 
 Bir yetenek doğrulanamazsa o sağlayıcıda **kapatılır**, taklit edilmez: versiyon menüsü yoksa buton bölünmez (§8.1), ek desteği yoksa hiç söz edilmez. Kullanıcı her sağlayıcıda ne alacağını görür; eksik yetenek sessiz hata olarak görünmez.
 
-### 3.4.3 Yalıtım
+### 3.4.4 Yalıtım
 
 Bir adaptörün fırlattığı hata **yalnızca o sekmeyi** etkiler: adaptör kendini kapatır, teşhis kaydına yazar, diğer sağlayıcılar çalışmaya devam eder. Çekirdek bir adaptörün döndürdüğü `Item[]`'ı doğrular (zorunlu alanlar, tip); doğrulama başarısızsa o adaptör devre dışı kalır — bozuk adaptör bozuk dosyaya dönüşemez.
 
 ## 4. Veri kaynağı — üç kademe (Claude adaptörü)
 
-Aşağıdaki kademe yapısı **genel kalıptır**; somut alanlar Claude adaptörüne aittir. Diğer adaptörler aynı üç kademeyi kendi kaynaklarıyla doldurur, Kademe 3 hepsinde zorunludur (§3.4.1).
+Aşağıdaki kademe yapısı **genel kalıptır**; somut alanlar Claude adaptörüne aittir. Diğer adaptörler aynı üç kademeyi kendi kaynaklarıyla doldurur, Kademe 3 hepsinde zorunludur (§3.4.2).
 
 | # | Kaynak | Ne verir | Ne zaman |
 |---|---|---|---|
@@ -297,7 +344,7 @@ ai-chat-downloader/
       chatgpt.js    # canvas + kod blokları
       gemini.js     # DOM-only
       perplexity.js # DOM-only
-      common-dom.js # sağlayıcıdan bağımsız pre>code çıkarımı (§3.4.1)
+      common-dom.js # sağlayıcıdan bağımsız pre>code çıkarımı (§3.4.2)
     parse.js        # saf, node-testable — fold, Item doğrulama
     zip.js          # saf, store-only ZIP yazıcı
     content.js      # adaptör seçimi + DOM gözlem + UI enjeksiyonu + orkestrasyon
@@ -840,10 +887,10 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Sağlayıcının site verisi temizlendi | O sitedeki klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
 | `showDirectoryPicker` content script'te yok | Seçim options sayfasına taşınır (adım 1'de doğrulanır) |
 | Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
-| Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.3) |
+| Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.4) |
 | Sağlayıcıda yetenek yok | Kontrol hiç çizilmez — gri/pasif kontrol de gösterilmez |
 | Ek indirme endpoint'i bulunamadı | Ekler o sağlayıcıda kapsam dışı; UI'da hiç söz edilmez |
-| Sağlayıcı kapalı shadow root kullanıyor | O sağlayıcı **kapsamdan çıkarılır** (§3.4.1.1); yarım destek verilmez |
+| Sağlayıcı kapalı shadow root kullanıyor | O sağlayıcı **kapsamdan çıkarılır** (§3.4.2.1); yarım destek verilmez |
 | Konuşma iframe içinde | `all_frames` gerekiyorsa eklenir; gerekmiyorsa eklenmez (izin yüzeyi) |
 | Ek ikili dosya | `ArrayBuffer` olarak yazılır; metin dönüşümüne **sokulmaz** |
 | Kademe 1 ile DOM %5'ten fazla ayrışıyor | İndirme engellenmez; sarı toast + teşhise yazılır (§4.1) |
@@ -894,7 +941,7 @@ Ayarlanabilir sayılar tek yerde adlandırılmış sabit olarak tutulur; koda da
 
 ## 12. DOM bağımlılık katmanı
 
-Bir sağlayıcıya ait **tüm** selector'lar, o adaptörün dosyasındaki tek `SEL` objesinde. `content.js` hiçbir sağlayıcı seçicisi içermez — içerirse adaptör yalıtımı (§3.4.3) delinir ve bir sağlayıcının değişimi çekirdeği tamir etmeyi gerektirir:
+Bir sağlayıcıya ait **tüm** selector'lar, o adaptörün dosyasındaki tek `SEL` objesinde. `content.js` hiçbir sağlayıcı seçicisi içermez — içerirse adaptör yalıtımı (§3.4.4) delinir ve bir sağlayıcının değişimi çekirdeği tamir etmeyi gerektirir:
 ```js
 // Bu sağlayıcının arayüzü değişirse SADECE burası güncellenir.
 const SEL = { chatRoot,                                  // olay delegasyonu + gezici düğme kapsayıcısı
@@ -1190,7 +1237,7 @@ Kapsam bu dokümanın ömrü boyunca üç kat büyüdü (artifact → üç öğe
 
 **MVP = 1-5. adımlar.** Yani: çekirdek + `common-dom.js` + gezici düğme, dört sağlayıcıda kod bloğu indirme, doğru ad ve uzantı, tekil dosya indirmesi. Versiyon yok, zip yok, ek yok, klasör yok, sürükleme yok.
 
-Bu neden yayınlanabilir bir üründür: kod blokları dört sağlayıcıda **tek kod yolundan** çıkar (§3.4.1), yani MVP'nin bakım yükü dört değil bir. Ve indirilen kodun çoğu zaten artifact değil (§2) — kullanıcının en sık ihtiyacı burada.
+Bu neden yayınlanabilir bir üründür: kod blokları dört sağlayıcıda **tek kod yolundan** çıkar (§3.4.2), yani MVP'nin bakım yükü dört değil bir. Ve indirilen kodun çoğu zaten artifact değil (§2) — kullanıcının en sık ihtiyacı burada.
 
 **Sonra sırayla:** 6-7 (artifact/canvas + versiyon, Claude'dan başlayarak) → 11 (sürükle-bırak, klasör) → 8 (ekler). Her biri bağımsız olarak yayınlanabilir ve her biri kendi başına bir sürüm notu eder.
 
