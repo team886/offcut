@@ -1613,6 +1613,8 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] Gizlilik politikası yayımlandı ve URL erişilebilir
 - [ ] Ekran görüntüleri **demo** konuşmadan
 - [ ] Marka feragatnamesi kayıttaki **her** sağlayıcı için açıklamada
+- [ ] **"Magpie" adı için marka/ad çakışması tarandı** (Web Store + ticari marka) — §2.1.2
+- [ ] Logo 16px testinden geçti; saksağan işareti okunmuyorsa mevcut işaret korundu (§8.5)
 - [ ] `docs/BREAKAGE.md` adaptörlü sağlayıcılar için dolu, taban için ortak bölüm var
 - [ ] Önceki sürümün zip'i saklandı (§19.7)
 
