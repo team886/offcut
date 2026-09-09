@@ -49,6 +49,18 @@ Naif "son bloğu al" yaklaşımı, son op bir `update` ise kullanıcıya koca do
 
 **Replay doğrulaması:** `update` uygularken `old_str` gövdede bulunamazsa o versiyonun rekonstrüksiyonu güvenilmez. O versiyon `ok:false` işaretlenir, UI'da `⚠ kısmi` görünür, dosya adına `-partial` eklenir. Sessizce yanlış içerik verilmez.
 
+**`old_str` tekil olmalı.** Gövdede birden fazla kez geçiyorsa hangisinin değiştirileceği belirsizdir — ilkini değiştirip devam etmek sessizce yanlış dosya üretir. Kural: **0 eşleşme → `ok:false`; 2+ eşleşme → `ok:false`, `reason:"old_str_ambiguous"`; tam 1 eşleşme → uygula.** JS `String.replace` ilk eşleşmeyi değiştirir; bu davranışa güvenilmez, eşleşme sayısı açıkça sayılır.
+
+**Başlık versiyona göre değişebilir.** Claude bir güncellemede artifact'ı yeniden adlandırabilir. Her `Version` kendi `title`'ını taşır; dosya adı **indirilen versiyonun** başlığından üretilir, artifact'ın güncel başlığından değil.
+
+### 3.1 Konuşma ağacı — dallanma tuzağı
+
+Konuşma düz bir liste değil, **ağaçtır**. Kullanıcı bir mesajı düzenlerse kardeş dal oluşur; terk edilmiş dal API yanıtında durmaya devam eder. Tüm mesajları düz okuyup op'ları sıraya dizmek, **terk edilmiş daldaki op'ları da replay'e karıştırır** — sonuç sessizce bozuk bir versiyon geçmişi.
+
+Kural: `parent_message_uuid` zincirinden **yaprak → kök** yürünüp aktif dal çıkarılır, op'lar yalnızca o daldan toplanır. Aktif yaprak, `current_leaf_message_uuid` alanı varsa oradan; yoksa en yeni `created_at`'e sahip yapraktan alınır.
+
+Bu, "hangi mesajları okuduğumuz" sorusunun tek doğru cevabı ve `selftest.js`'in dallanma testi bunu koruma altına alır.
+
 ## 4. Veri kaynağı — üç kademe
 
 | # | Kaynak | Ne verir | Ne zaman |
@@ -152,10 +164,16 @@ Store-only (compression method 0) ZIP yazıcı: CRC32 tablosu + local file heade
 buildZip([{name, bytes}]) → Uint8Array
 ```
 
+**Zip içi ad çakışması:** kullanıcının şablonunda `{version}` yoksa (varsayılan `{title}`) tüm versiyonlar aynı ada çıkar ve zip 3 özdeş adlı girdi taşır. Kural: **zip modunda `-v{n}` şablondan bağımsız olarak her zaman eklenir.** Zip'in kendi adı şablondan üretilir: `Sales-Dashboard-3-versiyon.zip`.
+
+UTF-8 dosya adları için general purpose bit 11 (language encoding flag) set edilir; aksi halde Türkçe karakterli adlar bazı arşivleyicilerde bozulur.
+
 ## 7. Boru hattı
 
 1. `MutationObserver` artifact panelini izler. SPA route değişiminde (`navigation` API, fallback `popstate` + pathname karşılaştırma) durum sıfırlanır.
 2. Panel görülünce split buton enjekte edilir (`data-adl` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
+
+   **React enjekte edilen düğümü siler.** claude.ai React ile çizilir; action bar yeniden render edildiğinde bizim butonumuz DOM'dan uçar. Bu, React uygulamalarına enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
 3. Buton tıklanınca `getConversation(convUuid)` — bellek içi cache; DOM mesaj sayısı değiştiğinde veya 60 sn geçince geçersiz. Her mutation'da fetch **yok**.
 4. `parseOps` → `buildVersions` → versiyon listesi.
 5. **Açık artifact eşleştirme:** panel başlığı → aday artifact'lar. Aynı başlıktan birden fazla varsa, görünen kodun ilk 200 karakteriyle her adayın son versiyonu karşılaştırılıp en yüksek skorlu seçilir. Skorlar birbirine yakınsa menüde her ikisi de gösterilir — belirsizlik sessizce çözülmez.
@@ -214,6 +232,12 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 
 Sayı gösteriliyor çünkü "3 artifact var" bilgisi zaten elimizde — nokta göstermek onu çöpe atmak olurdu.
 
+**Badge sekmeye özgüdür.** `chrome.action.setBadgeText({text, tabId})` — `tabId` verilmezse badge global olur ve açık beş claude.ai sekmesi birbirinin sayısını ezer.
+
+**Nabız MV3 service worker'da ImageData ile yapılamaz** — SW'de `document` yok, `canvas` yok. Çözüm: `icons/pulse-1.png … pulse-3.png` önceden render edilir, `setIcon({path})` ile sırayla gösterilir. `OffscreenCanvas` yazmaya gerek yok.
+
+**Service worker 30 sn boşta ölür.** Nabız zamanlayıcısı ortasında SW ölürse ikon ara karede takılı kalır. Karşı önlem: nabız **önce** son (sabit) durumu yazar, animasyon karelerini onun üstüne bindirir; SW ölse bile ikon doğru durumda kalır. SW her uyandığında aktif sekmelerin badge durumu `artifact:present` mesajlarından yeniden kurulur.
+
 ### 8.6 Ayar paneli (popup = options)
 Üstte **eylem**, altta ayarlar:
 1. *Şu an* kartı: artifact adı, tip, versiyon sayısı, boyut + `↓ v3 indir` / `▾` / `🗜`
@@ -223,6 +247,18 @@ Sayı gösteriliyor çünkü "3 artifact var" bilgisi zaten elimizde — nokta g
 5. Alt satır: `🔒 Veri cihazdan çıkmıyor · dış istek yok` + `Ctrl ⇧ D`
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
+
+### 8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı
+
+**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. claude.ai'ın global CSS'i (Tailwind reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için claude.ai'ın action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
+
+**Erişilebilirlik.** Buton `role="button"` + `aria-label` (i18n) + `title`. Menü `role="menu"`, satırlar `role="menuitem"`; ok tuşlarıyla gezinilir, `Enter` seçer, `Esc` kapatır ve odağı butona geri verir. Odak halkası görünür bırakılır. Toast'lar `role="status"` (hata: `role="alert"`).
+
+**Hareket.** `@media (prefers-reduced-motion: reduce)` altında nabız ve pill animasyonu iptal; pill yine görünür, sadece nabız atmaz. Badge nabzı da bu durumda tek karede sabitlenir.
+
+**Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı Claude'un ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
+
+**`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
 
 ## 9. Ayar şeması
 
@@ -269,6 +305,10 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | DOM da okunamadı | Kırmızı toast (kalıcı) + `console.error`, **indirme yok** |
 | ZIP > 100 MB | Uyarı, yine de dener |
 | Bildirim izni reddedildi | `notify` → `"inpage"`, bilgi toast'ı |
+| `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
+| Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
+| Kısayol basıldı, artifact yok | `! Bu sayfada indirilecek artifact yok` toast'ı |
+| Content script yüklenmemiş sekmede kısayol | Sessiz no-op (hata yutulur) |
 
 İlke: bozuk dosya vermektense hiç dosya vermemek.
 
@@ -284,6 +324,8 @@ Bu bir anti-corruption layer. Üçüncü parti DOM'a bağımlı her extension en
 
 Her selector için `null` toleransı: bulunamayan selector exception atmaz, kademe düşürür.
 
+**Preview modunda DOM okuma.** Kademe 3'e düşüldüğünde kod yalnızca Code sekmesinde bulunur. Sekmeyi programatik tıklamak kullanıcının görünümünü değiştirir — bu bizim değil onun tercihi. Kural: mevcut sekme kaydedilir, Code'a geçilir, metin okunur, **eski sekme geri yüklenir**. Kullanıcı ideal olarak kısa bir titreme dışında hiçbir şey görmez. Preview'da başlamışsa ve okuma başarısızsa yine de eski sekmeye dönülür (`try/finally`).
+
 ## 13. i18n
 
 `_locales/tr` (default) + `_locales/en`. Tüm kullanıcıya görünen metin `chrome.i18n.getMessage()` üzerinden. Sabit metin yasak — sonradan i18n eklemek acılıdır, Web Store için de gerekli.
@@ -294,7 +336,8 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
-- `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; tek `create` → tek versiyon
+- `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş
+- `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
 - `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `artifact`
 - `fmtName`: her token, eksik token, bilinmeyen token literal kalır
@@ -305,7 +348,7 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 - 2 girişli zip'te central directory offset'i local header'ların toplam boyutuna eşit
 - UTF-8 dosya adı (Türkçe karakter) doğru uzunlukta yazılıyor
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact, tek versiyonlu markdown, SVG, mermaid, çok uzun (>500 satır) HTML, aynı başlıklı iki artifact, oturum kapalıyken fallback.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme.
 
 ## 15. Chrome Web Store teslimatları
 
@@ -329,10 +372,17 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 
 ---
 
+## 17. Depo teslimatları
+
+- `LICENSE` — MIT
+- `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`, `SEL` katmanının nerede olduğu ve UI kırılınca nasıl tamir edileceği
+- `CHANGELOG.md` — sürüm notları (Web Store güncellemeleri için)
+- `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
+
 ## Uygulama sırası (özet)
 
-1. Gerçek konuşma JSON'u dump'la, `tool_use` şemasını doğrula
-2. `parse.js` + `selftest.js` (TDD)
+1. Gerçek konuşma JSON'u dump'la, `tool_use` şemasını **ve** ağaç alanlarını (`parent_message_uuid`, `current_leaf_message_uuid`) doğrula
+2. `parse.js` (aktif dal çıkarımı → op toplama → fold) + `selftest.js` (TDD)
 3. `zip.js` + testleri
 4. `manifest.json` + iskelet + i18n
 5. `content.js`: `SEL`, observer, split buton, menü
