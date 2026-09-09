@@ -1,0 +1,42 @@
+{
+  "extName":            { "message": "Magpie — AI Chat Downloader" },
+  "extDescription":     { "message": "Extract, version, move and reuse the code, documents and files your AI chats produce." },
+  "cmdDownload":        { "message": "Download the focused item" },
+
+  "codeBlocks":         { "message": "Code blocks" },
+  "documents":          { "message": "Documents" },
+  "attachments":        { "message": "Attachments" },
+  "toolOutputs":        { "message": "Tool outputs" },
+  "citations":          { "message": "Citations" },
+  "images":             { "message": "Images" },
+  "conversation":       { "message": "Conversation" },
+  "items":              { "message": "Items" },
+
+  "download":           { "message": "Download" },
+  "copy":               { "message": "Copy" },
+  "rename":             { "message": "Rename" },
+  "lines":              { "message": "$1 lines", "placeholders": { "1": { "content": "$1" } } },
+  "matches":            { "message": "$1 matches", "placeholders": { "1": { "content": "$1" } } },
+  "filterPlaceholder":  { "message": "Filter by name or language" },
+
+  "codeOnly":           { "message": "code blocks" },
+  "unsupportedSite":    { "message": "Not a supported chat" },
+  "emptyUnsupported":   { "message": "Open a conversation on a supported AI chat." },
+  "emptyNoItems":       { "message": "Nothing to download in this conversation." },
+
+  "settings":           { "message": "Settings" },
+  "copyDiagnostics":    { "message": "Diagnostics" },
+  "copied":             { "message": "Copied" },
+  "disableSite":        { "message": "Disable here" },
+  "privacyLine":        { "message": "Data stays on your device" },
+
+  "secWhatToShow":      { "message": "What to show" },
+  "secNotification":    { "message": "Notification" },
+  "secDownload":        { "message": "Downloading" },
+  "secSites":           { "message": "Sites" },
+  "kind_code":          { "message": "Code blocks" },
+  "optBadge":           { "message": "Toolbar badge" },
+  "optBadgeHint":       { "message": "Count and pulse on the icon" },
+  "optTemplate":        { "message": "Filename" },
+  "optTemplateHint":    { "message": "Tokens: {title} {version} {date}" }
+}

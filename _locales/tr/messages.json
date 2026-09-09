@@ -1,0 +1,42 @@
+{
+  "extName":            { "message": "Magpie — AI Chat Downloader" },
+  "extDescription":     { "message": "Sohbetlerinden çıkan kodu, belgeleri ve dosyaları çıkar, sürümle, taşı ve yeniden kullan." },
+  "cmdDownload":        { "message": "Odaktaki öğeyi indir" },
+
+  "codeBlocks":         { "message": "Kod blokları" },
+  "documents":          { "message": "Belgeler" },
+  "attachments":        { "message": "Ekler" },
+  "toolOutputs":        { "message": "Araç çıktıları" },
+  "citations":          { "message": "Kaynaklar" },
+  "images":             { "message": "Görseller" },
+  "conversation":       { "message": "Sohbet" },
+  "items":              { "message": "Öğeler" },
+
+  "download":           { "message": "İndir" },
+  "copy":               { "message": "Kopyala" },
+  "rename":             { "message": "Yeniden adlandır" },
+  "lines":              { "message": "$1 satır", "placeholders": { "1": { "content": "$1" } } },
+  "matches":            { "message": "$1 eşleşme", "placeholders": { "1": { "content": "$1" } } },
+  "filterPlaceholder":  { "message": "Ada veya dile göre filtrele" },
+
+  "codeOnly":           { "message": "kod blokları" },
+  "unsupportedSite":    { "message": "Desteklenen bir sohbet değil" },
+  "emptyUnsupported":   { "message": "Desteklenen bir AI sohbetinde bir konuşma aç." },
+  "emptyNoItems":       { "message": "Bu sohbette indirilecek bir şey yok." },
+
+  "settings":           { "message": "Ayarlar" },
+  "copyDiagnostics":    { "message": "Teşhis" },
+  "copied":             { "message": "Kopyalandı" },
+  "disableSite":        { "message": "Burada kapat" },
+  "privacyLine":        { "message": "Veri cihazdan çıkmıyor" },
+
+  "secWhatToShow":      { "message": "Neleri göster" },
+  "secNotification":    { "message": "Bildirim" },
+  "secDownload":        { "message": "İndirme" },
+  "secSites":           { "message": "Siteler" },
+  "kind_code":          { "message": "Kod blokları" },
+  "optBadge":           { "message": "Toolbar rozeti" },
+  "optBadgeHint":       { "message": "İkonda sayı ve nabız" },
+  "optTemplate":        { "message": "Dosya adı" },
+  "optTemplateHint":    { "message": "Token'lar: {title} {version} {date}" }
+}
