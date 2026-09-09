@@ -118,30 +118,49 @@ async function magpieMeasure(limit = 40) {
   }
 
   const pct = (a, b) => (b ? ((a / b) * 100).toFixed(1) + "%" : "n/a");
-  const top = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n);
+  const top = (o, n) => JSON.stringify(Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n));
+  const recurring = Object.fromEntries(Object.entries(R.namesSeenAcross).filter(([, n]) => n > 1));
 
-  console.log("\n=== Magpie demand measurement ===");
-  console.log(`conversations   ${R.scanned} scanned, ${R.failed} failed`);
-  console.log(`window          ${(R.oldest || "").slice(0, 10)} .. ${(R.newest || "").slice(0, 10)}`);
-  console.log("\n-- the ratio DEMAND.md rests on --");
-  console.log(`fences                    ${R.fences}`);
-  console.log(`qualifying (>=${MIN_LINES} lines)   ${R.qualifying}   ${pct(R.qualifying, R.fences)} of fences`);
-  console.log(`conversations with any    ${R.convsWithQualifying}/${R.scanned}   ${pct(R.convsWithQualifying, R.scanned)}`);
-  console.log(`per-conversation spread   ${JSON.stringify(R.qualifyingPerConv)}`);
-  console.log("\n-- H1: are the short fences the copy-me kind? --");
-  console.log(`one- and two-line fences  ${JSON.stringify(R.shortFenceLines)}`);
-  console.log(`short-fence languages     ${JSON.stringify(top(R.shortFenceLangs, 8))}`);
-  console.log(`qualifying languages      ${JSON.stringify(top(R.qualifyingLangs, 8))}`);
-  console.log("\n-- candidate D: are there revision chains? --");
-  console.log(`chains (same name twice+) ${R.revisionChains}, covering ${R.blocksInChains} blocks   ${pct(R.blocksInChains, R.qualifying)} of qualifying`);
-  console.log(`answers emitting 2+ files ${R.multiFileAnswers}`);
-  console.log(`names recurring across    ${JSON.stringify(top(Object.fromEntries(Object.entries(R.namesSeenAcross).filter(([, n]) => n > 1)), 8))}`);
-  console.log("\n-- candidates E and F --");
-  console.log(`truncated messages        ${R.truncatedMessages}`);
-  console.log(`attachments               ${R.attachments} across ${R.convsWithAttachments} conversations`);
-  console.log(`produced files            ${R.producedFiles}`);
-  console.log(`conversations in projects ${R.convsInProject}`);
-  console.log("\nPaste the block above into an issue. It contains no conversation content.");
+  // One block of plain text, so it can be pasted somewhere in one go rather
+  // than expanded object by object in the console.
+  const report = [
+    "=== Magpie demand measurement ===",
+    `conversations   ${R.scanned} scanned, ${R.failed} failed`,
+    `window          ${(R.oldest || "").slice(0, 10)} .. ${(R.newest || "").slice(0, 10)}`,
+    "",
+    "-- the ratio DEMAND.md rests on --",
+    `fences                    ${R.fences}`,
+    `qualifying (>=${MIN_LINES} lines)   ${R.qualifying}   ${pct(R.qualifying, R.fences)} of fences`,
+    `conversations with any    ${R.convsWithQualifying}/${R.scanned}   ${pct(R.convsWithQualifying, R.scanned)}`,
+    `per-conversation spread   ${JSON.stringify(R.qualifyingPerConv)}`,
+    "",
+    "-- H1: are the short fences the copy-me kind? --",
+    `one- and two-line fences  ${JSON.stringify(R.shortFenceLines)}`,
+    `short-fence languages     ${top(R.shortFenceLangs, 8)}`,
+    `qualifying languages      ${top(R.qualifyingLangs, 8)}`,
+    "",
+    "-- candidate D: are there revision chains? --",
+    `chains (same name twice+) ${R.revisionChains}, covering ${R.blocksInChains} blocks   ${pct(R.blocksInChains, R.qualifying)} of qualifying`,
+    `answers emitting 2+ files ${R.multiFileAnswers}`,
+    `names recurring across    ${top(recurring, 8)}`,
+    "",
+    "-- candidates E and F --",
+    `truncated messages        ${R.truncatedMessages}`,
+    `attachments               ${R.attachments} across ${R.convsWithAttachments} conversations`,
+    `produced files            ${R.producedFiles}`,
+    `conversations in projects ${R.convsInProject}`,
+  ].join("\n");
+
+  console.log("\n" + report);
+
+  // copy() is a DevTools console helper, not a page API — absent when this
+  // file is required from Node, so it is attempted rather than assumed.
+  try {
+    if (typeof copy === "function") { copy(report); console.log("\n✓ copied to the clipboard"); }
+    else console.log("\nSelect the block above and copy it.");
+  } catch { console.log("\nSelect the block above and copy it."); }
+
+  console.log("It contains no conversation content — counts, languages and derived names only.");
   return R;
 }
 
