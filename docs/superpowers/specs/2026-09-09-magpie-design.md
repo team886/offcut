@@ -1063,7 +1063,9 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 1. **Sağlayıcı şeridi:** aktif sağlayıcı + o sağlayıcıda ne alınabileceği (`ChatGPT · canvas + kod · versiyon yok`). Kullanıcı eksik yeteneği bozukluk sanmasın diye.
 2. **Öğe listesi**, `kind` başına gruplu: *Belgeler* (artifact/canvas), *Kod blokları · N*, ***Araç çıktıları · N***, *Ekler · N*, *Sohbet*. Araç çıktısı satırında araç adı ve sonuç büyüklüğü görünür (`search_events · 214 satır`) — hangi çağrının hangisi olduğu ancak böyle ayırt edilir. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
    Eski tek-kartlı "şu an" tasarımının yerini bu aldı: artık öğe tek değil ve panel açık olmak zorunda değil (§8.8).
-3. **Neleri göster** (`kinds`): artifact/canvas · kod blokları · ekler — üç anahtar. Kod bloklarını kapatmak, uzun teknik sohbetlerde listeyi sadeleştirmenin tek yolu.
+3. **Neleri göster** (`kinds`): altı anahtar — `artifact` (belge/canvas) · `code` · `tool_output` · `citations` · `image` · `attachment` · `conversation`. Sağlayıcıda o tür hiç yoksa anahtar da çizilmez (§3.4.5).
+
+   Kod bloklarını kapatmak uzun teknik sohbetlerde listeyi sadeleştirmenin tek yolu; araç çıktılarını kapatmak da onlarca çağrı yapan otomasyon sohbetlerinde aynı işi görür. Türler arttıkça bu anahtarlar süs değil, kullanılabilirlik koşulu oldu.
 4. **Bildirim** (`badge`, `notify`): toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok.
 5. **İndirme** (`defaultVersion`, `zipAll`, `autoDownload`, `dragEnabled`): varsayılan versiyon (görüntülenen / son / sor) · menüde zip satırı (aç/kapa) · sürükle-bırak (aç/kapa — bazı kullanıcılar kazara sürüklemeyi sevmez) · otomatik indirme (aç/kapa, **varsayılan kapalı**).
 6. **Kayıt yeri** (`saveTo`) — **sağlayıcı başına**: `Kayıt yeri · Claude: ~/Projects/artifacts` / `· ChatGPT: seçilmedi`. Handle origin'e bağlı olduğu için tek bir global seçim mümkün değil (§8.7.2); panel bunu gizlemek yerine adıyla gösterir.
