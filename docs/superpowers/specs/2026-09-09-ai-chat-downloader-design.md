@@ -36,6 +36,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Toplu hesap yedeği (tüm sohbetleri gezmek)
 - Artifact düzenleme / geri yükleme
 - Listedeki dört sağlayıcı dışındaki siteler
+- Kurumsal politika ile önceden yapılandırma (`storage.managed`) — talep gelirse eklenir, varsayım olarak inşa edilmez
 - Sunucu, hesap, senkronizasyon
 - **Çalıştırılabilir paket üretmek.** React artifact'ı tek başına `.tsx` olarak iner; `package.json`, bundler yapılandırması veya HTML sarmalayıcı üretmeyiz. Kullanıcı dosyayı kendi projesine taşır. Bu bilinçli bir sınır: "çalışan proje" üretmek ayrı bir üründür ve her framework için ayrı bakım demektir
 
@@ -381,6 +382,12 @@ Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek ü
 Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
 
 Klavye kullanıcıları için: kod bloğu odaklanabilir olduğunda düğme aynı şekilde hizalanır; ayrıca `Alt+Shift+D` odaktaki bloğu indirir.
+
+**Dokunmatikte hover yoktur.** Tasarım olduğu gibi bırakılırsa dokunmatik ekranlı dizüstü ve tabletlerde kod bloğu indirme **hiç erişilemez** olur — fare yok, hover yok, düğme hiç belirmez. Kural: `(hover: none)` medya sorgusunda düğme davranışı değişir; her kod bloğunun köşesinde küçük, kalıcı bir `↓` durur (hover'a bağlı değil). Aynı kural kalem/dokunmatik karışık cihazlarda da geçerli — cihaz tipi tahmin edilmez, `hover` yeteneği sorulur.
+
+Bu, hover ön-yüklemesini de etkiler: dokunmatikte ön-yükleme tetikleyicisi yoktur, o yüzden ilk dokunuşta kısa bir yükleniyor durumu görünür ve sürükle-bırak dokunmatikte kapalıdır (sürükleme zaten kaydırma jestiyle çakışır).
+
+**Tarayıcı yakınlaştırması.** `getBoundingClientRect` ile hizalanan her katman (kod bloğu düğmesi, plan B'deki buton) yakınlaştırma değişiminde kayar. Yeniden hizalama tetikleyicileri: `resize`, `scroll`, `visualViewport.resize`, ve panelin `ResizeObserver`'ı. %200 yakınlaştırma manuel doğrulama listesinde.
 
 ### 8.2 Versiyon menüsü (popover)
 ```
@@ -728,14 +735,15 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi — **dört sağlayıcıda ayrı ayrı koşulur**; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işaretlenir, atlanmaz. Ek olarak her sağlayıcıda: kod bloğu gezici düğmesinin doğru bloğa hizalanması, üç satırdan kısa blokların kontrol almaması, ad türetme zincirinin dört basamağının da denenmesi, ek indirmenin ikili dosyayı bozmaması, ve klasör tercihinin sağlayıcı başına ayrı sorulması. Claude'a özgü liste: gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi — **dört sağlayıcıda ayrı ayrı koşulur**; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işaretlenir, atlanmaz. Ek olarak her sağlayıcıda: kod bloğu gezici düğmesinin doğru bloğa hizalanması, üç satırdan kısa blokların kontrol almaması, ad türetme zincirinin dört basamağının da denenmesi, ek indirmenin ikili dosyayı bozmaması, ve klasör tercihinin sağlayıcı başına ayrı sorulması. Claude'a özgü liste: gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **dokunmatik ekranda kod bloğu indirme** (hover yokken düğme erişilebilir mi); %200 tarayıcı yakınlaştırmasında hizalanan katmanların kayması; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
 `store/` klasöründe:
 - **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (dört sağlayıcıdaki konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
   **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
-- **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı, izin gerekçeleri (`storage` → ayarlar; dört host izni → sohbet içeriğini okuma, her biri ayrı gerekçelendirilir; `notifications` → opsiyonel, kullanıcı açarsa)
+- **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı,
+  Uzun açıklamanın **ilk paragrafı** Chrome'un kurulumda gösterdiği "bu sitelerdeki verilerinizi okuyabilir ve değiştirebilir" uyarısını karşılar: neden bu izne ihtiyaç olduğu (sohbeti okumadan indirilecek şey bulunamaz), verinin nereye gitmediği, ve tek amaç. Bu uyarı kaçınılmaz; açıklanmazsa kurulum oranını ve güveni o düşürür izin gerekçeleri (`storage` → ayarlar; dört host izni → sohbet içeriğini okuma, her biri ayrı gerekçelendirilir; `notifications` → opsiyonel, kullanıcı açarsa)
 - **Ekran görüntüsü şablonları** (1280×800, 5 adet): split buton + versiyon menüsü (Claude), kod bloğu gezici düğmesi (ChatGPT), popup'ın öğe listesi, zip/klasör toast'ı, ayar paneli. En az iki farklı sağlayıcı görünmeli — listelemede "dört sağlayıcı" iddiası görselle desteklenmezse inceleme sorar
 - 128px mağaza ikonu, 440×280 küçük promo
 
@@ -778,6 +786,31 @@ Bu extension iki tür **güvenilmez veri** işliyor: öğe başlıkları ve öğ
 | `panel.html` inline `<script>`/`onclick` içermez | MV3 varsayılan CSP inline script'i bloklar; sessiz bozulma olur |
 | `sanitize` yol geçişini de keser: `/` `\` `..` ve baştaki `~` temizlenir | `<a download="../../x">` denemesi. Chrome zaten yol bileşenlerini yok sayar ama savunma bizde de olmalı |
 | Ağa **hiç** çıkılmaz; `fetch` hedefleri yalnızca dört sağlayıcının kendi origin'i | Gizlilik politikasının doğrulanabilir olması için; CI'daki ağ taraması bunun teknik dayanağı (§19.3) |
+
+### 17.1 Yayıncı hesabı — asıl tedarik zinciri
+
+Bu projenin bağımlılığı yok (§5), yani klasik tedarik zinciri saldırı yüzeyi neredeyse sıfır. Ama **gerçek tedarik zinciri npm değil, Web Store yayıncı hesabıdır.** O hesabı ele geçiren kişi, kullanıcının özel sohbetlerini okuma iznine sahip bir extension'ı **mevcut tüm kurulumlara sessizce** gönderir; Chrome güncellemeyi otomatik uygular ve kullanıcı hiçbir şey görmez. Kodun temiz olması bunu engellemez.
+
+Kural:
+- Yayıncı hesabında **passkey veya donanım anahtarı** zorunlu; SMS 2FA kabul edilmez
+- Hesap erişimi asgari kişide; ayrılan kişinin erişimi aynı gün kaldırılır
+- CI'ya yayın yetkisi verilmez. Paketi CI üretir, **yükleme insan eliyle** yapılır — otomatik yayın, çalınan bir CI token'ını doğrudan kullanıcıya bağlar
+- Yayınlanan her paketin SHA-256'sı `CHANGELOG.md`'de (§19.4); mağazadaki paketin depodaki commit'ten üretildiği üçüncü kişilerce doğrulanabilir
+- Extension'ın kendi güncelleme kanalı yok; tek dağıtım yolu mağaza
+
+### 17.2 Gizlilik taahhütleri — değişmez sayılanlar
+
+Aşağıdakiler mağaza beyanının ve kullanıcı güveninin **taşıyıcı** unsurlarıdır. Bir feature bunlardan birini bozuyorsa, feature reddedilir ya da yeni ve açık bir onay akışıyla gelir; sessizce genişletilmez:
+
+1. Dış origin'e hiçbir istek yok (§19.3 kapı 8 bunu korur)
+2. Telemetri, analytics, hata raporlama servisi yok
+3. Konuşma içeriği yalnızca bellekte; diske **yalnızca kullanıcının açıkça indirdiği dosya** yazılır
+4. `storage`'da yalnızca ayarlar; IndexedDB'de yalnızca klasör handle'ı
+5. Teşhis bloğu konuşma verisi taşımaz (§8.9)
+
+Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi istekler gelecek. Bu liste, o anda tartışmanın nereden başlayacağını bugünden sabitliyor — çünkü gizlilik taahhüdü bir kez sessizce bozulduğunda geri kazanılmıyor.
+
+**Kötüye kullanım notu.** "Sohbetteki tüm öğeler → zip", kısa süreli fiziksel erişimi olan birinin oturumu açık bir tarayıcıdan hızlıca veri toplamasını kolaylaştırır. Bunu extension'a özgü bir açık saymıyoruz — aynı veriye tarayıcı zaten erişiyor ve kopyala-yapıştır ile de alınır — ama tehdit modelinde yazılı durması, ileride "otomatik tüm sohbetleri indir" gibi bir isteğe verilecek cevabı kolaylaştırır: o özellik toplu veri çıkarmayı **niteliksel olarak** kolaylaştırır ve §2'deki hedef-olmayanlar listesinde kalır.
 
 ## 18. Depo teslimatları
 
