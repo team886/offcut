@@ -25,6 +25,9 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
 - **Sohbetin tamamını Markdown olarak** indir; istenirse başka bir sağlayıcıda devam ettir (§3.3.3)
+- Sohbet uzadığında **bağlam devri** öner (§2.1.1)
+- Sohbette **hiç alınmamış** öğeleri göster (§2.1.1)
+- Geçmişteki bir öğeyi yeni sohbete **bağlam olarak** kopyala (§2.1.1)
 - Bir artifact'ın tüm versiyonlarını tek `.zip` olarak ver
 - **Sohbetteki tüm öğeleri** (belge + kod + ek) tek `.zip` olarak ver
 - Dosyayı **sürükleyip** editöre/masaüstüne bırakabil
@@ -36,6 +39,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 **Hedef değil**
 - Toplu hesap yedeği (tüm sohbetleri gezmek)
 - Çoklu-model sidebar / çok modelli istemci (§4.4)
+- Prompt kütüphanesi, ajan çalıştırma, model kıyaslama — gerekçeleri §2.1'deki tabloda
 - Artifact düzenleme / geri yükleme
 - Kayıtta olmayan ve kullanıcının izin vermediği siteler (§3.4.2)
 - Kurumsal politika ile önceden yapılandırma (`storage.managed`) — talep gelirse eklenir, varsayım olarak inşa edilmez
@@ -796,16 +800,18 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 
    Gerekçe: ad dört basamaklı bir **sezgisel** zincirden geliyor (§3.3.1) ve sezgisel her zaman yanılabilir — `kod-7.py`, `use-cart.ts` yerine `index.ts`. Düzeltmenin tek yolu indirip dosyayı yeniden adlandırmak olurdu. Türetme ne kadar iyi olursa olsun, kullanıcıya son sözü vermeyen bir ad üreticisi eksiktir. Düzeltilen ad o oturum boyunca o öğe için hatırlanır.
 
-10. **İçeriği panoya kopyala.** Her satırda `↓` yanında bir kopyala eylemi. Çoğu zaman insanın gerçek ihtiyacı dosya değil, içeriğin kendisidir — ve indirip açıp kopyalamak üç adımdır. Sağlayıcının kendi kopyala düğmesi yalnızca kod bloklarında ve yalnızca güncel sürümde var; bizimki **eski bir sürümü** de, **belgeyi** de, **sohbetin Markdown'ını** da kopyalayabiliyor. Aynı içerik boru hattı, yeni bir hedef.
+10. **İçeriği panoya kopyala.** Her satırda `↓` yanında bir kopyala eylemi. Uzun basış / ikincil menü **`Bağlam olarak kopyala`** verir: ad + dil + fenced içerik, yeni bir sohbete yapıştırılmaya hazır (§2.1.1). Aynı içerik, iki farklı biçim — hangisini istediği kullanıcının işine bağlı. Çoğu zaman insanın gerçek ihtiyacı dosya değil, içeriğin kendisidir — ve indirip açıp kopyalamak üç adımdır. Sağlayıcının kendi kopyala düğmesi yalnızca kod bloklarında ve yalnızca güncel sürümde var; bizimki **eski bir sürümü** de, **belgeyi** de, **sohbetin Markdown'ını** da kopyalayabiliyor. Aynı içerik boru hattı, yeni bir hedef.
 
-11. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
-12. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
-13. **İndirilenler işaretlidir** (`history`). Geçmiş kapalıyken işaret **oturum içi**; açıkken kalıcı ve sürüm farkını bilir: aynı hash → `zaten aldın`, farklı hash → `v3'ü aldın, bu v5` (§4.3). Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı; farklı bir sürümü aynı sanmak ise gerçek bir hata.
+11. **Bağlam devri önerisi.** Mesaj sayısı `handoffAt`'i aşınca listenin üstünde tek satırlık, kapatılabilir bir öneri: `Bu sohbet uzadı — bağlamı yeni bir sohbete taşı`. Toast değil, satır: davetsiz ama kesintisiz. Oturumda bir kez.
 
-    Geçmiş açıkken popup'a **`Geçmiş`** sekmesi eklenir: ad/sağlayıcı/tarihe göre arama, satırdan yeniden indirme, `Geçmişi temizle`. Kapalıyken sekme hiç görünmez — kapalı bir özelliğin boş kabuğunu göstermek §3.4.5'teki "yetenek yoksa kontrol de yok" kuralının ihlali olurdu.
-14. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
-15. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
-16. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+12. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
+13. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
+14. **İndirilenler işaretlidir** (`history`). Geçmiş kapalıyken işaret **oturum içi**; açıkken kalıcı ve sürüm farkını bilir: aynı hash → `zaten aldın`, farklı hash → `v3'ü aldın, bu v5` (§4.3). Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı; farklı bir sürümü aynı sanmak ise gerçek bir hata.
+
+    Geçmiş açıkken popup'a **`Geçmiş`** sekmesi eklenir: ad/sağlayıcı/tarihe göre arama, satırdan yeniden indirme, `Geçmişi temizle`. Kapalıyken sekme hiç görünmez — kapalı bir özelliğin boş kabuğunu göstermek §3.4.5'teki "yetenek yoksa kontrol de yok" kuralının ihlali olurdu. Geçmiş açıkken ayarlarda kayıt sayısı ve **üst sınır** (`historyMax`) görünür, sınır düzenlenebilir; sessizce düşen kayıtların sebebi görünmeden kalmaz.
+15. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
+16. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
+17. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -977,6 +983,7 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.2)
   history: false,            // indirme geçmişi — opt-in, kapalı (§4.3)
   historyMax: 5000,          // kayıt üst sınırı; aşınca en eskiler düşer
+  handoffAt: 40,             // bu mesaj sayısını aşınca bağlam devri önerilir (§2.1.1); 0 = kapalı
   dragEnabled: true          // §8.7.1
 }
 ```
@@ -1068,7 +1075,7 @@ Spec'teki eşiklerin bir kısmı **ilkeden** çıkıyor, bir kısmı **tahmin**.
 `old_str` tam 1 eşleşme kuralı · zip alanlarının bayt cinsinden olması · 120 kod noktası **ve** 200 bayt ad sınırı (dosya sistemi sınırı) · ZIP64 eşikleri (65535 / 4 GB) · `version needed = 20` · toast'ın "indiriliyor" demesi (bilgi sınırı, tercih değil)
 
 **Ayarlanabilir (ölçümle iyileştir):**
-`MIN_CODE_LINES = 3` · konuşma cache TTL'i 60 sn · pill süresi 4 sn, tanıtım 6 sn · toast 2.5/5 sn · çapraz kademe uyuşmazlık eşiği %5 · sürükleme blob'unun serbest bırakılma gecikmesi 60 sn · `LAST_VERIFIED` 90/180 gün · performans bütçeleri (§19.2) · kademeli yayın %10/%50/%100 ve 48 saat
+`MIN_CODE_LINES = 3` · `handoffAt = 40` · konuşma cache TTL'i 60 sn · pill süresi 4 sn, tanıtım 6 sn · toast 2.5/5 sn · çapraz kademe uyuşmazlık eşiği %5 · sürükleme blob'unun serbest bırakılma gecikmesi 60 sn · `LAST_VERIFIED` 90/180 gün · performans bütçeleri (§19.2) · kademeli yayın %10/%50/%100 ve 48 saat
 
 Ayarlanabilir sayılar tek yerde adlandırılmış sabit olarak tutulur; koda dağılmış çıplak sayı bırakılmaz. Bir sayının kaynağı belirsizse **ayarlanabilir** sayılır — ilke iddiası kanıt ister.
 
@@ -1330,7 +1337,7 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 
 ### 19.6 Mağaza gönderimi
 
-- **Tek amaç beyanı:** "AI sohbet asistanlarındaki kod, doküman ve dosyaları doğru dosya adı ve uzantısıyla indirmek."
+- **Tek amaç beyanı:** "AI sohbet asistanlarında üretilen kod, doküman ve dosyaları çıkarmak, sürümlemek ve yeniden kullanılabilir hâle getirmek." — §2.1'deki omurgayla birebir aynı cümle olmalı; ürünün ne olduğu iki yerde farklı yazılırsa incelemede tutarsızlık olur
 - **İzin gerekçeleri**, izin başına tek cümle: `storage` → kullanıcı ayarları; host izinleri → sohbet içeriğini okumak (yalnızca kullanıcının kendi oturumu); `notifications` → opsiyonel, kullanıcı açarsa.
 - **Veri kullanımı formu:** Chrome her kategori için soruyor. Cevap dört kategoride de **toplanmıyor**; "veri satılmaz/aktarılmaz" ve "kredi notu vb. için kullanılmaz" beyanları işaretlenir. Beyanla kod tutarsızsa kaldırma sebebidir — bu yüzden §19.3'teki ağ çağrısı taraması bu beyanın teknik dayanağıdır.
 - Görseller (§15), gizlilik URL'si, TR + EN listeleme metinleri.
