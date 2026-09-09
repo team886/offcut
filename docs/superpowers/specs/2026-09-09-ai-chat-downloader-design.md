@@ -125,6 +125,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
+- **Üretilen görselleri** anlamlı adla indir (§2.1.4.3)
 - **Kaynak/alıntı listelerini** ayrı indir (§2.1.4.1) — arama yapan arayüzlerde cevabın yarısı odur
 - **MCP/araç çağrısı çıktılarını** tam hâliyle indir (§2.1.3) — arayüzün kırptığı hâlini değil
 - **Sohbetin tamamını Markdown olarak** indir; istenirse başka bir sağlayıcıda devam ettir (§3.3.3)
@@ -264,6 +265,22 @@ Uzun düşünme (extended thinking) blokları da konuşmanın parçası. İndiri
 
 Ayarda açılabilir (`includeThinking`, varsayılan `false`); açıkken sohbet Markdown'ında ayrı bir katlanmış bölüm olarak yer alır, ayrı öğe olarak listelenmez. Bu, "her şeyi indir" ile "işe yarayanı indir" arasındaki bilinçli fark.
 
+### 2.1.4.3 Üretilen görseller ve kod yorumlayıcı dosyaları
+
+İki tür daha var ve ikisi de yaygın:
+
+**Üretilen görseller.** ChatGPT ve Gemini görsel üretiyor; sonuç sohbetin içinde bir `<img>`. Kullanıcı bunu sağ tık → kaydet ile alabiliyor ama: ad anlamsız oluyor (`image_1a2b.png`), 8 varyanttan hangisi olduğu kaybolıyor, ve toplu alma yolu yok. `kind: "image"`:
+- Ad, üreten **promptun** ilk anlamlı kısmından: `izmir-sahili-gunbatimi-1.png` — görselin ne olduğunu ad söylemeli
+- Uzantı sunucunun içerik tipinden; **tahmin edilmez**
+- İkili: `ArrayBuffer`, metin dönüşümü yok (§3.3.2'deki aynı kural)
+- Çoğu görsel CDN'den ayrı istekle geliyor → **ek indirmeyle aynı disiplin**: sıralı, eşzamanlılık 1, 429'da dur (§3.3.2). 12 görselli bir sohbeti zip'lemek 12 hızlı istek demek ve bu, kendi kuralımızı çiğnemenin ikinci yolu olurdu
+
+**Kod yorumlayıcı çıktı dosyaları.** ChatGPT'nin veri analizi ve Claude'un analiz aracı dosya üretiyor (CSV, XLSX, PNG grafik) ve arayüz bunları indirilebilir bağlantı olarak gösteriyor. Kullanıcının ürettiği ekten (§3.3.2) farklı yönde akıyorlar ama teknik olarak aynı şey: ayrı istekle gelen ikili içerik. Aynı `kind: "attachment"` altında, **`direction: "out"`** ayrımıyla listelenir — popup'ta *Ekler* grubu ikiye ayrılır: `Yüklediklerin` / `Üretilenler`.
+
+Ayrım neden gerekli: kullanıcı "benim yüklediğim CSV" ile "modelin ürettiği CSV"yi karıştırırsa yanlış dosyayı projeye taşır. İkisi de `.csv`, ikisi de aynı sohbette, ve adları benzer olabilir.
+
+**Blok türleri artık tam.** Bir sohbette bulunan her şey bir `kind`'a düşüyor: metin (`conversation`), kod (`code`), belge (`artifact`), yüklenen/üretilen dosya (`attachment`), araç sonucu (`tool_output`), kaynak (`citations`), görsel (`image`), düşünme (varsayılan hariç). Yeni bir sağlayıcı yeni bir blok türü getirirse, kayıt satırı değil **bu liste** güncellenir.
+
 ## 2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek
 
 FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip olduğuna** bağlı ve bunu bilmiyorum. Uydurmak yerine üç olası şekli ve maliyetlerini yazıyorum; hangisi doğruysa spec o dala göre yazılır.
@@ -380,7 +397,7 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 
 ```js
 Item = {
-  kind: "artifact" | "code" | "attachment" | "conversation" | "tool_output" | "citations",
+  kind: "artifact" | "code" | "attachment" | "conversation" | "tool_output" | "citations" | "image",
   key,               // sohbet içinde kararlı kimlik (bkz. aşağıdaki kararlılık kuralı)
   title,             // görünen ad (kind'e göre türetilir)
   ext,               // ".tsx" | ".py" | ".csv" ...
@@ -951,7 +968,7 @@ Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırı
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 9 öğe → zip`.
 
-İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`, `arac-ciktilari/`.
+İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/` (`yuklenen/` + `uretilen/`), `arac-ciktilari/`, `gorseller/`, `kaynaklar/`.
 
 **Sıra önemli: `sanitize` önce, klasör öneki sonra.** `sanitize` dosya adındaki `/` karakterini temizliyor (§6) — klasör önekini ada önce eklersek onu da siler ve zip düz bir liste olur. Zip girdisi `kind öneki + "/" + sanitize(ad)` olarak kurulur; ayırıcı `/`'ler sanitize'dan **geçmez**. Aynı kural klasöre kaydetmede yok, çünkü orada alt klasör üretmiyoruz (§8.6). Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
@@ -1228,7 +1245,8 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
-  kinds: { artifact:true, code:true, attachment:true, conversation:true, tool_output:true, citations:true },
+  kinds: { artifact:true, code:true, attachment:true, conversation:true,
+           tool_output:true, citations:true, image:true },
   includeThinking: false,    // düşünme blokları sohbet Markdown'ına girsin mi (§2.1.4.2)
   sites: { … },              // kayıt id → bool; eksik id varsayılan açık
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.2)
