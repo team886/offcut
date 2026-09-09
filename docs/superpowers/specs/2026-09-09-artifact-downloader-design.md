@@ -82,7 +82,7 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 
 Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görünür ve sarı toast çıkar — kullanıcı versiyon geçmişinin neden yok olduğunu bilir.
 
-**Doğrulanacak varsayım (implementation'ın ilk adımı):** Kademe 1'in tam şeması — `old_str`/`new_str` attribute mı child element mi, `id` alanının adı. Parser yazılmadan önce gerçek bir konuşma JSON'u dump edilip şema doğrulanacak. Parser her iki formu da tolere edecek şekilde yazılır.
+**Doğrulanacak varsayım (implementation'ın ilk adımı):** Kademe 1 için `input` nesnesinin alan adları (`id` mi `identifier` mı, `content` mi `new_content` mi); Kademe 2 için `old_str`/`new_str`'ın attribute mı child element mi olduğu. Parser yazılmadan önce gerçek bir konuşma JSON'u dump edilip her iki şema da doğrulanacak; parser gördüğü varyantları tolere edecek şekilde yazılır.
 
 **Endpoint'ler** (content script'ten same-origin `fetch`, cookie otomatik):
 ```
@@ -213,6 +213,8 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
 
    **React enjekte edilen düğümü siler.** claude.ai React ile çizilir; action bar yeniden render edildiğinde bizim butonumuz DOM'dan uçar. Bu, React uygulamalarına enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
 3. Buton tıklanınca `getConversation(convUuid)` — bellek içi cache; DOM mesaj sayısı değiştiğinde veya 60 sn geçince geçersiz. Her mutation'da fetch **yok**.
+
+   **Mesaj sayısı akış sırasında değişmez.** Claude yazarken op'lar **aynı** mesajın içine eklenir; mesaj sayısı sabit kalır. Sadece sayıya bakan bir geçersizleştirme, akış ortasında alınmış bir yanıtı 60 saniye boyunca taze sayar ve kullanıcı Claude bitirdikten hemen sonra indirdiğinde **yarım artifact** alır — üstelik §3.2'deki "yazılıyor" uyarısı da o eski anlık görüntüye göre hesaplanır, yani uyarı bile çıkmaz. Kural: akış sürerken alınan yanıt **cache'lenmez**, yalnızca o anlık kullanım için tutulur; akışın bittiği tespit edildiğinde cache koşulsuz geçersizleşir.
 4. `parseOps` → `buildVersions` → versiyon listesi.
 5. **Açık artifact eşleştirme:** panel başlığı → aday artifact'lar. Aynı başlıktan birden fazla varsa, görünen kodun ilk 200 karakteriyle her adayın son versiyonu karşılaştırılıp en yüksek skorlu seçilir. Skorlar birbirine yakınsa menüde her ikisi de gösterilir — belirsizlik sessizce çözülmez.
 6. **Görüntülenen versiyon:** panelin kendi versiyon göstergesinden okunur; okunamazsa son versiyon varsayılır.
@@ -284,7 +286,11 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 | indi | yeşil `✓`, 2 sn sonra eski hâl |
 | hata | kırmızı `!`, kalır |
 
-Sayı gösteriliyor çünkü "3 artifact var" bilgisi zaten elimizde — nokta göstermek onu çöpe atmak olurdu.
+**Sayı nereden geliyor — ağdan değil, DOM'dan.** Burada bir çelişki riski var: §7 boru hattı konuşmayı **yalnızca butona basılınca** çekiyor. Badge'in sayıyı gösterebilmesi için sayfa açılır açılmaz fetch yapmak gerekirdi ve bu, hiç indirme yapmayacak kullanıcı için her sohbette birkaç MB'lık istek demektir — sessiz, gereksiz, pil yakan.
+
+Çözüm: badge sayısı **sohbet akışındaki artifact kartları sayılarak** elde edilir (`SEL.artifactCard`). Ağ isteği yok, maliyet sıfır. Ağ yalnızca kullanıcı indirmek istediğinde devreye girer.
+
+Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez — versiyon bilgisi ancak fetch sonrası bilinir ve zaten menüde görünür. Ucuz sinyalle pahalı bilgiyi karıştırmamak.
 
 **Badge sekmeye özgüdür.** `chrome.action.setBadgeText({text, tabId})` — `tabId` verilmezse badge global olur ve açık beş claude.ai sekmesi birbirinin sayısını ezer.
 
@@ -310,6 +316,8 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 **Hareket.** `@media (prefers-reduced-motion: reduce)` altında nabız ve pill animasyonu iptal; pill yine görünür, sadece nabız atmaz. Badge nabzı da bu durumda tek karede sabitlenir.
 
+**Yazım yönü.** claude.ai Arapça/İbranice arayüzde `dir="rtl"` çalışır; `right: 10px` ile sabitlenen pill ve menü yanlış tarafa düşer, hatta panel kenarından taşar. Konumlandırmada fiziksel değil **mantıksal** özellikler kullanılır (`inset-inline-end`, `padding-inline`, `margin-inline-start`). Maliyeti sıfır, sonradan düzeltmesi her kuralı tek tek gözden geçirmek demek.
+
 **Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı Claude'un ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
 
 **`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
@@ -332,6 +340,15 @@ Ayrıca ilk kez bir artifact paneli görüldüğünde pill normalden farklı bir
 | Okuma başarısız | `Artifact okunamadı` + `Tekrar dene` + `Neden?` (BREAKAGE.md'ye bakan kısa açıklama) |
 
 Son satır bir tasarım kazancı: veri panelden değil API'den geldiği için **artifact indirmek için paneli açmak gerekmiyor.** Popup, kapalı paneldeki artifact'ları da listeleyebilir.
+
+**Ama bu, açık artifact eşleştirmesini atlar.** §7 adım 5 hangi artifact'ın indirileceğini panelin başlığından çözüyor; panel kapalıyken böyle bir başlık yok. Popup akışı bu yüzden ayrı tanımlanır:
+
+1. Popup açılır → content script'ten sohbetteki artifact kartlarının **başlıkları** istenir (DOM, ağ yok)
+2. Tek artifact varsa doğrudan seçilir; birden fazlaysa popup onları liste hâlinde gösterir
+3. Kullanıcı birini seçince fetch + parse yapılır ve versiyonlar aynı popup içinde listelenir
+4. İndirme content script'e devredilir (`<a download>` sayfa bağlamında çalışır, popup kapanınca iptal olmaz)
+
+Yani panel açıkken kimlik **panelden**, kapalıyken **kullanıcının seçiminden** gelir. Belirsizlik hiçbir durumda tahminle kapatılmaz.
 
 **Hiçbir boş durum sessiz olmaz.** Boş kart her zaman "neden boş" ve "ne yapmalı" söyler; kullanıcı extension'ın bozuk mu yoksa doğru mu çalıştığını ayırt edebilmeli.
 
@@ -454,12 +471,13 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
 `store/` klasöründe:
 - **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (claude.ai konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
+  **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
 - **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı, izin gerekçeleri (`storage` → ayarlar; `host_permissions claude.ai` → artifact okuma; `notifications` → opsiyonel, kullanıcı açarsa)
 - **Ekran görüntüsü şablonları** (1280×800, 5 adet): split buton, versiyon menüsü, zip toast'ı, ayar paneli, badge durumları
 - 128px mağaza ikonu, 440×280 küçük promo
