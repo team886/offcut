@@ -781,6 +781,20 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **Tema.** Dört sağlayıcının da açık teması var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
 
+### 12.1 DOM'dan metin okuma kuralları
+
+Sanallaştırma (§4) tek tuzak değil. DOM bir **görüntüleme katmanı**; kodu okunur kılmak için yaptığı her şey, onu veri olarak okuyan için bir bozulma kaynağı. Dördü de gerçek ve dördü de sessiz:
+
+**1. Kod düğümünün içinde UI parçaları olabilir.** Satır numarası sütunu, "Kopyala" düğmesi, dil etiketi — sağlayıcıya göre `pre`'nin **içine** konabilir. `pre.textContent` bunları da alır ve dosyanın başına `1 2 3 …` ya da ortasına `Kopyala` yazar. Kural: metin, `SEL.codeBlock`'un işaret ettiği **kod düğümünden** okunur ve o düğümün altındaki UI çocukları (`button`, `[role="button"]`, satır numarası gutter'ı, dil rozeti) okumadan önce **klonlanmış** bir kopyadan çıkarılır. Sayfanın kendi DOM'una dokunulmaz — klon üzerinde çalışılır.
+
+**2. `innerText` değil, `textContent`.** `innerText` CSS'e tabidir: `text-transform: uppercase` uygulanmış bir tema kodu büyük harfe çevirir, gizli düğümleri atlar, boşlukları normalleştirir. `textContent` ham metni verir. Bu, tercih değil kuraldır.
+
+**3. Sıfır genişlikli karakterler.** Bazı arayüzler satır kaydırma için `<wbr>` ya da U+200B ekler; `textContent` onları da taşır ve kod **görünmez biçimde** bozulur — derleyici hata verir, kullanıcı sebebini göremez. Kural: DOM kademesinde U+200B, U+200C, U+FEFF temizlenir. Kademe 1/2'de **temizlenmez** — orada içerik ham gelir ve o karakterler gerçekten kodun parçası olabilir. Temizlik, bozulmanın kaynağına özgüdür.
+
+**4. Katlanmış / "daha fazla göster" bloklar.** İçerik CSS ile kırpılmışsa `textContent` tamdır, sorun yok; DOM'dan çıkarılmışsa bu §4'teki sanallaştırma kuralının aynısıdır ve aynı tamlık kanıtı aranır.
+
+Bu dört kural `common-dom.js`'te tek bir `readCodeText(node)` fonksiyonunda toplanır — dört sağlayıcı ve hem kod blokları hem Kademe 3 aynı yolu kullanır. Ayrı ayrı yazılırsa biri eksik kalır.
+
 **Preview modunda DOM okuma.** Kademe 3'e düşüldüğünde kod yalnızca Code sekmesinde bulunur. Sekmeyi programatik tıklamak kullanıcının görünümünü değiştirir — bu bizim değil onun tercihi. Kural: mevcut sekme kaydedilir, Code'a geçilir, metin okunur, **eski sekme geri yüklenir**. Kullanıcı ideal olarak kısa bir titreme dışında hiçbir şey görmez. Preview'da başlamışsa ve okuma başarısızsa yine de eski sekmeye dönülür (`try/finally`).
 
 ## 13. i18n
@@ -800,6 +814,7 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
 - `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
+- `readCodeText`: gutter/kopyala düğmesi içeren blokta yalnızca kod döner; U+200B temizlenir; `text-transform` uygulanmış temada büyük/küçük harf korunur
 - `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
 - `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
