@@ -125,6 +125,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
+- **Kaynak/alıntı listelerini** ayrı indir (§2.1.4.1) — arama yapan arayüzlerde cevabın yarısı odur
 - **MCP/araç çağrısı çıktılarını** tam hâliyle indir (§2.1.3) — arayüzün kırptığı hâlini değil
 - **Sohbetin tamamını Markdown olarak** indir; istenirse başka bir sağlayıcıda devam ettir (§3.3.3)
 - Sohbet uzadığında **bağlam devri** öner (§2.1.1)
@@ -236,6 +237,32 @@ Bir kod bloğunu kaybedersen modelden yeniden isteyebilirsin. Bir **araç çıkt
 Yani araç çıktısı, bu ürünün taşıdığı öğeler arasında **en pahalı yeniden üretilebilen** olanı. Sahiplenmenin değeri en yüksek olduğu yer burası.
 
 **Gizlilik notu:** araç çıktıları genelde düz metinden **daha hassas** (analitik, müşteri listesi, hata kayıtları). Yeni bir kural gerekmiyor — §17'deki her şey aynen geçerli — ama teşhis bloğunun (§8.9) araç adlarını bile taşımaması gerektiği burada özellikle geçerli: araç adı tek başına iş bilgisi sızdırabilir.
+
+## 2.1.4 Konuşmada başka ne var — kaynaklar ve düşünme blokları
+
+Araç çıktısı bulgusu (§2.1.3) doğru soruyu ortaya çıkardı: *bir konuşmanın içinde başka hangi blok türleri var ve hangilerini göremiyoruz?* İkisi kaldı.
+
+### 2.1.4.1 Kaynaklar / alıntılar — Perplexity'de ürünün kendisi
+
+Web araması yapan arayüzlerde (Perplexity'nin tamamı; Claude ve ChatGPT'de arama açıkken) cevabın altında **kaynak listesi** duruyor: başlık, URL, bazen alıntılanan pasaj. Cevabı kaynaksız indirmek, Perplexity'de **ürünün yarısını atmak** demek — orada değerli olan metin değil, doğrulanabilirliği.
+
+`kind: "citations"` ekleniyor:
+- Ad: `<sohbet-başlığı>-kaynaklar`
+- Uzantı: `.md` (numaralı liste, başlık + URL + varsa pasaj) veya ayarla `.csv` (`n, başlık, url, alan adı`) — biri okumak, diğeri işlemek için
+- Sohbet Markdown'ında (§3.3.3) kaynaklar **gömülü** gelir; ayrı öğe olarak da indirilebilir. Bağlam taşırken kaynakların gitmesi doğru, çünkü hedef modelin de onlara ihtiyacı var
+- Yoksa hiç çizilmez (§3.4.5)
+
+DOM kademesinde kaynak listesi genelde katlanmış ("12 kaynak ▾") — §2.1.3.1'deki aynı sorun, aynı çözüm: API varsa tam, yoksa `⚠ kırpılmış olabilir`.
+
+### 2.1.4.2 Düşünme blokları — varsayılan **hariç**
+
+Uzun düşünme (extended thinking) blokları da konuşmanın parçası. İndirilebilir yapılabilir ama varsayılan **hayır**, üç sebeple:
+
+1. Kullanıcının istediği çıktı düşünme değil, **sonuç**. Sohbet Markdown'ına düşünmeyi gömmek dosyayı üç katına çıkarıp okunmaz yapar
+2. Düşünme blokları modelin ara adımları; bir başka sağlayıcıya bağlam olarak taşınması (§3.3.3) **zararlı** — hedef modeli başka bir modelin yarım muhakemesine bağlar
+3. Bunlar kullanıcının kendi verisi, ama gizlilik açısından prose'dan farklı bir sınıf: içinde denenip vazgeçilmiş yaklaşımlar, tahminler, bazen kullanıcının paylaşmayacağı ara ifadeler var
+
+Ayarda açılabilir (`includeThinking`, varsayılan `false`); açıkken sohbet Markdown'ında ayrı bir katlanmış bölüm olarak yer alır, ayrı öğe olarak listelenmez. Bu, "her şeyi indir" ile "işe yarayanı indir" arasındaki bilinçli fark.
 
 ## 2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek
 
@@ -353,7 +380,7 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 
 ```js
 Item = {
-  kind: "artifact" | "code" | "attachment" | "conversation" | "tool_output",
+  kind: "artifact" | "code" | "attachment" | "conversation" | "tool_output" | "citations",
   key,               // sohbet içinde kararlı kimlik (bkz. aşağıdaki kararlılık kuralı)
   title,             // görünen ad (kind'e göre türetilir)
   ext,               // ".tsx" | ".py" | ".csv" ...
@@ -546,6 +573,7 @@ Bu, kayda giren her sağlayıcının **ön koşuludur**: eklenmeden önce sıray
 | **DOM erişilebilir** (kapalı shadow root / iframe yok) | ? | ? | ? | ? |
 | Kod blokları (DOM) | ✓* | ✓* | ✓* | ✓* |
 | **Araç çıktısı** (`tool_output`) | api'ye bağlı | api'ye bağlı | api'ye bağlı | api'ye bağlı |
+| **Kaynaklar** (`citations`) | arama açıkken | arama açıkken | arama açıkken | **her zaman** |
 | Panel/canvas belgesi | ✓ artifact | ✓ canvas | — | — |
 | **Versiyon geçmişi** | ✓ op-log (§3) | ? canvas sürümleri | ✗ | ✗ |
 | Ekler | ? | ? | ? | ? |
@@ -1027,11 +1055,13 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 14. **İndirilenler işaretlidir** (`history`). Geçmiş kapalıyken işaret **oturum içi**; açıkken kalıcı ve sürüm farkını bilir: aynı hash → `zaten aldın`, farklı hash → `v3'ü aldın, bu v5` (§4.3). Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı; farklı bir sürümü aynı sanmak ise gerçek bir hata.
 
     Geçmiş açıkken popup'a **`Geçmiş`** sekmesi eklenir: ad/sağlayıcı/tarihe göre arama, satırdan yeniden indirme, `Geçmişi temizle`. Kapalıyken sekme hiç görünmez — kapalı bir özelliğin boş kabuğunu göstermek §3.4.5'teki "yetenek yoksa kontrol de yok" kuralının ihlali olurdu. Geçmiş açıkken ayarlarda kayıt sayısı ve **üst sınır** (`historyMax`) görünür, sınır düzenlenebilir; sessizce düşen kayıtların sebebi görünmeden kalmaz.
-15. **Araç çıktısında çağrı bilgisi** (`includeCall`): aç/kapa. Kapatan kullanıcı ham sonucu alır; açık olan altı ay sonra dosyanın ne olduğunu bilir.
+15. **Düşünme blokları** (`includeThinking`): varsayılan kapalı; açıkken sohbet Markdown'ında ayrı bölüm (§2.1.4.2).
 
-16. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
-17. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
-18. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+16. **Araç çıktısında çağrı bilgisi** (`includeCall`): aç/kapa. Kapatan kullanıcı ham sonucu alır; açık olan altı ay sonra dosyanın ne olduğunu bilir.
+
+17. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
+18. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
+19. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -1198,7 +1228,8 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
-  kinds: { artifact:true, code:true, attachment:true, conversation:true, tool_output:true },
+  kinds: { artifact:true, code:true, attachment:true, conversation:true, tool_output:true, citations:true },
+  includeThinking: false,    // düşünme blokları sohbet Markdown'ına girsin mi (§2.1.4.2)
   sites: { … },              // kayıt id → bool; eksik id varsayılan açık
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.2)
   history: false,            // indirme geçmişi — opt-in, kapalı (§4.3)
@@ -1610,7 +1641,7 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 6. `claude.js`: aktif dal çıkarımı → op toplama → versiyonlar → versiyon menüsü + üç kademe
 7. `chatgpt.js` ve keşifte belge/versiyon çıkan diğer adaptörler — yetenek matrisine göre; doğrulanamayan yetenek kapatılır. Taban sağlayıcılar adaptör almaz, kayıt satırıyla yetinir
 8. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
-8a. Araç çıktıları (§2.1.3): `tool_use`/`tool_result` blokları → `kind:"tool_output"`, ad/uzantı türetme, API'siz sağlayıcıda `⚠ kırpılmış olabilir`
+8a. Araç çıktıları (§2.1.3) ve kaynaklar (§2.1.4.1): `tool_use`/`tool_result` blokları → `kind:"tool_output"`, ad/uzantı türetme, API'siz sağlayıcıda `⚠ kırpılmış olabilir`
 8b. Sohbet Markdown'ı + taşıma (§3.3.3): `kind:"conversation"`, pano, `newChatUrl`, boyut uyarısı
 8c. İndirme geçmişi (§4.3): opt-in, hash indeksi, `Geçmiş` sekmesi, sohbetler arası tanıma
 8d. Omurga üçlüsü (§2.1.1): bağlam devri önerisi, alınmamış öğe göstergesi, `Bağlam olarak kopyala` — üçü de 8c'ye bağlı ya da ondan ucuzlar
