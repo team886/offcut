@@ -35,7 +35,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 **Hedef değil**
 - Toplu hesap yedeği (tüm sohbetleri gezmek)
 - Artifact düzenleme / geri yükleme
-- claude.ai dışı siteler
+- Listedeki dört sağlayıcı dışındaki siteler
 - Sunucu, hesap, senkronizasyon
 - **Çalıştırılabilir paket üretmek.** React artifact'ı tek başına `.tsx` olarak iner; `package.json`, bundler yapılandırması veya HTML sarmalayıcı üretmeyiz. Kullanıcı dosyayı kendi projesine taşır. Bu bilinçli bir sınır: "çalışan proje" üretmek ayrı bir üründür ve her framework için ayrı bakım demektir
 
@@ -103,7 +103,7 @@ Item = {
 
 ### 3.3.1 Kod blokları
 
-Kaynak: aktif daldaki asistan mesajlarının metin blokları; fenced code (```lang) parse edilir. Aynı konuşma yanıtından, ek istek yok.
+Kaynak: API kademesi varsa asistan mesajlarının metin blokları (Claude'da **aktif dal**, §3.1; dallanma kavramı olmayan sağlayıcılarda tüm görünür akış), fenced code (```lang) parse edilir. API kademesi yoksa `common-dom.js` DOM'dan `pre > code` toplar. Her iki yolda da ek ağ isteği yok.
 
 **Kod bloğunun başlığı yoktur.** Ad şu zincirle türetilir, ilk tutan kazanır:
 1. Fence'te dosya adı: ```python:app.py → `app.py`
@@ -328,19 +328,19 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
    Kabul ölçütü: uzun bir yanıt akarken extension'ın CPU payı ölçülebilir olmamalı. Bu, manuel doğrulama listesinde Performance profili ile kontrol edilir.
 2. Panel görülünce split buton enjekte edilir (`data-adl` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
 
-   **Daha kötüsü: React'i çökertebiliriz.** React, yönettiği bir kapsayıcının çocuklarını referansla kaldırır. O kapsayıcıya yabancı bir düğüm soktuğumuzda reconciliation sırasında `NotFoundError: Failed to execute 'removeChild' on 'Node'` fırlayabilir — ve bu bizim butonumuzu değil, **claude.ai'ın kendisini** düşürür. Kullanıcı için sonuç: "Claude bozuldu", sebebi görünmez, suç extension'da olduğu hâlde Anthropic'e yazılır.
+   **Daha kötüsü: sağlayıcının uygulamasını çökertebiliriz.** React (Claude, ChatGPT, Perplexity) yönettiği kapsayıcının çocuklarını referansla kaldırır; Angular (Gemini) kendi view container'ını indeksle yönetir. Her iki durumda da o kapsayıcıya yabancı bir düğüm soktuğumuzda `NotFoundError: Failed to execute 'removeChild' on 'Node'` sınıfı bir hata fırlayabilir — ve bu bizim butonumuzu değil, **sağlayıcının sayfasını** düşürür. Kullanıcı için sonuç: "ChatGPT bozuldu", sebebi görünmez, suç extension'dayken sağlayıcıya yazılır. Dört sağlayıcı = bu riskin dört ayrı framework'te tekrarı.
 
-   Bu, kabul edilebilir bir risk değil. **İlke: kullanıcının Claude'unu bozma ihtimali, bizim feature'ımızdan önce gelir.**
+   Bu, kabul edilebilir bir risk değil. **İlke: kullanıcının sohbet uygulamasını bozma ihtimali, bizim feature'ımızdan önce gelir.**
 
    Kural, sırayla:
    1. Buton, action bar'ın **son çocuğu** olarak eklenir — React'in kaldırma/sıralama işlemlerinin en az dokunduğu konum
    2. React'in hiçbir düğümü **kaldırılmaz, taşınmaz, sırası değiştirilmez**; yalnızca ekleme yapılır
-   3. Adım 1'de bu gerçek claude.ai üzerinde **kasten zorlanır**: buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
-   4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama Claude'u asla düşürmez
+   3. Adım 1'de bu **dört sağlayıcıda ayrı ayrı, kasten zorlanır**: buton enjekte edilir, sonra versiyon değiştirme, panel yeniden boyutlandırma, yeni mesaj gönderme, sekme değiştirme ile arka arkaya render tetiklenir ve konsol React hatası için izlenir
+   4. Hata görülürse plan B: buton action bar'a **hiç** girmez; `document.body`'ye bağlı, `getBoundingClientRect` ile action bar'ın üstüne hizalanan bir katman olarak çizilir. React DOM'una sıfır müdahale. Bedeli: yeniden boyutlandırma/kaydırmada konum senkronu — görsel olarak biraz daha kırılgan, ama sayfayı asla düşürmez. Kod blokları için bu yol zaten varsayılan (§8.2.2)
 
    Menü, pill ve toast zaten shadow root içinde ve `body`'ye bağlı (§8.7); risk yalnızca butona ait.
 
-   **React enjekte edilen düğümü siler.** claude.ai React ile çizilir; action bar yeniden render edildiğinde bizim butonumuz DOM'dan uçar. Bu, React uygulamalarına enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
+   **Framework enjekte edilen düğümü siler.** Action bar yeniden render edildiğinde butonumuz DOM'dan uçar. Bu, SPA'lara enjeksiyon yapan extension'ların bir numaralı kırılma sebebi. Karşı önlem: observer yalnızca "panel açıldı" olayını değil, **butonun hâlâ bağlı olup olmadığını** da kontrol eder (`document.contains(btn)`), yoksa yeniden enjekte eder. Enjeksiyon fonksiyonu ucuz ve idempotent olacak şekilde yazılır; observer callback'i `requestAnimationFrame` ile debounce edilir ki render fırtınasında CPU yakmasın.
 3. Buton tıklanınca `getConversation(convUuid)` — bellek içi cache; DOM mesaj sayısı değiştiğinde veya 60 sn geçince geçersiz. Her mutation'da fetch **yok**.
 
    **Mesaj sayısı akış sırasında değişmez.** Claude yazarken op'lar **aynı** mesajın içine eklenir; mesaj sayısı sabit kalır. Sadece sayıya bakan bir geçersizleştirme, akış ortasında alınmış bir yanıtı 60 saniye boyunca taze sayar ve kullanıcı Claude bitirdikten hemen sonra indirdiğinde **yarım artifact** alır — üstelik §3.2'deki "yazılıyor" uyarısı da o eski anlık görüntüye göre hesaplanır, yani uyarı bile çıkmaz. Kural: akış sürerken alınan yanıt **cache'lenmez**, yalnızca o anlık kullanım için tutulur; akışın bittiği tespit edildiğinde cache koşulsuz geçersizleşir.
@@ -407,7 +407,7 @@ Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı i
 
 İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`. Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
-Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`. Başlık okunamazsa `claude-artifacts-<tarih>.zip`.
+Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
 
 `⚠ kısmi` veya `⚠ yazılıyor` işaretli artifact'lar arşive **girer** ama adlarında `-partial` taşır ve toast kaç tanesinin şüpheli olduğunu söyler. Sessizce dışarıda bırakmak, kullanıcının eksiği fark etmemesi demek olurdu.
 
@@ -454,7 +454,7 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 **Badge durumları**
 | durum | badge |
 |---|---|
-| claude.ai dışı | ikon soluk, badge yok |
+| Desteklenmeyen sitede | ikon soluk, badge yok |
 | sohbette artifact yok | badge yok |
 | artifact açık | artifact **sayısı**, coral zemin + `setIcon` ile 3 nabız |
 | indi | yeşil `✓`, 2 sn sonra eski hâl |
@@ -486,15 +486,15 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 ### 8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı
 
-**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. claude.ai'ın global CSS'i (Tailwind reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için claude.ai'ın action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
+**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. sağlayıcının global CSS'i (Tailwind/Angular Material reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için sağlayıcının action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
 
 **Erişilebilirlik.** Buton `role="button"` + `aria-label` (i18n) + `title`. Menü `role="menu"`, satırlar `role="menuitem"`; ok tuşlarıyla gezinilir, `Enter` seçer, `Esc` kapatır ve odağı butona geri verir. Odak halkası görünür bırakılır. Toast'lar `role="status"` (hata: `role="alert"`).
 
 **Hareket.** `@media (prefers-reduced-motion: reduce)` altında nabız ve pill animasyonu iptal; pill yine görünür, sadece nabız atmaz. Badge nabzı da bu durumda tek karede sabitlenir.
 
-**Yazım yönü.** claude.ai Arapça/İbranice arayüzde `dir="rtl"` çalışır; `right: 10px` ile sabitlenen pill ve menü yanlış tarafa düşer, hatta panel kenarından taşar. Konumlandırmada fiziksel değil **mantıksal** özellikler kullanılır (`inset-inline-end`, `padding-inline`, `margin-inline-start`). Maliyeti sıfır, sonradan düzeltmesi her kuralı tek tek gözden geçirmek demek.
+**Yazım yönü.** Dört sağlayıcı da Arapça/İbranice arayüzde `dir="rtl"` çalışır; `right: 10px` ile sabitlenen pill ve menü yanlış tarafa düşer, hatta panel kenarından taşar. Konumlandırmada fiziksel değil **mantıksal** özellikler kullanılır (`inset-inline-end`, `padding-inline`, `margin-inline-start`). Maliyeti sıfır, sonradan düzeltmesi her kuralı tek tek gözden geçirmek demek.
 
-**Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı Claude'un ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
+**Dosya yazımı.** İçerik **birebir**, UTF-8, BOM yok, satır sonu dönüştürmesi yok, sona satır sonu eklenmez — kullanıcı modelin ürettiği baytı alır. `Blob` MIME'ı gerçek tipe göre verilir (`text/html`, `image/svg+xml`, kod için `text/plain;charset=utf-8`). Oluşturulan object URL indirme tetiklendikten sonra `URL.revokeObjectURL` ile serbest bırakılır.
 
 **`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
 
@@ -514,7 +514,7 @@ Sürüklenen versiyon: varsayılan versiyon (`defaultVersion` ayarı).
 
 **`blobUrl` `dragend`'de serbest bırakılamaz.** `dragend` bizim tarafımızda, hedef uygulama blob'u **henüz okumamışken** tetiklenir; orada `revokeObjectURL` çağırmak dosyanın boş veya hiç oluşmamış hâlde düşmesine yol açar — üstelik hedefe göre değişir, yani "bende çalışıyor" diyen türden bir bug. Kural: URL `dragend`'de değil, **gecikmeli** (≥60 sn) veya sayfa/rota değişiminde serbest bırakılır. Tutulan blob birkaç yüz KB; sızıntı riski, bozuk bırakma riskinden küçük.
 
-**Sürükleme tıklamayı yutmamalı.** `draggable` bir düğmede küçük fare kaymaları tıklamayı sürüklemeye çevirebilir ve indirme hiç tetiklenmez. Birincil eylem tıklamadır: sürükleme yalnızca eşiği aşan hareketle başlar, `dragstart` claude.ai'ın kendi sürükleme işleyicilerine ulaşmasın diye `stopPropagation` yapar, ve manuel doğrulamada **tıklama ile sürükleme ayrı ayrı** denenir.
+**Sürükleme tıklamayı yutmamalı.** `draggable` bir düğmede küçük fare kaymaları tıklamayı sürüklemeye çevirebilir ve indirme hiç tetiklenmez. Birincil eylem tıklamadır: sürükleme yalnızca eşiği aşan hareketle başlar, `dragstart` sağlayıcının kendi sürükleme işleyicilerine ulaşmasın diye `stopPropagation` yapar, ve manuel doğrulamada **tıklama ile sürükleme ayrı ayrı** denenir.
 
 Hover ön-yükleme aynı zamanda tıklama gecikmesini de düşürür — feature'ın ikinci kazancı.
 
@@ -524,7 +524,13 @@ Ayarda `Kayıt yeri: Tarayıcı indirmeleri | Seçilen klasör`. İkincisi seçi
 
 **Doğrulanacak (adım 1):** `showDirectoryPicker` content script'in isolated world'ünden çağrılabiliyor mu. Güvenli bağlam ve kullanıcı hareketi koşulları sağlanıyor, ama bu API'nin extension bağlamlarındaki davranışı sürüme göre değişebiliyor. Çağrılamıyorsa yedek yol: seçim, extension'ın kendi sayfasında (options) yapılır. Bu, feature'ın **tek gerçek varsayımı**; erken doğrulanmazsa geç ve pahalı çıkar.
 
-**Handle nerede duruyor ve bunun bedeli.** `FileSystemHandle` `storage.sync`'e serialize edilemez ve `chrome.runtime` mesajlaşmasından geçmez; pratikte tek yer content script'in eriştiği IndexedDB, yani **claude.ai origin'inin depolaması**. İki sonucu var: (a) kullanıcı claude.ai site verisini temizlerse klasör tercihi kaybolur — ayar `downloads`'a döner ve bu kullanıcıya söylenir, sessizce indirilenlere kaymaz; (b) depolama sayfayla paylaşıldığı için oraya **yalnızca handle** konur, başka hiçbir kullanıcı verisi konmaz.
+**Handle nerede duruyor ve bunun bedeli.** `FileSystemHandle` `storage.sync`'e serialize edilemez ve `chrome.runtime` mesajlaşmasından geçmez; pratikte tek yer content script'in eriştiği IndexedDB, yani **o sağlayıcının origin'inin depolaması**. Üç sonucu var:
+
+(a) **Klasör tercihi sağlayıcı başına ayrıdır.** Claude'da klasör seçmek ChatGPT'de geçerli olmaz — origin'ler ayrı, handle taşınamaz. Bu bir eksiklik değil, tarayıcı güvenlik modelinin sonucu; ama kullanıcı "bir kez seçtim, her yerde geçerli" bekler. Bu yüzden ayar satırı sağlayıcıyı adıyla söyler (`Kayıt yeri · ChatGPT: seçilmedi`) ve ilk indirmede o sitede seçim istenir. `docs/LIMITATIONS.md`'de de açıkça yazılır. Sessiz bir sürpriz bırakmıyoruz.
+
+(b) Kullanıcı o sitenin verisini temizlerse klasör tercihi kaybolur — ayar `downloads`'a döner ve söylenir, sessizce indirilenlere kaymaz.
+
+(c) Depolama sayfayla paylaşıldığı için oraya **yalnızca handle** konur, başka hiçbir kullanıcı verisi konmaz.
 
 **Tuzak: izin oturumla birlikte solar.** Tarayıcı yeniden başlatıldığında handle duruyor ama yazma izni yok; `handle.requestPermission({mode:"readwrite"})` yeni bir **kullanıcı hareketi** ister. İndirme tıklaması bu hareketi sağlar, ama kullanıcı istemi reddedebilir veya kapatabilir.
 
@@ -549,7 +555,7 @@ Ayrıca ilk kez bir artifact paneli görüldüğünde pill normalden farklı bir
 
 | Durum | Kart içeriği |
 |---|---|
-| claude.ai'da değil | `claude.ai'da bir sohbet aç` + Claude'a git bağlantısı |
+| Desteklenen bir sohbette değil | `Claude, ChatGPT, Gemini veya Perplexity'de bir sohbet aç` + dört bağlantı |
 | Sohbette artifact yok | `Bu sohbette artifact yok` + kısa açıklama |
 | Artifact var, panel kapalı | `2 artifact bulundu` + `Paneli aç` yerine doğrudan `↓ İndir` (panel açmadan da indirilebilir, çünkü veri API'den gelir) |
 | Okuma başarısız | `Artifact okunamadı` + `Tekrar dene` + `Neden?` (BREAKAGE.md'ye bakan kısa açıklama) |
@@ -569,7 +575,7 @@ Yani panel açıkken kimlik **panelden**, kapalıyken **kullanıcının seçimin
 
 **Acil durdurma.** Popup'ın altında `⏻ Bu sekmede devre dışı bırak` ve `⏻ Bu sitede devre dışı bırak` (sağlayıcı bazında kalıcı). Basıldığında content script tüm enjekte UI'ı kaldırır, observer'ı durdurur ve sayfa yenilenene kadar sessiz kalır. Ayrıca `storage`'da `disabled: true` ile kalıcı kapatma seçeneği.
 
-Gerekçe: bir gün claude.ai'da bir şey ters gidecek ve kullanıcı bunun bizden mi kaynaklandığını bilmeyecek. Extension'ı tamamen kaldırmadan iki saniyede kapatabilmek, hem kullanıcının hem bizim lehimize — çünkü "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.
+Gerekçe: bir gün sağlayıcılardan birinde bir şey ters gidecek ve kullanıcı bunun bizden mi kaynaklandığını bilmeyecek. Extension'ı tamamen kaldırmadan iki saniyede kapatabilmek, hem kullanıcının hem bizim lehimize — çünkü "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.
 
 ### 8.9 Teşhis — telemetri olmadan hata raporu
 
@@ -578,7 +584,8 @@ Telemetri yok (§17), dolayısıyla bir şey bozulduğunda bunu **yalnızca kull
 Popup'ın alt satırında **Teşhis bilgisini kopyala** bağlantısı: panoya, hassas veri içermeyen bir metin bloğu yazar.
 
 ```
-Artifact Downloader 1.0.0 · Chrome 141 · tr
+AI Chat Downloader 1.0.0 · Chrome 141 · tr
+Sağlayıcı: chatgpt · adaptör LAST_VERIFIED 2026-09-09
 Kademe: 3 (DOM)            ← hangi kaynak kullanıldı
 Org çözümü: cookie ✓
 Konuşma isteği: 404
@@ -646,7 +653,7 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | Klasörde aynı adlı dosya var | `-2`, `-3` soneki — üzerine **yazılmaz** |
 | Sürükleme hazır değilken başlatıldı | Buton `draggable` olmaz; hover ön-yüklemesi bitince olur |
 | Sohbet zip'inde şüpheli artifact var | Arşive girer, adı `-partial`, toast kaç tanesi olduğunu söyler |
-| claude.ai site verisi temizlendi | Klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
+| Sağlayıcının site verisi temizlendi | O sitedeki klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
 | `showDirectoryPicker` content script'te yok | Seçim options sayfasına taşınır (adım 1'de doğrulanır) |
 | Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
 | Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.3) |
@@ -669,9 +676,9 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 
 ## 12. DOM bağımlılık katmanı
 
-claude.ai'a ait **tüm** selector'lar `content.js` başındaki tek `SEL` objesinde:
+Bir sağlayıcıya ait **tüm** selector'lar, o adaptörün dosyasındaki tek `SEL` objesinde. `content.js` hiçbir sağlayıcı seçicisi içermez — içerirse adaptör yalıtımı (§3.4.3) delinir ve bir sağlayıcının değişimi çekirdeği tamir etmeyi gerektirir:
 ```js
-// Anthropic UI değişirse SADECE burası güncellenir.
+// Bu sağlayıcının arayüzü değişirse SADECE burası güncellenir.
 const SEL = { panel: "...", panelTitle: "...", actionBar: "...", codeBlock: "...",
               versionIndicator: "...", codeTab: "..." };
 ```
@@ -679,9 +686,9 @@ Bu bir anti-corruption layer. Üçüncü parti DOM'a bağımlı her extension en
 
 Her selector için `null` toleransı: bulunamayan selector exception atmaz, kademe düşürür.
 
-**Selector'lar metne bağlanamaz.** claude.ai arayüzü yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: claude.ai arayüzü Türkçeye alınıp tüm akış tekrar denenir.
+**Selector'lar metne bağlanamaz.** claude.ai arayüzü yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: her sağlayıcının arayüzü Türkçeye alınıp tüm akış tekrar denenir.
 
-**Tema.** claude.ai'ın açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Bizim renklerimiz sabit yazılmaz: panelin kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece Anthropic temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) biz peşinden geliriz. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
+**Tema.** Dört sağlayıcının da açık teması var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
 
 **Preview modunda DOM okuma.** Kademe 3'e düşüldüğünde kod yalnızca Code sekmesinde bulunur. Sekmeyi programatik tıklamak kullanıcının görünümünü değiştirir — bu bizim değil onun tercihi. Kural: mevcut sekme kaydedilir, Code'a geçilir, metin okunur, **eski sekme geri yüklenir**. Kullanıcı ideal olarak kısa bir titreme dışında hiçbir şey görmez. Preview'da başlamışsa ve okuma başarısızsa yine de eski sekmeye dönülür (`try/finally`).
 
@@ -695,7 +702,7 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **Adaptör uyumluluk paketi.** Tek bir test paketi, her adaptörün `parse()` çıktısına karşı koşar: `Item` zorunlu alanları dolu mu, `kind` geçerli mi, `ext` nokta ile başlıyor mu, `versions` boş değil mi, `title` sanitize edilebiliyor mu. Yeni adaptör eklemek = fixture ekleyip aynı paketi koşturmak. Adaptörler farklı, sözleşme tek.
 
-**Fixture'lar sözleşmeyi sabitler.** Testlerin tamamı elle yazılmış girdilerle çalışırsa, claude.ai'ın gerçek yanıt şeması değiştiğinde hepsi yeşil kalır ve extension sahada bozulur. Bu yüzden `test/fixtures/<sağlayıcı>/` altına **gerçek konuşmalardan alınmış, kişisel içeriği temizlenmiş** örnekler commit'lenir (API'si olanlarda JSON, DOM-only olanlarda HTML parçası): tek artifact, çok versiyonlu artifact, dallanmış konuşma, aynı başlıklı iki artifact, akış hâlinde yarım artifact. `parseOps` bunların hepsine karşı koşar.
+**Fixture'lar sözleşmeyi sabitler.** Testlerin tamamı elle yazılmış girdilerle çalışırsa, claude.ai'ın gerçek yanıt şeması değiştiğinde hepsi yeşil kalır ve extension sahada bozulur. Bu yüzden `test/fixtures/<sağlayıcı>/` altına **gerçek konuşmalardan alınmış, kişisel içeriği temizlenmiş** örnekler commit'lenir (API'si olanlarda JSON, DOM-only olanlarda HTML parçası): tek artifact, çok versiyonlu artifact, dallanmış konuşma, aynı başlıklı iki artifact, akış hâlinde yarım artifact — ve her sağlayıcı için: çok kod bloklu mesaj, dili belirtilmemiş blok, üç satırdan kısa blok, fence'te dosya adı taşıyan blok, ek kaydı. Adaptörlerin `parse()`'ı bunların hepsine karşı koşar.
 
 Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşmayı dump'la, fixture'ı değiştir, testin nerede kırıldığına bak" olur. Şema değişimi gizemden **kırmızı teste** iner. Fixture'lar temizlenmeden commit'lenmez — içlerinde konuşma metni, kullanıcı adı, org UUID'si kalmaz.
 
@@ -715,22 +722,22 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi — **dört sağlayıcıda ayrı ayrı koşulur**; sağlayıcıda o yetenek yoksa satır "uygulanamaz" olarak işaretlenir, atlanmaz. Ek olarak her sağlayıcıda: kod bloğu gezici düğmesinin doğru bloğa hizalanması, üç satırdan kısa blokların kontrol almaması, ad türetme zincirinin dört basamağının da denenmesi, ek indirmenin ikili dosyayı bozmaması, ve klasör tercihinin sağlayıcı başına ayrı sorulması. Claude'a özgü liste: gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
 `store/` klasöründe:
-- **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (claude.ai konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
+- **Gizlilik politikası** (TR+EN): hangi veriye erişiliyor (dört sağlayıcıdaki konuşma içeriği, yalnızca kullanıcının kendi oturumunda), nereye gidiyor (**hiçbir yere** — dış istek yok, telemetri yok, analytics yok), ne saklanıyor (sadece ayarlar, `storage.sync`)
   **Web Store bunu dosya olarak değil, herkese açık bir URL olarak ister.** Depodaki markdown yeterli değil; politika GitHub Pages (veya eşdeğeri) üzerinden yayımlanıp URL mağaza formuna girilir. Bu, yayın öncesi ayrı bir iş kalemidir ve unutulursa listeleme reddedilir
-- **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı, izin gerekçeleri (`storage` → ayarlar; `host_permissions claude.ai` → artifact okuma; `notifications` → opsiyonel, kullanıcı açarsa)
-- **Ekran görüntüsü şablonları** (1280×800, 5 adet): split buton, versiyon menüsü, zip toast'ı, ayar paneli, badge durumları
+- **Listing metinleri** TR+EN: kısa açıklama (132 char), uzun açıklama, "single purpose" beyanı, izin gerekçeleri (`storage` → ayarlar; dört host izni → sohbet içeriğini okuma, her biri ayrı gerekçelendirilir; `notifications` → opsiyonel, kullanıcı açarsa)
+- **Ekran görüntüsü şablonları** (1280×800, 5 adet): split buton + versiyon menüsü (Claude), kod bloğu gezici düğmesi (ChatGPT), popup'ın öğe listesi, zip/klasör toast'ı, ayar paneli. En az iki farklı sağlayıcı görünmeli — listelemede "dört sağlayıcı" iddiası görselle desteklenmezse inceleme sorar
 - 128px mağaza ikonu, 440×280 küçük promo
 
 Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu veriye ihtiyacın var" sorusudur. Tek amaç beyanı ve dış istek olmaması bunu doğrudan karşılıyor.
 
 **Ekran görüntülerinde gerçek sohbet kullanılmaz.** Beş görselin tamamı, bu iş için açılmış **demo bir konuşmadan** üretilir. Aksi hâlde kendi özel verini kalıcı olarak halka açık bir mağaza sayfasına koymuş olursun — geri alınmaz, indekslenir.
 
-**İsim ve marka — artık dört marka.** İsim hiçbir sağlayıcının markasıyla başlamaz ve hiçbirinin resmî ürünü olduğunu ima etmez; `AI Chat Downloader` gibi tarafsız bir ad, açıklamada "Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur" satırıyla. Dört marka, dört kat ihlal yüzeyi. Sağlayıcı adları yalnızca **tanımlayıcı** konumda geçer ("Claude, ChatGPT, Gemini ve Perplexity destekler"). Eski gerekçe aynen geçerli: İsim Anthropic markasıyla başlamaz ve resmîlik ima etmez. "Claude" kelimesi ancak tanımlayıcı bir konumda ve resmî olmadığı açıkken kullanılabilir (ör. `Artifact Downloader for Claude`, açıklamada "Anthropic ile bağlantısı yoktur" satırıyla). Logo Anthropic işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
+**İsim ve marka — artık dört marka.** İsim hiçbir sağlayıcının markasıyla başlamaz ve hiçbirinin resmî ürünü olduğunu ima etmez; `AI Chat Downloader` gibi tarafsız bir ad, açıklamada "Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur" satırıyla. Dört marka, dört kat ihlal yüzeyi. Sağlayıcı adları yalnızca **tanımlayıcı** konumda geçer ("Claude, ChatGPT, Gemini ve Perplexity destekler"). Logo hiçbir sağlayıcının işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
 
 ## 16. Riskler
 
@@ -738,6 +745,7 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 |---|---|---|
 | **Dört sağlayıcının bakımı** — her biri arayüzünü bağımsız değiştirir | Herhangi bir anda bir veya birkaç adaptör bozuk olabilir | Kabul edilmiş risk (§1). Sınırlayıcılar: adaptör yalıtımı (biri bozulunca diğerleri çalışır, §3.4.3) · sağlayıcıdan bağımsız DOM tabanı (değerin çoğu tek kod yolunda, §3.4.1) · adaptör başına uyumluluk testi · bozuk yeteneğin sessizce değil **açıkça** kapanması · sağlayıcı bazında `docs/BREAKAGE.md` girdisi |
 | Bir sağlayıcının dahilî API'si bulunamaz/değişir | O sağlayıcıda versiyon/toplu erişim kaybolur | DOM kademesi zorunlu; ürün yetenek kaybederek ayakta kalır |
+| Sağlayıcının bot/otomasyon koruması dahilî API çağrısını engeller | İstek 403 döner, kullanıcı oturumu etkilenebilir | **Kural: sayfanın kendisinin atmayacağı hiçbir istek atılmaz** — hız sınırı zorlanmaz, arka planda tarama yapılmaz, istek yalnızca kullanıcı eylemiyle ve kullanıcının zaten baktığı konuşma için atılır. Şüphe varsa o sağlayıcıda API kademesi hiç açılmaz, DOM tabanı kullanılır |
 | Sağlayıcı DOM'u değişir | Buton enjekte edilemez | Adaptörün `SEL` katmanı, tek dosyada tamir |
 | Konuşma API şeması değişir | Versiyon geçmişi kaybolur | Üç kademeli fallback, DOM her zaman çalışır |
 | `tool_use` şeması varsayımı yanlış | Parser boş döner | Implementation'ın **ilk adımı** gerçek JSON dump'ı ile şema doğrulama |
@@ -745,25 +753,25 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 | Çok uzun konuşmada fetch yavaş | Buton geç yanıt verir | Cache + buton üzerinde yükleniyor durumu |
 | Anthropic dahilî API'nin kullanımına itiraz eder | Yayın kaldırılabilir | Yalnızca kullanıcının kendi oturumu, kendi verisi, kendi tarayıcısı; hız sınırı zorlanmıyor, sunucu yok. Yine de bir ürün riski — DOM fallback'i extension'ı API olmadan da ayakta tutar |
 | Kullanıcı birden fazla organizasyona üye | Yanlış org → 404 → sessiz fallback | `lastActiveOrg` + org'ları sırayla deneme (§4) |
-| claude.ai arayüzü Türkçe/başka dilde | Metne bağlı selector çalışmaz | Metin eşleştirme yasak (§12) |
+| Sağlayıcı arayüzü Türkçe/başka dilde | Metne bağlı selector çalışmaz | Metin eşleştirme yasak (§12) |
 | Kullanıcı açık temada | Enjekte UI okunmaz | Renkler panelden okunuyor (§12) |
 
 ---
 
 ## 17. Güvenlik
 
-Bu extension iki tür **güvenilmez veri** işliyor: artifact başlıkları ve artifact içerikleri. İkisi de model çıktısıdır; kullanıcı Claude'a başkasının metnini yapıştırmışsa saldırgan etkisindedir.
+Bu extension iki tür **güvenilmez veri** işliyor: öğe başlıkları ve öğe içerikleri (artifact/canvas, kod bloğu, ek). Hepsi model çıktısı ya da yüklenmiş dosyadır; kullanıcı sohbete başkasının metnini yapıştırmışsa saldırgan etkisindedir.
 
 | Kural | Neden |
 |---|---|
-| Artifact kaynaklı hiçbir string `innerHTML`/`insertAdjacentHTML` ile DOM'a yazılmaz — **yalnızca `textContent`** | Başlık `<img onerror>` taşıyabilir. Enjeksiyon claude.ai sayfasının DOM'una olur; oturum çerezlerinin yanına XSS koymuş oluruz. Menü satırları, toast'lar, pill, popup başlığı — hepsi `textContent` |
+| Artifact kaynaklı hiçbir string `innerHTML`/`insertAdjacentHTML` ile DOM'a yazılmaz — **yalnızca `textContent`** | Başlık `<img onerror>` taşıyabilir. Enjeksiyon sağlayıcının sayfasının DOM'una olur; oturum çerezlerinin yanına XSS koymuş oluruz. Menü satırları, toast'lar, pill, popup başlığı — hepsi `textContent` |
 | Artifact içeriği **asla render/eval edilmez** | HTML artifact'ı önizlemek bizim işimiz değil; sadece bayt olarak diske yazılır |
 | `window.addEventListener("message", …)` **yok** | Sayfa `postMessage` ile bizim ayrıcalıklı çağrılarımızı sürükleyebilirdi. İletişim yalnızca `chrome.runtime` / `chrome.tabs` üzerinden |
 | `externally_connectable` **tanımlanmaz** | Varsayılan "hiç kimse". Başka sitelerin extension'a mesaj atması kapalı |
 | Uzak kod **yok**: CDN yok, `eval` yok, `new Function` yok, uzaktan yüklenen script yok | Web Store uzak kodu doğrudan reddediyor. Tüm kod paket içinde |
 | `panel.html` inline `<script>`/`onclick` içermez | MV3 varsayılan CSP inline script'i bloklar; sessiz bozulma olur |
 | `sanitize` yol geçişini de keser: `/` `\` `..` ve baştaki `~` temizlenir | `<a download="../../x">` denemesi. Chrome zaten yol bileşenlerini yok sayar ama savunma bizde de olmalı |
-| Ağa **hiç** çıkılmaz; tek `fetch` hedefi `https://claude.ai` | Gizlilik politikasının doğrulanabilir olması için |
+| Ağa **hiç** çıkılmaz; `fetch` hedefleri yalnızca dört sağlayıcının kendi origin'i | Gizlilik politikasının doğrulanabilir olması için; CI'daki ağ taraması bunun teknik dayanağı (§19.3) |
 
 ## 18. Depo teslimatları
 
