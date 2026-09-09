@@ -28,6 +28,16 @@ Why it is publishable alone: code blocks come out through one code path regardle
 
 ---
 
+## Under review — read `docs/DEMAND.md` before scheduling v1.1
+
+The step 5 verification produced a ratio that was not being looked for: across 25 conversations, ~360 code fences yielded **~14** blocks reaching `MIN_CODE_LINES`, and **20 of 25 conversations contained none at all**. Roughly 4%.
+
+v1.1 below is scoped for a long list — multi-select, a bulk bar, a filter past ten items. The measured list is zero to four, and it is zero four times out of five. That does not make the features wrong; it makes them an answer to a distribution nobody has observed yet.
+
+`docs/DEMAND.md` argues for putting provenance, truncation honesty and copy-first ahead of bulk, and for making cross-conversation search the headline of v1.2. **It rests on one account.** `tools/measure-demand.js` prints the numbers that settle it; run it on two more accounts before moving anything. If the qualifying rate comes back near 40%, the order below was right all along.
+
+---
+
 ## v1.1 — Bulk and placement
 
 **minor** — nothing new is depended on; all of it sits on what v1 already extracts.
