@@ -1,22 +1,29 @@
-# Artifact Downloader — Tasarım Dokümanı
+# AI Chat Downloader — Tasarım Dokümanı
 
 **Tarih:** 2026-09-09
 **Durum:** Onaylandı, implementation plan bekliyor
 **Hedef:** Chrome MV3 extension, Chrome Web Store'a yayınlanacak
+**Kapsam:** **Claude, ChatGPT, Gemini, Perplexity** sohbetlerindeki artifact/canvas'lar, mesaj içi kod blokları ve yüklenen ekler
 
 ---
 
 ## 1. Problem
 
-claude.ai artifact paneli içeriği kopyalatır ama **dosya olarak indirtmez**. Kullanıcı bir React bileşenini, HTML sayfasını veya markdown dokümanını diske almak istediğinde: kopyala → editör aç → yeni dosya → yapıştır → uzantıyı doğru tahmin et → kaydet. Artifact'ın önceki bir versiyonuna dönmek istiyorsa hiç yolu yok — panel sadece güncel hâli gösterir.
+AI sohbet arayüzleri içeriği kopyalatır ama **dosya olarak indirtmez**. Bir React bileşenini, bir HTML sayfasını, mesajın ortasındaki bir Python fonksiyonunu ya da üç hafta önce yüklediğin CSV'yi diske almak istediğinde yol hep aynı: kopyala → editör aç → yeni dosya → yapıştır → uzantıyı doğru tahmin et → kaydet. Claude'da artifact'ın önceki bir versiyonuna dönmek istiyorsan hiç yolu yok — panel sadece güncel hâli gösterir.
 
-Bu extension o boşluğu kapatır: **panelden tek tıkla, doğru uzantıyla, istenen versiyonda dosya.**
+Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tıkla, doğru uzantıyla, mümkünse istenen versiyonda erişim.**
+
+**Neden sabit bir liste, `<all_urls>` değil.** Genel web indiricisi yönü bilinçle reddedildi: `<all_urls>` host izni Web Store incelemesinin en sık ret sebebi ve kullanıcı güveninin en hızlı kaybı; "tek amaç" beyanı (mağaza formunda zorunlu) çöker. Sabit ve gerekçelendirilebilir bir liste — `claude.ai`, `chatgpt.com`, `gemini.google.com`, `perplexity.ai` — tek amacı korur: *AI sohbet asistanlarından kod ve doküman indirmek*. Dış istek yine yok; her sağlayıcıya yalnızca kullanıcının kendi oturumunda, kendi verisi için gidilir.
+
+**Kabul edilen risk.** Dört sağlayıcı = dört bağımsız arayüz, dört bağımsız kırılma takvimi. Baskın maliyet kod değil bakımdır. Bu bilinçli bir karardır (bkz. §16 Riskler); tasarım bunu üç şeyle sınırlar: adaptör yalıtımı, sağlayıcıdan bağımsız DOM tabanı, ve bir adaptör bozulduğunda diğerlerinin etkilenmemesi.
 
 ## 2. Hedefler / Hedef olmayanlar
 
 **Hedefler**
 - Açık artifact'ı tek tıkla doğru uzantıyla indir
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
+- **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
+- **Kullanıcının sohbete yüklediği ekleri** geri indir
 - Bir artifact'ın tüm versiyonlarını tek `.zip` olarak ver
 - **Sohbetteki tüm artifact'ları** tek `.zip` olarak ver
 - Dosyayı **sürükleyip** editöre/masaüstüne bırakabil
@@ -77,7 +84,92 @@ Kullanıcı Claude hâlâ yazarken butona basabilir. O anda son op yarım gelmi�
 
 Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var ya da son mesaj `stop_reason` taşımıyor), son versiyon `⚠ yazılıyor` işaretlenir. Menü açılır, önceki **tamamlanmış** versiyonlar normal indirilir; yarım versiyonu seçmek için kullanıcının uyarıyı görüp yine de tıklaması gerekir. Varsayılan seçim yarım versiyona düşmez.
 
-## 4. Veri kaynağı — üç kademe
+## 3.3 İndirilebilir öğe modeli
+
+Üç kaynağın (artifact, kod bloğu, ek) tek bir modele indirgenmesi, boru hattının, UI'ın, zip'in ve adlandırmanın tek kod yolunda kalmasını sağlar:
+
+```js
+Item = {
+  kind: "artifact" | "code" | "attachment",
+  key,               // sohbet içinde kararlı kimlik
+  title,             // görünen ad (kind'e göre türetilir)
+  ext,               // ".tsx" | ".py" | ".csv" ...
+  versions,          // Version[] — yalnızca artifact'ta >1 olur
+  bytes | fetchBytes // ek'lerde içerik ayrı istekle gelir
+}
+```
+
+**Bu genelleştirme bugün bedava, sonra pahalı.** Normalde tek implementasyonlu soyutlama YAGNI'dir; ama ikinci ve üçüncü implementasyonun **isteneceğini bildiğimiz** an kural tersine döner. Kritik gözlem: `getConversation` zaten konuşmanın tamamını getiriyor — artifact'lar onun içinden süzdüğümüz bir alt küme. Kod blokları aynı yanıtın içinde, **ek ağ maliyeti sıfır**. "Artifact indirici" olmak mimari bir sınır değildi, sadece bir filtreydi.
+
+### 3.3.1 Kod blokları
+
+Kaynak: aktif daldaki asistan mesajlarının metin blokları; fenced code (```lang) parse edilir. Aynı konuşma yanıtından, ek istek yok.
+
+**Kod bloğunun başlığı yoktur.** Ad şu zincirle türetilir, ilk tutan kazanır:
+1. Fence'te dosya adı: ```python:app.py → `app.py`
+2. Kodun ilk anlamlı tanımı: `class OrderService` → `order-service.py`, `func ParseTree` → `parse-tree.go`, `export function useCart` → `use-cart.ts`
+3. Bloktan hemen önceki markdown başlığı (`### Migration script` → `migration-script.sql`)
+4. Sırayla: `kod-3.py`
+
+Uzantı fence dilinden gelir; dil yoksa ve içerik ayırt edilemiyorsa `.txt`. Versiyon kavramı yok (`versions` tek elemanlı).
+
+**Üç satırdan kısa bloklar atlanır.** Tek satırlık `npm install x` veya bir değişken adı dosya değildir; her birine kontrol koymak arayüzü çöplüğe çevirir.
+
+### 3.3.2 Ekler
+
+Kaynak: konuşma yanıtındaki dosya/ek kayıtları. İçerik mesajda gömülü değildir; ayrı bir indirme isteği gerekir — yani **tek kaynak ki ek ağ maliyeti var**, ve yalnızca kullanıcı o eki indirmek istediğinde yapılır.
+
+Ekler **ikili olabilir** (PDF, xlsx, png). Kural: içerik hiçbir zaman metne çevrilmez, `ArrayBuffer` olarak alınıp aynen yazılır; `TextEncoder`/`TextDecoder` yoluna sokulmaz — aksi hâlde bozuk dosya üretilir. Ad ve uzantı sunucudaki adından gelir, `sanitize`'dan geçer, tahmin edilmez.
+
+**Doğrulanacak (adım 1):** ek indirme endpoint'i ve yanıt biçimi. Belirlenemezse ekler kapsamdan **çıkarılır** — artifact ve kod tek başına ürünü ayakta tutar; çalışmayan bir feature'ı yarım bırakmaktansa hiç söz vermemek iyidir.
+
+## 3.4 Sağlayıcı adaptörü
+
+Çekirdek sağlayıcıyı bilmez. Her sağlayıcı tek bir dosyada, tek bir sözleşmeyi uygular:
+
+```js
+Adapter = {
+  id,                    // "claude" | "chatgpt" | "gemini" | "perplexity"
+  matches,               // host eşleşmesi
+  SEL,                   // bu sağlayıcının tüm DOM seçicileri (§12)
+  capabilities,          // { versions, api, attachments, panel }
+  conversationId(),      // location'dan; yoksa null → extension sessiz kalır
+  fetchConversation(),   // API kademesi; desteklenmiyorsa null döner
+  parse(raw),            // Item[] — çekirdek yalnızca Item bilir
+  isStreaming(),         // DOM ya da yanıt üzerinden
+  mountPoints(),         // butonların nereye gireceği
+}
+```
+
+**Çekirdekte ne var:** öğe modeli, versiyon fold'u, zip, `sanitize`, adlandırma zinciri, indirme yolları, sürükle-bırak, klasöre kaydet, UI kabuğu (buton, menü, pill, toast), ayarlar, teşhis. Bunlar bir kez yazılır.
+
+### 3.4.1 DOM tabanı zorunlu, API isteğe bağlı
+
+Her adaptör **DOM kademesini uygulamak zorundadır**; API kademesi opsiyoneldir. Böylece bir sağlayıcının dahilî API'si bulunamasa, değişse veya direnç gösterse bile ürün o sağlayıcıda çalışmaya devam eder — sadece daha az yetenekle.
+
+Bunu mümkün kılan gözlem: **DOM kod-bloğu çıkarımı neredeyse sağlayıcıdan bağımsız.** Dördü de kod bloğunu `pre > code` olarak, dili bir sınıf adıyla (`language-python`, `hljs python`) çizer. Çekirdek bunun **ortak varsayılan implementasyonunu** taşır; adaptör yalnızca farklıysa geçersiz kılar. Kod blokları — yani değerin büyük kısmı — dört sağlayıcıda tek kod yoluyla çalışır.
+
+### 3.4.2 Yetenek matrisi
+
+| | Claude | ChatGPT | Gemini | Perplexity |
+|---|---|---|---|---|
+| Kod blokları (DOM) | ✓ | ✓ | ✓ | ✓ |
+| Panel/canvas belgesi | ✓ artifact | ✓ canvas | — | — |
+| **Versiyon geçmişi** | ✓ op-log (§3) | ? canvas sürümleri | ✗ | ✗ |
+| Ekler | ? | ? | ? | ? |
+| API kademesi | ? | ? | ? | ? |
+
+`?` = **adım 1'de sağlayıcı bazında keşfedilecek.** Bu spec hiçbir sağlayıcının dahilî API şemasını bildiğini iddia etmiyor; Claude için bile şema doğrulaması ilk iş (§4). Keşif çıktısı her adaptör için: konuşma kimliği nereden okunur, API var mı, yanıt şekli, akış tespiti, `SEL` seçicileri, ek endpoint'i.
+
+Bir yetenek doğrulanamazsa o sağlayıcıda **kapatılır**, taklit edilmez: versiyon menüsü yoksa buton bölünmez (§8.1), ek desteği yoksa hiç söz edilmez. Kullanıcı her sağlayıcıda ne alacağını görür; eksik yetenek sessiz hata olarak görünmez.
+
+### 3.4.3 Yalıtım
+
+Bir adaptörün fırlattığı hata **yalnızca o sekmeyi** etkiler: adaptör kendini kapatır, teşhis kaydına yazar, diğer sağlayıcılar çalışmaya devam eder. Çekirdek bir adaptörün döndürdüğü `Item[]`'ı doğrular (zorunlu alanlar, tip); doğrulama başarısızsa o adaptör devre dışı kalır — bozuk adaptör bozuk dosyaya dönüşemez.
+
+## 4. Veri kaynağı — üç kademe (Claude adaptörü)
+
+Aşağıdaki kademe yapısı **genel kalıptır**; somut alanlar Claude adaptörüne aittir. Diğer adaptörler aynı üç kademeyi kendi kaynaklarıyla doldurur, Kademe 3 hepsinde zorunludur (§3.4.1).
 
 | # | Kaynak | Ne verir | Ne zaman |
 |---|---|---|---|
@@ -110,14 +202,20 @@ GET /api/organizations/{orgUuid}/chat_conversations/{convUuid}?tree=True&renderi
 ## 5. Mimari
 
 ```
-artifact-downloader/
+ai-chat-downloader/
   manifest.json
   _locales/tr/messages.json
   _locales/en/messages.json
   src/
-    parse.js        # saf, node-testable
+    adapters/
+      claude.js     # op-log, org/tree çözümü, artifact paneli
+      chatgpt.js    # canvas + kod blokları
+      gemini.js     # DOM-only
+      perplexity.js # DOM-only
+      common-dom.js # sağlayıcıdan bağımsız pre>code çıkarımı (§3.4.1)
+    parse.js        # saf, node-testable — fold, Item doğrulama
     zip.js          # saf, store-only ZIP yazıcı
-    content.js      # DOM gözlem + UI enjeksiyonu + orkestrasyon
+    content.js      # adaptör seçimi + DOM gözlem + UI enjeksiyonu + orkestrasyon
     overlay.css     # buton, menü, pill, toast
     sw.js           # badge, sistem bildirimi, optional permission
     panel.html
@@ -137,11 +235,17 @@ artifact-downloader/
   "name": "__MSG_extName__", "default_locale": "en",
   "permissions": ["storage"],
   "optional_permissions": ["notifications"],
-  "host_permissions": ["https://claude.ai/*"],
+  "host_permissions": ["https://claude.ai/*", "https://chatgpt.com/*",
+                        "https://gemini.google.com/*", "https://www.perplexity.ai/*"],
   "background": { "service_worker": "src/sw.js" },
   "content_scripts": [{
-    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*"],
-    "js": ["src/parse.js", "src/zip.js", "src/content.js"],
+    "matches": ["https://claude.ai/chat/*", "https://claude.ai/project/*",
+                "https://chatgpt.com/c/*", "https://gemini.google.com/app/*",
+                "https://www.perplexity.ai/search/*"],
+    "js": ["src/parse.js", "src/zip.js", "src/adapters/common-dom.js",
+           "src/adapters/claude.js", "src/adapters/chatgpt.js",
+           "src/adapters/gemini.js", "src/adapters/perplexity.js",
+           "src/content.js"],
     "css": ["src/overlay.css"],
     "run_at": "document_idle"
   }],
@@ -287,11 +391,21 @@ Zip satırı ayarla kapatılabilir.
 
 Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırılır. Birebir tutuyorsa `v1…vN` kullanılır. Tutmuyorsa **kendi numaramızı panelinkiymiş gibi sunmayız**: menü satırları `v` yerine sıra + zaman damgasıyla etiketlenir (`3. düzenleme · 14 dk önce`) ve görüntülenen olan `✓ görüntülenen` ile işaretlenir. Kullanıcı yanlış bir eşleşmeye ikna edilmez.
 
+**Yetenek yoksa kontrol de yok.** Versiyon desteklemeyen bir sağlayıcıda (Gemini, Perplexity) buton hiç bölünmez; `▾` yarısı çizilmez, menü açılmaz. Boş bir menü veya tek satırlık liste, kullanıcıya olmayan bir yetenek vaat eder. Aynı kural ek desteği ve panel/canvas için de geçerli — kapalı yetenek görünmez, "bu sağlayıcıda desteklenmiyor" yazan gri bir kontrol de değil.
+
+### 8.2.2 Kod bloğu kontrolü — tek gezici düğme, N enjeksiyon değil
+
+Bir mesajda onlarca kod bloğu olabilir. Her birine ayrı buton enjekte etmek üç bedeli birden getirir: React/Angular reconciliation çökme riskinin **blok sayısı kadar katlanması** (§7 adım 2), akış sırasında sürekli yeniden enjeksiyon, ve arayüzün kontrol çöplüğüne dönmesi.
+
+Kural: **tek** bir gezici indirme düğmesi. Kapsayıcıya olay delegasyonuyla bağlanır, farenin/odak noktasının üstünde bulunduğu kod bloğuna `getBoundingClientRect` ile hizalanır, shadow root içinde `body`'ye bağlı durur. Sağlayıcının DOM'una **hiç** düğüm eklenmez — kod blokları için React riski tamamen ortadan kalkar.
+
+Klavye kullanıcıları için: kod bloğu odaklanabilir olduğunda düğme aynı şekilde hizalanır; ayrıca `Alt+Shift+D` odaktaki bloğu indirir.
+
 ### 8.2.1 Sohbet seviyesi zip
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 4 artifact → zip`.
 
-İçerik: her artifact'ın **son** versiyonu, düz adlarla (`Sales-Dashboard.tsx`, `Rapor.md`). Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
+İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`. Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
 Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`. Başlık okunamazsa `claude-artifacts-<tarih>.zip`.
 
@@ -345,6 +459,8 @@ Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuv
 | artifact açık | artifact **sayısı**, coral zemin + `setIcon` ile 3 nabız |
 | indi | yeşil `✓`, 2 sn sonra eski hâl |
 | hata | kırmızı `!`, kalır |
+
+**Badge kod bloklarını saymaz.** Uzun bir sohbette 40+ kod bloğu olabilir; `40` yazan bir rozet bilgi değil gürültüdür ve "indirilecek bir şey var" sinyalini değersizleştirir. Badge yalnızca **belge sınıfı** öğeleri sayar: artifact/canvas. Kod blokları talep üzerine, gezici düğmeyle erişilir; sinyal üretmezler.
 
 **Sayı nereden geliyor — ağdan değil, DOM'dan.** Burada bir çelişki riski var: §7 boru hattı konuşmayı **yalnızca butona basılınca** çekiyor. Badge'in sayıyı gösterebilmesi için sayfa açılır açılmaz fetch yapmak gerekirdi ve bu, hiç indirme yapmayacak kullanıcı için her sohbette birkaç MB'lık istek demektir — sessiz, gereksiz, pil yakan.
 
@@ -451,7 +567,7 @@ Yani panel açıkken kimlik **panelden**, kapalıyken **kullanıcının seçimin
 
 **Hiçbir boş durum sessiz olmaz.** Boş kart her zaman "neden boş" ve "ne yapmalı" söyler; kullanıcı extension'ın bozuk mu yoksa doğru mu çalıştığını ayırt edebilmeli.
 
-**Acil durdurma.** Popup'ın altında `⏻ Bu sekmede devre dışı bırak`. Basıldığında content script tüm enjekte UI'ı kaldırır, observer'ı durdurur ve sayfa yenilenene kadar sessiz kalır. Ayrıca `storage`'da `disabled: true` ile kalıcı kapatma seçeneği.
+**Acil durdurma.** Popup'ın altında `⏻ Bu sekmede devre dışı bırak` ve `⏻ Bu sitede devre dışı bırak` (sağlayıcı bazında kalıcı). Basıldığında content script tüm enjekte UI'ı kaldırır, observer'ı durdurur ve sayfa yenilenene kadar sessiz kalır. Ayrıca `storage`'da `disabled: true` ile kalıcı kapatma seçeneği.
 
 Gerekçe: bir gün claude.ai'da bir şey ters gidecek ve kullanıcı bunun bizden mi kaynaklandığını bilmeyecek. Extension'ı tamamen kaldırmadan iki saniyede kapatabilmek, hem kullanıcının hem bizim lehimize — çünkü "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.
 
@@ -486,6 +602,8 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
+  kinds: { artifact:true, code:true, attachment:true },  // hangi öğe türleri gösterilsin
+  sites: { claude:true, chatgpt:true, gemini:true, perplexity:true },  // sağlayıcı bazında kapatma
   dragEnabled: true          // §8.7.1
 }
 ```
@@ -531,6 +649,10 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | claude.ai site verisi temizlendi | Klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
 | `showDirectoryPicker` content script'te yok | Seçim options sayfasına taşınır (adım 1'de doğrulanır) |
 | Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
+| Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.3) |
+| Sağlayıcıda yetenek yok | Kontrol hiç çizilmez — gri/pasif kontrol de gösterilmez |
+| Ek indirme endpoint'i bulunamadı | Ekler o sağlayıcıda kapsam dışı; UI'da hiç söz edilmez |
+| Ek ikili dosya | `ArrayBuffer` olarak yazılır; metin dönüşümüne **sokulmaz** |
 | Enjeksiyon React'i çökertiyor | Plan B: buton `body`'ye bağlı hizalı katman olur (§7 adım 2) |
 | Kademe 2 gövdesinde artifact işareti kalıntısı | Versiyon `ok:false`, `reason:"tier2_ambiguous"` |
 | `old_str` satır sonu farkından tutmuyor | Mismatch raporlanır; içerik **normalize edilmez**, BREAKAGE.md ilk tanı maddesi |
@@ -571,7 +693,9 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 `node selftest.js`, framework yok, assert tabanlı.
 
-**Fixture'lar sözleşmeyi sabitler.** Testlerin tamamı elle yazılmış girdilerle çalışırsa, claude.ai'ın gerçek yanıt şeması değiştiğinde hepsi yeşil kalır ve extension sahada bozulur. Bu yüzden `test/fixtures/` altına **gerçek konuşmalardan alınmış, kişisel içeriği temizlenmiş** JSON örnekleri commit'lenir: tek artifact, çok versiyonlu artifact, dallanmış konuşma, aynı başlıklı iki artifact, akış hâlinde yarım artifact. `parseOps` bunların hepsine karşı koşar.
+**Adaptör uyumluluk paketi.** Tek bir test paketi, her adaptörün `parse()` çıktısına karşı koşar: `Item` zorunlu alanları dolu mu, `kind` geçerli mi, `ext` nokta ile başlıyor mu, `versions` boş değil mi, `title` sanitize edilebiliyor mu. Yeni adaptör eklemek = fixture ekleyip aynı paketi koşturmak. Adaptörler farklı, sözleşme tek.
+
+**Fixture'lar sözleşmeyi sabitler.** Testlerin tamamı elle yazılmış girdilerle çalışırsa, claude.ai'ın gerçek yanıt şeması değiştiğinde hepsi yeşil kalır ve extension sahada bozulur. Bu yüzden `test/fixtures/<sağlayıcı>/` altına **gerçek konuşmalardan alınmış, kişisel içeriği temizlenmiş** örnekler commit'lenir (API'si olanlarda JSON, DOM-only olanlarda HTML parçası): tek artifact, çok versiyonlu artifact, dallanmış konuşma, aynı başlıklı iki artifact, akış hâlinde yarım artifact. `parseOps` bunların hepsine karşı koşar.
 
 Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşmayı dump'la, fixture'ı değiştir, testin nerede kırıldığına bak" olur. Şema değişimi gizemden **kırmızı teste** iner. Fixture'lar temizlenmeden commit'lenmez — içlerinde konuşma metni, kullanıcı adı, org UUID'si kalmaz.
 
@@ -606,13 +730,15 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 
 **Ekran görüntülerinde gerçek sohbet kullanılmaz.** Beş görselin tamamı, bu iş için açılmış **demo bir konuşmadan** üretilir. Aksi hâlde kendi özel verini kalıcı olarak halka açık bir mağaza sayfasına koymuş olursun — geri alınmaz, indekslenir.
 
-**İsim ve marka.** İsim Anthropic markasıyla başlamaz ve resmîlik ima etmez. "Claude" kelimesi ancak tanımlayıcı bir konumda ve resmî olmadığı açıkken kullanılabilir (ör. `Artifact Downloader for Claude`, açıklamada "Anthropic ile bağlantısı yoktur" satırıyla). Logo Anthropic işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
+**İsim ve marka — artık dört marka.** İsim hiçbir sağlayıcının markasıyla başlamaz ve hiçbirinin resmî ürünü olduğunu ima etmez; `AI Chat Downloader` gibi tarafsız bir ad, açıklamada "Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur" satırıyla. Dört marka, dört kat ihlal yüzeyi. Sağlayıcı adları yalnızca **tanımlayıcı** konumda geçer ("Claude, ChatGPT, Gemini ve Perplexity destekler"). Eski gerekçe aynen geçerli: İsim Anthropic markasıyla başlamaz ve resmîlik ima etmez. "Claude" kelimesi ancak tanımlayıcı bir konumda ve resmî olmadığı açıkken kullanılabilir (ör. `Artifact Downloader for Claude`, açıklamada "Anthropic ile bağlantısı yoktur" satırıyla). Logo Anthropic işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
 
 ## 16. Riskler
 
 | Risk | Etki | Azaltma |
 |---|---|---|
-| Anthropic DOM'u değişir | Buton enjekte edilemez | `SEL` katmanı, tek dosyada tamir |
+| **Dört sağlayıcının bakımı** — her biri arayüzünü bağımsız değiştirir | Herhangi bir anda bir veya birkaç adaptör bozuk olabilir | Kabul edilmiş risk (§1). Sınırlayıcılar: adaptör yalıtımı (biri bozulunca diğerleri çalışır, §3.4.3) · sağlayıcıdan bağımsız DOM tabanı (değerin çoğu tek kod yolunda, §3.4.1) · adaptör başına uyumluluk testi · bozuk yeteneğin sessizce değil **açıkça** kapanması · sağlayıcı bazında `docs/BREAKAGE.md` girdisi |
+| Bir sağlayıcının dahilî API'si bulunamaz/değişir | O sağlayıcıda versiyon/toplu erişim kaybolur | DOM kademesi zorunlu; ürün yetenek kaybederek ayakta kalır |
+| Sağlayıcı DOM'u değişir | Buton enjekte edilemez | Adaptörün `SEL` katmanı, tek dosyada tamir |
 | Konuşma API şeması değişir | Versiyon geçmişi kaybolur | Üç kademeli fallback, DOM her zaman çalışır |
 | `tool_use` şeması varsayımı yanlış | Parser boş döner | Implementation'ın **ilk adımı** gerçek JSON dump'ı ile şema doğrulama |
 | Web Store geniş host iznini sorgular | Yayın gecikir | Tek amaç beyanı + sıfır dış istek + gizlilik politikası hazır |
@@ -643,14 +769,117 @@ Bu extension iki tür **güvenilmez veri** işliyor: artifact başlıkları ve a
 
 - `LICENSE` — MIT
 - `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`
-- `docs/BREAKAGE.md` — **kırılma runbook'u**: belirti → tanı → tamir. "Buton görünmüyor" → `SEL.actionBar` tut(a)mıyor, DevTools'ta yeni seçiciyi bul, `SEL`i güncelle, sürüm bump. "Versiyonlar tek satır" → API kademesi düştü, Network sekmesinde konuşma isteğinin durumuna bak (401 → oturum, 404 → org çözümü, 200 ama boş → şema değişti, `parseOps` testlerini gerçek JSON'la güncelle). Bu dosya olmadan extension'ı altı ay sonra ben de tamir edemem
-- `CHANGELOG.md` — sürüm notları (Web Store güncellemeleri için)
+- `docs/BREAKAGE.md` — **kırılma runbook'u**, sağlayıcı başına bölüm: belirti → tanı → tamir. "Buton görünmüyor" → `SEL.actionBar` tut(a)mıyor, DevTools'ta yeni seçiciyi bul, `SEL`i güncelle, sürüm bump. "Versiyonlar tek satır" → API kademesi düştü, Network sekmesinde konuşma isteğinin durumuna bak (401 → oturum, 404 → org çözümü, 200 ama boş → şema değişti, `parseOps` testlerini gerçek JSON'la güncelle). Bu dosya olmadan extension'ı altı ay sonra ben de tamir edemem
+- `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
+- `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
+- `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
+- `tools/pack.mjs` — mağaza zip'i üretir, dev dosyalarını hariç tutar
+- `.github/workflows/ci.yml` — §19.3'ün yedi kapısı
+- `.github/ISSUE_TEMPLATE/bug.yml` — teşhis bloğu zorunlu alan (§19.9)
 - `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
+
+## 19. Production readiness
+
+Buraya kadarki bölümler **ne inşa edileceğini** anlatıyor. Bu bölüm **yayınlanabilir sayılmak için** gerekenleri anlatıyor.
+
+### 19.1 Tarayıcı desteği
+
+`minimum_chrome_version` manifest'te açıkça belirtilir. Taban, kullanılan API'lerin en yüksek gereksinimi olarak adım 1'de hesaplanır; başlangıç varsayımı **116** (MV3 service worker davranışları, `showDirectoryPicker`, `structuredClone`, `Intl.RelativeTimeFormat` bu sürümde stabil). Gereğinden yüksek bir taban kullanıcı keser, düşük bir taban sessiz bozulma üretir — bu yüzden tahminle değil, kullanılan API listesiyle belirlenir.
+
+Chromium tabanlı Edge/Brave/Opera çalışır ama **test edilmez ve iddia edilmez**. Firefox kapsam dışı (§16'daki bakım yükü zaten dört sağlayıcıyla dolu).
+
+### 19.2 Performans bütçeleri
+
+Ölçülebilir hedefler; aşılırsa yayın durur.
+
+| Metrik | Bütçe | Nasıl ölçülür |
+|---|---|---|
+| Sayfa yüklendikten sonra ilk kontrolün görünmesi | < 300 ms (p95) | `performance.mark` + manuel profil |
+| Tek observer callback | < 2 ms | Performance profili |
+| Akış sırasında extension'ın CPU payı | Ölçülemez düzeyde (< %1) | Uzun yanıt sırasında profil (§7) |
+| 200 mesajlık konuşmanın fetch + parse'ı | < 500 ms, parse payı < 150 ms | Fixture üzerinde `console.time` |
+| Tepe bellek (adaptör + tüm versiyonlar) | < 50 MB | Heap snapshot |
+| Paket boyutu (ikonlar dahil) | < 500 KB | CI kontrolü |
+
+### 19.3 Kalite kapıları (CI)
+
+GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriyle. Hepsi yeşil değilse paket üretilmez:
+
+1. `node selftest.js` — saf fonksiyon testleri + adaptör uyumluluk paketi (§14)
+2. `manifest.json` JSON doğrulaması + şema kontrolü (izinler beyaz listeye karşı: beklenmeyen izin eklenirse **kırmızı**)
+3. **i18n bütünlüğü**: `_locales/tr` ve `_locales/en` anahtar kümeleri birebir aynı mı; kodda `getMessage` dışında kullanıcıya görünen sabit metin var mı (tarama)
+4. `panel.html` inline script/handler içermiyor (MV3 CSP, §17)
+5. Kaynakta yasak kalıp taraması: `innerHTML`, `insertAdjacentHTML`, `eval`, `new Function`, `document.write` (§17). İhlal = kırmızı, istisna yok
+6. Paket boyutu bütçesi
+7. `manifest.version` ile `CHANGELOG.md`'nin en üst girdisi eşleşiyor mu
+
+### 19.4 Sürümleme ve paketleme
+
+Semver. `node tools/pack.mjs` → `dist/ai-chat-downloader-<version>.zip`; `docs/`, `test/`, `tools/`, `.superpowers/`, `.github/` hariç. Üretilen zip'in SHA-256'sı `CHANGELOG.md`'ye yazılır — mağazadaki paketin depodaki commit'ten üretildiği doğrulanabilir olsun.
+
+Her yayın bir git tag'i: `v1.0.0`.
+
+### 19.5 Yayın öncesi kapı
+
+Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
+
+- [ ] CI yeşil (§19.3'ün yedisi)
+- [ ] Manuel doğrulama listesi (§14) dört sağlayıcıda ayrı ayrı koşuldu
+- [ ] Performans bütçeleri (§19.2) ölçüldü ve aşılmadı
+- [ ] Enjeksiyon çökme testi (§7 adım 2) dört sağlayıcıda temiz
+- [ ] Erişilebilirlik: klavyeyle tam akış, ekran okuyucuyla toast/menü duyurusu, `prefers-reduced-motion`
+- [ ] Açık + koyu tema, TR + EN arayüz, RTL kontrolü
+- [ ] Teşhis bloğu (§8.9) hiçbir konuşma verisi içermiyor — çıktı gözle denetlendi
+- [ ] İzin listesi minimal: `storage` + 4 host + opsiyonel `notifications`. Fazlası yok
+- [ ] Gizlilik politikası yayımlandı ve URL erişilebilir
+- [ ] Ekran görüntüleri **demo** konuşmadan
+- [ ] Marka feragatnamesi dört sağlayıcı için de açıklamada
+- [ ] `docs/BREAKAGE.md` dört sağlayıcı bölümüyle dolu
+- [ ] Önceki sürümün zip'i saklandı (§19.7)
+
+### 19.6 Mağaza gönderimi
+
+- **Tek amaç beyanı:** "AI sohbet asistanlarındaki kod, doküman ve dosyaları doğru dosya adı ve uzantısıyla indirmek."
+- **İzin gerekçeleri**, izin başına tek cümle: `storage` → kullanıcı ayarları; host izinleri → sohbet içeriğini okumak (yalnızca kullanıcının kendi oturumu); `notifications` → opsiyonel, kullanıcı açarsa.
+- **Veri kullanımı formu:** Chrome her kategori için soruyor. Cevap dört kategoride de **toplanmıyor**; "veri satılmaz/aktarılmaz" ve "kredi notu vb. için kullanılmaz" beyanları işaretlenir. Beyanla kod tutarsızsa kaldırma sebebidir — bu yüzden §19.3'teki ağ çağrısı taraması bu beyanın teknik dayanağıdır.
+- Görseller (§15), gizlilik URL'si, TR + EN listeleme metinleri.
+- Geliştirici hesabı + tek seferlik kayıt ücreti; ilk inceleme birkaç günü bulabilir, geniş host izni olan gönderimlerde daha uzun.
+
+### 19.7 Kademeli yayın ve geri alma
+
+Yayın **%10 → %50 → %100** kademeli yapılır, kademeler arasında en az 48 saat.
+
+**Web Store'da geri alma yoktur.** Bozuk bir sürüm yayımlandıysa tek yol daha yüksek sürüm numarasıyla düzeltme yayımlamak. Bu yüzden: her yayından önce bir önceki paketin zip'i saklanır ve `git tag` ile eşlenir; acil durumda o ağaçtan `version` artırılıp yeniden paketlenir. Hazırlığı yayından **önce** yapılmış bir geri dönüş, panik anında yazılan koddan iyidir.
+
+Kullanıcı tarafındaki acil çıkış yolu zaten var: site bazında devre dışı bırakma (§8.8).
+
+### 19.8 Yayın sonrası izleme — telemetri olmadan
+
+Telemetri yok (§17), dolayısıyla izleme **planlı ve manuel** olmak zorunda:
+
+- Her adaptör dosyasının başında `LAST_VERIFIED = "2026-09-09"`. 90 günden eskiyse o sağlayıcı yeniden doğrulanır.
+- **Aylık smoke test:** dört sağlayıcıda kısa kontrol listesi (buton görünüyor mu, indirme çalışıyor mu, konsol temiz mi). Depoda `docs/SMOKE.md` olarak; sonuç tarih + sağlayıcı ile commit'lenir.
+- Mağaza yorumları ve GitHub issue'ları haftalık gözden geçirilir. Sağlayıcı arayüz değişimleri genelde önce burada görünür.
+- Bir sağlayıcı bozulduğunda kullanıcıya görünen davranış: o sağlayıcıda yetenek kapanır ve teşhis bloğu sebebi taşır — sessiz hata yok.
+
+### 19.9 Destek akışı
+
+GitHub issue şablonu **teşhis bloğunu (§8.9) zorunlu alan** yapar. Blok olmadan açılan issue'ya ilk yanıt: "popup → Teşhis bilgisini kopyala". Böylece hata raporu ilk turda tanı tablosuna (§18 `BREAKAGE.md`) düşer.
+
+Kullanıcıya açık **bilinen sınırlar** listesi (`docs/LIMITATIONS.md`), README'den bağlantılı: tarayıcı indirmelerinde tamamlanma doğrulanamaz (§8.4) · versiyon geçmişi yalnızca Claude'da · DOM kademesinde yalnızca görüntülenen sürüm · ekler sağlayıcıya göre değişir · sağlayıcı arayüz değişiminde geçici bozulma olabilir. Sınırları önceden söylemek, sonradan şikâyet olarak öğrenmekten ucuz.
+
+### 19.10 Bitti tanımı
+
+Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her satırı ya uygular ya açıkça kapatır · uyumluluk paketi geçer · fixture'ları commit'li · `SEL` tek objede ve metne bağlı değil · enjeksiyon çökme testi temiz · manuel liste o sağlayıcıda koşuldu · `BREAKAGE.md` bölümü yazıldı · `LAST_VERIFIED` güncel.
+
+Ürün **yayına hazır** sayılır ancak §19.5'teki kapının tamamı işaretliyse.
 
 ## Uygulama sırası (özet)
 
-1. Gerçek konuşma JSON'u dump'la, `tool_use` şemasını **ve** ağaç alanlarını (`parent_message_uuid`, `current_leaf_message_uuid`) doğrula
-2. `parse.js` (aktif dal çıkarımı → op toplama → fold) + `selftest.js` (TDD)
+1. **Sağlayıcı keşfi (dördü için ayrı ayrı):** konuşma kimliği nereden okunur, API var mı ve yanıt şekli nedir, akış nasıl tespit edilir, `SEL` seçicileri, ek endpoint'i, enjeksiyonun framework'ü çökertip çökertmediği (§7 adım 2). Claude için ayrıca `tool_use` şeması **ve** ağaç alanları (`parent_message_uuid`, `current_leaf_message_uuid`). Keşif çıktısı yetenek matrisini (§3.4.2) doldurur; doğrulanamayan yetenek o sağlayıcıda kapatılır
+2. Çekirdek: `Item` modeli, `parse.js` (fold + `Item` doğrulama), adlandırma zinciri + `selftest.js` (TDD)
+2b. `common-dom.js` — sağlayıcıdan bağımsız kod bloğu çıkarımı; dört sağlayıcıda da doğrulanır
+2c. `claude.js` adaptörü (aktif dal çıkarımı → op toplama → versiyonlar), sonra `chatgpt.js`, `gemini.js`, `perplexity.js`
 3. `zip.js` + testleri
 4. `manifest.json` + iskelet + i18n
 5. `content.js`: `SEL`, observer, split buton, menü
@@ -659,5 +888,10 @@ Bu extension iki tür **güvenilmez veri** işliyor: artifact başlıkları ve a
 8. `sw.js`: badge, nabız, kısayol, sistem bildirimi
 9. `panel.html/js`: ayarlar + canlı önizleme + hızlı indirme
 10. İkonlar (16/48/128)
-11. Manuel doğrulama listesi
-12. `store/` teslimatları
+11. Kod blokları: `common-dom.js` + gezici düğme (§8.2.2)
+12. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
+13. Manuel doğrulama listesi — dört sağlayıcıda ayrı ayrı
+14. Performans bütçelerinin ölçümü (§19.2)
+15. CI kapıları + `tools/pack.mjs` (§19.3, §19.4)
+16. `store/` teslimatları + gizlilik politikasının yayımlanması
+17. Yayın öncesi kapı (§19.5) → kademeli yayın (§19.7)
