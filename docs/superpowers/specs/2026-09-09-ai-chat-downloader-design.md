@@ -274,6 +274,19 @@ Naif "son bloğu al" yaklaşımı, son op bir `update` ise kullanıcıya koca do
 
 **Başlık versiyona göre değişebilir.** Claude bir güncellemede artifact'ı yeniden adlandırabilir. Her `Version` kendi `title`'ını taşır; dosya adı **indirilen versiyonun** başlığından üretilir, artifact'ın güncel başlığından değil.
 
+### 3.0.1 Fold'un kenar durumları
+
+Fold basit görünüyor ama op akışı her zaman düzgün gelmiyor. Dördü de gerçek ve hiçbiri istisna atmamalı:
+
+| Durum | Davranış | Neden |
+|---|---|---|
+| Aynı `artifactId` için **ikinci bir `create`** | Yeni bir versiyon zinciri **başlatılmaz**; `rewrite` gibi ele alınır ve versiyon sayacı devam eder | Kullanıcı için o hâlâ "aynı artifact'ın yeni hâli". Sayacı sıfırlamak menüde iki kez `v1` gösterirdi |
+| Hiç `create` görmeden gelen `update` | O artifact `ok:false`, `reason:"no_base"`; menüde `⚠ temel bulunamadı`, indirilebilir sürüm yok | Dal budandığında ya da API pencerelediğinde (§4.1) olur. Boş bir gövdeye `update` uygulayıp "dosya" demek, uydurulmuş içerik demektir |
+| Ops arasında **`type`/`language` değişmiş** (html → react) | Uzantı **versiyon başına** hesaplanır; `v2.html` ve `v3.tsx` yan yana durabilir | Tip artifact'ın değil, o sürümün özelliği. Hepsine son tipi vermek eski sürümü yanlış uzantıyla indirmek olurdu |
+| DOM'da hiç görünmeyen `artifactId` | Öğe listede kalır, `⚠ panelde yok` etiketiyle | Silinmiş ya da eski bir daldan gelmiş olabilir; kullanıcının erişimini kesmek yerine durumu söylemek |
+
+Ortak ilke, dokümanın geri kalanıyla aynı: **belirsiz girdi sessiz çıktıya dönüşmez.** Fold hiçbir durumda tahmin etmez; ya sağlam bir sürüm üretir ya da neden üretemediğini söyler.
+
 ### 3.1 Konuşma ağacı — dallanma tuzağı
 
 Konuşma düz bir liste değil, **ağaçtır**. Kullanıcı bir mesajı düzenlerse kardeş dal oluşur; terk edilmiş dal API yanıtında durmaya devam eder. Tüm mesajları düz okuyup op'ları sıraya dizmek, **terk edilmiş daldaki op'ları da replay'e karıştırır** — sonuç sessizce bozuk bir versiyon geçmişi.
@@ -1217,6 +1230,8 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | `storage.local` kotası doldu | Geçmiş yazımı durur + bir kez uyarı; **indirme etkilenmez** — geçmiş bir kolaylık, yol değil |
 | `<a download>` sonrası dosya yazılmadı | Öğrenilemez; toast bu yüzden "indiriliyor" der, "indirildi" demez |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
+| `create` görülmeden `update` geldi | Öğe `⚠ temel bulunamadı`, indirilebilir sürüm yok (§3.0.1) |
+| Sürümler arası `type` değişti | Uzantı versiyon başına; `v2.html` + `v3.tsx` birlikte olabilir |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
 | Kısayol basıldı, öğe yok | `! Bu sayfada indirilecek öğe yok` toast'ı |
 | Content script yüklenmemiş sekmede kısayol | Sessiz no-op (hata yutulur) |
@@ -1304,6 +1319,7 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 - `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
 - `readCodeText`: gutter/kopyala düğmesi içeren blokta yalnızca kod döner; U+200B temizlenir; `text-transform` uygulanmış temada büyük/küçük harf korunur
 - `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
+- `buildVersions` kenar durumları (§3.0.1): ikinci `create` sayacı sıfırlamaz; `create`'siz `update` → `no_base`; `type` değişimi versiyon başına uzantı üretir
 - `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
 - `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `kind`'e göre yedek ad; **emoji'li başlık kırpılınca yarım surrogate kalmıyor**; çok baytlı başlıkta 200 baytlık sınır önce doluyor
@@ -1406,6 +1422,7 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `docs/BREAKAGE.md` — **kırılma runbook'u**, sağlayıcı başına bölüm: belirti → tanı → tamir. "Buton görünmüyor" → `SEL.actionBar` tut(a)mıyor, DevTools'ta yeni seçiciyi bul, `SEL`i güncelle, sürüm bump. "Versiyonlar tek satır" → API kademesi düştü, Network sekmesinde konuşma isteğinin durumuna bak (401 → oturum, 404 → org çözümü, 200 ama boş → şema değişti, `parseOps` testlerini gerçek JSON'la güncelle). Bu dosya olmadan extension'ı altı ay sonra ben de tamir edemem
 - `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
 - `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
+- `README.md`'de ve mağaza uzun açıklamasında **MCP ajan çıktısı** kullanım örneği (§2.2.2, birinci yol): bir MCP ajanının ürettiği rapor/kod da sohbetin içinde olduğu için sıradan bir öğedir — kullanıcı bunu kendiliğinden düşünmüyor, yazılmazsa keşfedilmiyor
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
 - `docs/ADDING-A-PROVIDER.md` — kayıt satırı nasıl eklenir: hangi alanlar zorunlu (`host`, `name`), hangileri opsiyonel (`chatRoot`, `newChatUrl`), fixture nasıl çıkarılır ve temizlenir, uyumluluk paketi nasıl koşulur. Kayıt modeli katkıya açık olmayı hedefliyor; nasıl katkı verileceği yazılı değilse hedef değil temennidir
 - `.github/ISSUE_TEMPLATE/provider.yml` — yeni sağlayıcı isteği: host, ekran görüntüsü, `pre > code` var mı
