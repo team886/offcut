@@ -788,6 +788,7 @@ Bu extension iki tür **güvenilmez veri** işliyor: öğe başlıkları ve öğ
 - `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
 - `tools/pack.mjs` — mağaza zip'i üretir, dev dosyalarını hariç tutar
+- `tools/check-invariants.mjs` — §19.3'teki mekanik kapılar (8-13); npm bağımlılığı yok
 - `.github/workflows/ci.yml` — §19.3'ün yedi kapısı
 - `.github/ISSUE_TEMPLATE/bug.yml` — teşhis bloğu zorunlu alan (§19.9)
 - `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
@@ -817,15 +818,23 @@ Chromium tabanlı Edge/Brave/Opera çalışır ama **test edilmez ve iddia edilm
 
 ### 19.3 Kalite kapıları (CI)
 
-GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriyle. Hepsi yeşil değilse paket üretilmez:
+**İlke: kural varsa kapısı olmalı.** Bu spec'te 19 "Kural" var; kapısı olmayan kural altı ay içinde sessizce bozulur, çünkü onu hatırlayan tek şey dokümanı okumuş olmaktır. Mekanik olarak denetlenebilen her kural bir kapıya bağlanır (`tools/check-invariants.mjs`); denetlenemeyenler yayın öncesi manuel kapıya (§19.5) düşer.
+
+GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriyle. Hepsi yeşil değilse paket üretilmez. Yeni bir kural eklendiğinde, mekanik olarak denetlenebiliyorsa buraya bir kapı eklemek **kuralın parçasıdır**, ayrı bir iş değil:
 
 1. `node selftest.js` — saf fonksiyon testleri + adaptör uyumluluk paketi (§14)
 2. `manifest.json` JSON doğrulaması + şema kontrolü (izinler beyaz listeye karşı: beklenmeyen izin eklenirse **kırmızı**)
 3. **i18n bütünlüğü**: `_locales/tr` ve `_locales/en` anahtar kümeleri birebir aynı mı; kodda `getMessage` dışında kullanıcıya görünen sabit metin var mı (tarama)
 4. `panel.html` inline script/handler içermiyor (MV3 CSP, §17)
-5. Kaynakta yasak kalıp taraması: `innerHTML`, `insertAdjacentHTML`, `eval`, `new Function`, `document.write` (§17). İhlal = kırmızı, istisna yok
+5. Kaynakta yasak kalıp taraması: `innerHTML`, `insertAdjacentHTML`, `eval`, `new Function`, `document.write`, `window.addEventListener("message"` (§17). İhlal = kırmızı, istisna yok
 6. Paket boyutu bütçesi
 7. `manifest.version` ile `CHANGELOG.md`'nin en üst girdisi eşleşiyor mu
+8. **Ağ hedefi taraması:** kaynaktaki tüm `http(s)://` literalleri dört sağlayıcı origin'inin dışına çıkmıyor. Mağazadaki "veri toplamıyor" beyanının (§19.6) teknik dayanağı bu kapıdır — beyan ile kod arasındaki tutarsızlık kaldırma sebebi
+9. **Selector metin taraması:** `adapters/` içinde doğal dil string'i selector konumunda yok — `[aria-label="Copy"]`, `:has(:contains(…))`, `textContent === "Preview"` gibi kalıplar kırmızı (§12). Yazan kişinin arayüzü İngilizceyse asla göremeyeceği hatayı CI görür
+10. **Katman ihlali:** `content.js` hiçbir sağlayıcı seçicisi içermiyor; `SEL` yalnızca `adapters/` altında (§3.4.3, §12). Adaptör yalıtımının tek koruyucusu bu kapı
+11. **Ayar kapsaması:** `cfg` şemasındaki her anahtarın panelde bir kontrolü var, panelde şemada olmayan kontrol yok (§8.6). Ayar eklenip UI unutulması bu kapıyla imkânsız
+12. **Mantıksal CSS:** `overlay.css` fiziksel yön özelliği içermiyor (`left:`, `right:`, `margin-left`, `padding-right`); yalnızca `inset-inline-*`, `margin-inline-*` (§8.7). RTL bozulmasını sonradan aramak yerine yazarken engeller
+13. **Adaptör tazeliği:** her adaptörde `LAST_VERIFIED` var; 90 günden eski **uyarı**, 180 günden eski **kırmızı** (§19.8). Doğrulanmamış bir adaptörle yeni sürüm çıkmaz
 
 ### 19.4 Sürümleme ve paketleme
 
@@ -837,7 +846,7 @@ Her yayın bir git tag'i: `v1.0.0`.
 
 Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 
-- [ ] CI yeşil (§19.3'ün yedisi)
+- [ ] CI yeşil (§19.3'ün **tamamı** — sayı burada tekrarlanmaz, sayılar sürüklenir)
 - [ ] Manuel doğrulama listesi (§14) dört sağlayıcıda ayrı ayrı koşuldu
 - [ ] Performans bütçeleri (§19.2) ölçüldü ve aşılmadı
 - [ ] Enjeksiyon çökme testi (§7 adım 2) dört sağlayıcıda temiz
