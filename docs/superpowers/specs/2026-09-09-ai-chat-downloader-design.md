@@ -439,7 +439,9 @@ Boru hattı async ve kullanıcı beklemek zorunda değil. Üç yarış durumu:
 
 **Menü sahipsiz kalabilir.** React action bar'ı yeniden çizerse buton uçar ama açık menü havada kalır. Kural: yeniden enjeksiyondan önce menü kapatılır. Menü ayrıca şu durumlarda kapanır: dışarı tık, `Esc`, panel kapanması, rota değişimi, panelin kaydırılması.
 
-**Extension güncellenince content script öksüz kalır.** Extension yeniden yüklendiğinde/güncellendiğinde sayfadaki eski content script yaşamaya devam eder ama `chrome.runtime.sendMessage` artık `Extension context invalidated` fırlatır — MV3'te en sık görülen konsol çöplüğü ve kırık buton sebebi. Kural: her `chrome.*` çağrısı sarmalanır; bu hata görülünce content script **kendini kapatır**: observer durur, enjekte edilen UI kaldırılır, bir daha denenmez. Kullanıcı sayfayı yenileyince temiz kurulum gelir.
+**Extension güncellenince content script öksüz kalır.** Extension yeniden yüklendiğinde/güncellendiğinde sayfadaki eski content script yaşamaya devam eder ama `chrome.runtime.sendMessage` artık `Extension context invalidated` fırlatır — MV3'te en sık görülen konsol çöplüğü ve kırık buton sebebi. Kural: her `chrome.*` çağrısı sarmalanır; bu hata görülünce content script **kendini kapatır**: observer durur, enjekte edilen UI kaldırılır, bir daha denenmez.
+
+Ama sessizce kaybolmak da yanlış: kullanıcı butonu arar, bulamaz, sebebini bilemez. Kapanmadan önce **tek seferlik** bir toast gösterilir: `Extension güncellendi — sayfayı yenile`. Metin `chrome.i18n` ölmüş olabileceği için **önceden belleğe alınmış** iki dilli sabitten okunur (bu, i18n kuralının bilinçli ve tek istisnası; gerekçesi burada yazılı). Kullanıcı sayfayı yenileyince temiz kurulum gelir.
 
 ## 8. UI kararları
 
@@ -622,6 +624,12 @@ e.dataTransfer.setData("DownloadURL", `${mime}:${filename}:${blobUrl}`)
 
 Çözüm **hover ön-yükleme**: kullanıcı butonun üzerine geldiğinde (veya klavyeyle odaklandığında) fetch sessizce başlar. İnsan sürüklemeye başlamadan önce neredeyse her zaman fareyi butonun üstünde bir an tutar; o an bize yetiyor. Hazır değilse buton `draggable` olmaz — yarım dosya sürüklemektense sürüklenememek iyidir.
 
+**Gezici kod düğmesi de sürüklenebilir.** Aynı `DownloadURL` mekanizması, aynı hover ön-yüklemesi — kod bloğunu editöre sürüklemek, belgeyi sürüklemek kadar doğal bir jest ve ayrı bir kod yolu gerektirmiyor.
+
+**Çoklu seçim sürüklenirse zip olur.** `DataTransfer` tek bir `DownloadURL` taşır; birden fazla dosyayı sürüklemenin yolu yok. Seçim varken sürükleme başlatılırsa yük, seçimin zip'idir (§8.2.1'deki aynı üretici). Kullanıcı için tutarlı: seçim + tık = zip indir, seçim + sürükle = zip'i bırak.
+
+**Popup'tan sürüklenemez — ve bu bir tasarım kararı değil, platform sınırı.** Chrome popup'ı odak kaybında kapanır; sürükleme popup'tan çıkar çıkmaz popup kapanır ve sürükleme iptal olur. Denenip başarısız olmasındansa **hiç sunulmaması** doğru: popup satırları `draggable` yapılmaz. `docs/LIMITATIONS.md`'de yazılı.
+
 Sürüklenen versiyon: varsayılan versiyon (`defaultVersion` ayarı).
 
 **`blobUrl` `dragend`'de serbest bırakılamaz.** `dragend` bizim tarafımızda, hedef uygulama blob'u **henüz okumamışken** tetiklenir; orada `revokeObjectURL` çağırmak dosyanın boş veya hiç oluşmamış hâlde düşmesine yol açar — üstelik hedefe göre değişir, yani "bende çalışıyor" diyen türden bir bug. Kural: URL `dragend`'de değil, **gecikmeli** (≥60 sn) veya sayfa/rota değişiminde serbest bırakılır. Tutulan blob birkaç yüz KB; sızıntı riski, bozuk bırakma riskinden küçük.
@@ -671,6 +679,9 @@ Ayrıca **ilk kez indirilebilir bir öğe görüldüğünde** pill normalden far
 | Sohbette indirilecek öğe yok | `Bu sohbette indirilecek bir şey yok` + kısa açıklama |
 | Öğe var, panel kapalı | `2 belge · 5 kod bloğu bulundu` + doğrudan `↓` (panel açmadan da indirilebilir; veri API'den ya da DOM'dan gelir) |
 | Okuma başarısız | `Okunamadı` + `Tekrar dene` + `Neden?` (BREAKAGE.md'ye bakan kısa açıklama) |
+| Yazma başarısız (klasör) | Satır kırmızı kalır + `Tekrar dene`; öğe listeden **düşmez**, kullanıcı ikinci kez deneyebilir |
+| Adaptör doğrulamadan geçemedi | `Bu sitede geçici olarak devre dışı` + `Sayfayı yenile` (yeniden etkinleşmenin tek yolu; sessizce kaybolmaz) |
+| Arayüz değişmiş görünüyor | §8.8.1'deki kendi kendini teşhis mesajı + `Sorun bildir` |
 
 Son satır bir tasarım kazancı: veri panelden değil API'den geldiği için **artifact indirmek için paneli açmak gerekmiyor.** Popup, kapalı paneldeki artifact'ları da listeleyebilir.
 
@@ -688,6 +699,19 @@ Yani panel açıkken kimlik **panelden**, kapalıyken **kullanıcının seçimin
 **Acil durdurma.** Popup'ın altında `⏻ Bu sekmede devre dışı bırak` ve `⏻ Bu sitede devre dışı bırak` (sağlayıcı bazında kalıcı). Basıldığında content script tüm enjekte UI'ı kaldırır, observer'ı durdurur ve sayfa yenilenene kadar sessiz kalır. Ayrıca `storage`'da `disabled: true` ile kalıcı kapatma seçeneği.
 
 Gerekçe: bir gün sağlayıcılardan birinde bir şey ters gidecek ve kullanıcı bunun bizden mi kaynaklandığını bilmeyecek. Extension'ı tamamen kaldırmadan iki saniyede kapatabilmek, hem kullanıcının hem bizim lehimize — çünkü "kapattım, düzeldi" bize teşhis verir, "kaldırdım" vermez.
+
+### 8.8.1 Kendi bozulduğunu fark etmek
+
+Sahadaki en olası arıza, sağlayıcının arayüzünü değiştirmesi ve butonun kaybolmasıdır. Bu arızanın **hiçbir hata mesajı yoktur** — kullanıcı için extension bir gün çalışır, ertesi gün yoktur, ve büyük ihtimalle "ben mi kapattım" diye düşünür. Bizim de haberimiz olmaz (telemetri yok), yani arıza kullanıcı şikâyet edene kadar sürer.
+
+Oysa tespit ucuz: **konuşma sayfasında olduğumuzu biliyoruz ama hiçbir `SEL` tutmuyorsa**, arayüz değişmiş demektir. Bu iki koşul birlikte anlamlı — tek başına "selector tutmadı" boş sohbette de olur.
+
+Kural: sayfa yüklendikten sonra konuşma kimliği çözülebiliyor (§4) ama `SEL.chatRoot` **ve** `SEL.codeBlock` **ve** `SEL.docCard` üçü birden hiçbir şey bulamıyorsa, 5 sn içinde tekrar denenir; hâlâ boşsa durum `arayüz-değişmiş` olur:
+- Badge kırmızı `!`
+- Popup üstünde: `Bu sitede arayüz değişmiş görünüyor — extension güncellenmeli` + `Sorun bildir` bağlantısı (teşhis bloğu hazır yapıştırılmış)
+- Sayfaya **hiçbir şey** enjekte edilmez, toast çıkmaz — kullanıcı zaten bir şey istemedi; davetsiz uyarı ancak popup'ı açtığında gösterilir
+
+Kazancı iki taraflı: kullanıcı "bozuk mu, ben mi" sorusundan kurtulur; biz de rapor akışını (§19.9) doğru sınıfa yönlendirmiş oluruz. Sıfır telemetriyle **kendi kendini teşhis eden** bir arıza sınıfı.
 
 ### 8.9 Teşhis — telemetri olmadan hata raporu
 
