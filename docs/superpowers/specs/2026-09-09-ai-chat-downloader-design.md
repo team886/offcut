@@ -221,9 +221,21 @@ FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip oldu�
 | **Bizim yerel MCP sunucumuz, FindAgent ajanlarının tükettiği** | Uyumlu. §4.2'deki v3 yüzeyi **stdio/yerel** çalıştığı sürece veri cihazdan çıkmaz ve §17.2 korunur. Kütüphane yerelde durur, ajan yerelde okur |
 | **Bizim verimizi FindAgent bulutuna göndermek** | **Uyumsuz.** `findagent.cloud` ve `fly.dev` uzak host'lar; oraya konuşma içeriği ya da indirme kütüphanesi göndermek "dış istek yok" taahhüdünü (§17.2) ve mağaza veri beyanını (§19.6) doğrudan bozar. Yapılacaksa ayrı bir onay akışı, ayrı bir gizlilik politikası ve muhtemelen ayrı bir ürün gerekir |
 
-**Üçüncü, yeni görülen yön — dağıtım.** FindAgent kod/repo tabanlı ajanları kabul ediyor (`import_repo`, `create_code_draft`). §4.2'deki **yerel MCP sunucumuz** tam olarak bu biçimde bir şey: küçük, bağımlılıksız, kullanıcının makinesinde çalışan bir repo. FindAgent'ta yayınlanması, veri paylaşımı **değil dağıtım** olur — kod kullanıcıya gider, veri hiçbir yere. Gizlilik çerçevesine dokunmaz.
+### 2.2.2 Somut olarak nasıl kullanılır — dörtten biri bugün çalışıyor
+
+FindAgent bir **bağımlılık değil**; bu ürün onsuz eksiksiz. Soru "kullanmalı mıyız" değil, "kullanırsak nerede işe yarar". Dört yol, gerçeklik sırasına göre:
+
+**1. Zaten çalışıyor — sıfır kod.** FindAgent ajanları MCP üzerinden Claude/ChatGPT gibi bir istemcide tüketiliyor; ajanın çıktısı (rapor, tablo, kod, `run_full`'un ürettiği anlatı) **o sohbetin içine** düşüyor. O sohbet bizim desteklediğimiz bir arayüzse, çıktı bizim için sıradan bir öğedir: kod bloğu olarak inebilir, belge ise sürümlenebilir, sohbetin tamamı Markdown'a çevrilebilir. **Bugün, hiçbir entegrasyon olmadan** FindAgent ajanlarının çıktısı bu extension'la sahiplenilebiliyor. İki ürünün gerçek kesişimi burada başlıyor ve maliyeti sıfır.
+
+Tek yapılacak: mağaza metninde ve `README`'de bu kullanım örneği olarak geçmeli — kullanıcı bunu kendiliğinden düşünmez.
+
+**2. Talep ölçümü — bugün, yine kod yazmadan.** FindAgent'ın istek panosu (`list_requests`, `vote_request`) bir talep sinyali. §4.2'deki MCP yüzeyini yazmadan önce oraya bakmak, "kimse benim kod kütüphanemi okuyan bir ajan istiyor mu" sorusunu **varsayım yerine veriyle** cevaplar. Entegrasyon değil, ürün araştırması — ama platformun sunduğu en ucuz şey bu.
+
+**3. Dağıtım — MCP sunucusu yazıldıktan sonra.** FindAgent kod/repo tabanlı ajanları kabul ediyor (`import_repo`, `create_code_draft`). §4.2'deki **yerel MCP sunucumuz** tam olarak bu biçimde bir şey: küçük, bağımlılıksız, kullanıcının makinesinde çalışan bir repo. FindAgent'ta yayınlanması, veri paylaşımı **değil dağıtım** olur — kod kullanıcıya gider, veri hiçbir yere. Gizlilik çerçevesine dokunmaz.
 
 Bu, bu ürünün FindAgent'la en doğal kesişimi: extension veriyi üretir, yerel MCP sunucusu onu ajanlara açar, FindAgent o sunucunun **bulunmasını** sağlar.
+
+**4. Tüketim — koşullu** (aşağıdaki 1. soruya bağlı).
 
 **Karar:** entegrasyon **yerel MCP** yönünde tasarlanır. Bizim tarafımızdaki iş, §4.2'deki MCP yüzeyini FindAgent'ın araç kalıbıyla **uyumlu** yazmaktır — `list_capabilities` ile ne sunduğumuzu bildiren, `plan_inputs` ile girdi şemasını veren, salt-okunur `fetch_*` ile kütüphaneyi açan bir sunucu. Aynı kalıbı izlemek, FindAgent ajanlarının bizi ekstra uyarlama olmadan tüketebilmesi demek.
 
