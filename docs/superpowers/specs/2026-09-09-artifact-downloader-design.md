@@ -83,9 +83,15 @@ Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görün�
 
 **Endpoint'ler** (content script'ten same-origin `fetch`, cookie otomatik):
 ```
-GET /api/organizations                                        → [0].uuid
 GET /api/organizations/{orgUuid}/chat_conversations/{convUuid}?tree=True&rendering_mode=messages
 ```
+
+**Org UUID'sini "ilk org" diye almak hatalıdır.** Kullanıcı birden fazla organizasyona üye olabilir (kişisel hesap + Team/Enterprise workspace). Konuşma bunlardan **birine** aittir; yanlış org ile istek 404 döner ve extension sebepsiz yere DOM fallback'ine düşer — kullanıcı versiyon geçmişini kaybeder, nedenini asla öğrenemez. Bu, tek org'lu bir hesapta test edilirken **hiç görünmeyen** bir hata.
+
+Çözüm sırası:
+1. `document.cookie` içindeki `lastActiveOrg` (content script okuyabilir, `HttpOnly` değil)
+2. Yoksa `GET /api/organizations` → dönen org'lar **sırayla** denenir, ilk `200` kazanır
+3. Çözülen org, konuşma UUID'siyle birlikte cache'lenir; her tıklamada arama tekrarlanmaz
 `convUuid` → `location.pathname`'den. Pathname bir konuşma UUID'si vermiyorsa (`/project/<id>` liste sayfası, `/new`, henüz kaydedilmemiş sohbet) extension **hiçbir şey yapmaz**: buton enjekte edilmez, badge yazılmaz, hata gösterilmez. Proje içi sohbetlerin gerçekten `/chat/<uuid>` yoluna mı düştüğü implementation'ın ilk adımında doğrulanır; düşüyorsa `/project/*` eşleşmesi manifest'ten çıkarılır (kullanılmayan host eşleşmesi, incelemede gereksiz yüzey demektir).
 
 ## 5. Mimari
@@ -338,6 +344,10 @@ Bu bir anti-corruption layer. Üçüncü parti DOM'a bağımlı her extension en
 
 Her selector için `null` toleransı: bulunamayan selector exception atmaz, kademe düşürür.
 
+**Selector'lar metne bağlanamaz.** claude.ai arayüzü yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: claude.ai arayüzü Türkçeye alınıp tüm akış tekrar denenir.
+
+**Tema.** claude.ai'ın açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Bizim renklerimiz sabit yazılmaz: panelin kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece Anthropic temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) biz peşinden geliriz. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
+
 **Preview modunda DOM okuma.** Kademe 3'e düşüldüğünde kod yalnızca Code sekmesinde bulunur. Sekmeyi programatik tıklamak kullanıcının görünümünü değiştirir — bu bizim değil onun tercihi. Kural: mevcut sekme kaydedilir, Code'a geçilir, metin okunur, **eski sekme geri yüklenir**. Kullanıcı ideal olarak kısa bir titreme dışında hiçbir şey görmez. Preview'da başlamışsa ve okuma başarısızsa yine de eski sekmeye dönülür (`try/finally`).
 
 ## 13. i18n
@@ -388,6 +398,10 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 | `tool_use` şeması varsayımı yanlış | Parser boş döner | Implementation'ın **ilk adımı** gerçek JSON dump'ı ile şema doğrulama |
 | Web Store geniş host iznini sorgular | Yayın gecikir | Tek amaç beyanı + sıfır dış istek + gizlilik politikası hazır |
 | Çok uzun konuşmada fetch yavaş | Buton geç yanıt verir | Cache + buton üzerinde yükleniyor durumu |
+| Anthropic dahilî API'nin kullanımına itiraz eder | Yayın kaldırılabilir | Yalnızca kullanıcının kendi oturumu, kendi verisi, kendi tarayıcısı; hız sınırı zorlanmıyor, sunucu yok. Yine de bir ürün riski — DOM fallback'i extension'ı API olmadan da ayakta tutar |
+| Kullanıcı birden fazla organizasyona üye | Yanlış org → 404 → sessiz fallback | `lastActiveOrg` + org'ları sırayla deneme (§4) |
+| claude.ai arayüzü Türkçe/başka dilde | Metne bağlı selector çalışmaz | Metin eşleştirme yasak (§12) |
+| Kullanıcı açık temada | Enjekte UI okunmaz | Renkler panelden okunuyor (§12) |
 
 ---
 
@@ -409,7 +423,8 @@ Bu extension iki tür **güvenilmez veri** işliyor: artifact başlıkları ve a
 ## 18. Depo teslimatları
 
 - `LICENSE` — MIT
-- `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`, `SEL` katmanının nerede olduğu ve UI kırılınca nasıl tamir edileceği
+- `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`
+- `docs/BREAKAGE.md` — **kırılma runbook'u**: belirti → tanı → tamir. "Buton görünmüyor" → `SEL.actionBar` tut(a)mıyor, DevTools'ta yeni seçiciyi bul, `SEL`i güncelle, sürüm bump. "Versiyonlar tek satır" → API kademesi düştü, Network sekmesinde konuşma isteğinin durumuna bak (401 → oturum, 404 → org çözümü, 200 ama boş → şema değişti, `parseOps` testlerini gerçek JSON'la güncelle). Bu dosya olmadan extension'ı altı ay sonra ben de tamir edemem
 - `CHANGELOG.md` — sürüm notları (Web Store güncellemeleri için)
 - `.gitignore` — `.superpowers/`, `node_modules/`, `*.zip`
 
