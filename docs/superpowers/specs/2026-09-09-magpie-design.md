@@ -1,4 +1,4 @@
-# AI Chat Downloader — Tasarım Dokümanı
+# Magpie — Tasarım Dokümanı
 
 **Tarih:** 2026-09-09
 **Durum:** Tasarım onaylandı ve 23 turluk denetimden geçti; implementation plan bekliyor. **Yetenek matrisindeki `?` alanları hâlâ açık** (§3.4.6) — adım 1 tamamlanmadan hiçbir adaptör yazılmaz
@@ -183,20 +183,17 @@ Kimlik bilgisi gerektirmeyen, elimizdeki veriyle çalışan:
 
 Üçü de aynı sınırın içinde: **var olan veriden**, model çağrısı olmadan, kullanıcının eylemiyle.
 
-### 2.1.2 İsim — "downloader" kalıyor, sebebi konumlandırma değil keşfedilebilirlik
+### 2.1.2 İsim — Magpie
 
-Omurga "indirici"den geniş (§2.1), yani isim ürünü eksik anlatıyor. Yeniden adlandırma cazip; **yapmıyoruz.**
+**Önceki karar tersine döndü ve sebebi kayıtta kalmalı.** Bir önceki sürüm "AI Chat Downloader" adını korumayı savunuyordu: mağaza aramasında insanlar niyetlerini yazar, "downloader" o niyettir. O argüman bir varsayıma yaslanıyordu — **ismin hâlâ ürünün asıl işini anlattığı.**
 
-Gerekçe: mağaza aramasında insanlar niyetlerini yazıyor — *"download chatgpt code"*, *"save claude artifact"*. Bu terimler ürünün **ilk işi** ve kullanıcının kafasındaki kelime. Soyut bir ad (`Chat Keeper`, `Artifact Vault`) konumlandırmayı kazanır, keşfedilebilirliği kaybeder — ve keşfedilmeyen bir ürünün konumlandırması kimseye ulaşmaz.
+O varsayım artık geçerli değil. Araç çıktıları (§2.1.3), kaynaklar (§2.1.4.1), üretilen görseller (§2.1.4.3), sohbet taşıma (§3.3.3) ve indirme geçmişi (§4.3) eklendikten sonra "indirici" ürünün küçük bir dilimi. İsim işi anlatmıyorsa, isim uğruna savunulan keşfedilebilirlik de **yanlış ürünü** keşfettirir.
 
-Doğru ayrım: **isim işi söyler, açıklama omurgayı söyler.**
-- İsim: `AI Chat Downloader` — arama terimi burada
-- Kısa açıklama (132 karakter): omurga cümlesi — *"Sohbetlerinden çıkan kodu ve belgeleri çıkar, sürümle, taşı ve yeniden kullan."*
-- Uzun açıklamanın ilk paragrafı: izin uyarısını karşılar (§15), ikincisi omurgayı açar
+**Magpie** (saksağan): parlayan, değerli şeyleri toplayıp yuvasına götüren kuş. Ürünün hikayesi bu — sohbette değerli olanı al, sakla, sonra kullan. Jenerik değil, akılda kalıcı, ve dört sağlayıcının hiçbirinin markasına yakın değil (§15'teki marka kuralı).
 
-Bu, ürünün kendini iki farklı yerde iki farklı şekilde tanıtması değil — **aynı ürünün girişi ve tarifi.** Tek amaç beyanı (§19.6) omurga cümlesiyle birebir aynı kalır; ad bir arama anahtarı, beyan değildir.
+**Keşfedilebilirlik nasıl korunuyor:** mağaza ad alanı marka + tanımlayıcıyı birlikte taşır — `Magpie — AI Chat Downloader`. Arama terimi orada kalır, marka öne çıkar; kısa açıklama omurga cümlesini taşır (§2.1). Ne aramada kayboluruz ne de kendimizi eksik anlatırız.
 
-Yeniden değerlendirme koşulu: kullanıcıların çoğunluğu ürünü indirme dışındaki bir özellik için kuruyorsa (mağaza yorumları ve issue'lardan görülür), ad o zaman tartışılır. Şimdi tartışmak, elde veri yokken kimlik değiştirmek olurdu.
+**Doğrulanamayan, yayın öncesi kapıya giren:** "Magpie" yaygın bir kelime; Web Store ad çakışması ve ticari marka taraması gerekiyor (§19.5).
 
 ## 2.1.3 MCP araç çıktıları — beşinci öğe türü
 
@@ -715,7 +712,7 @@ Aynı promptu birden çok modele gönderen bir kenar çubuğu istenebilir. Bunu 
 ## 5. Mimari
 
 ```
-ai-chat-downloader/
+magpie/
   manifest.json
   _locales/tr/messages.json
   _locales/en/messages.json
@@ -1017,7 +1014,13 @@ Klasör yolunda `write()` hata verirse gerçek hata toast'ı çıkar. Tarayıcı
 **Toast'lar ayara tabi değildir.** Kullanıcının kendi başlattığı bir eylemin sonucudur — kesinti değil, geri bildirim. Ayarlanabilen tek şey *davetsiz* sinyaldir (§8.3 pill, §8.5 badge).
 
 ### 8.5 Logo
-Artifact paneli silueti + içinden çıkan coral (#d97757) ok, ink (#262624) yuvarlak kare zemin. 16px'te siluet ayakta kalıyor ve "artifact → dosya" diyor.
+İsim değiştiği için işaret yeniden değerlendirilir, ama **ölçüt aynı: 16px.** Logo toolbar'da yaşar, 128px'te değil.
+
+İki aday, ikisi de ink (#262624) yuvarlak kare zeminde coral (#d97757) vurguyla:
+1. **Saksağan işareti** — isimle birebir, ayırt edici. Risk: kuş siluetleri 16px'te lekeye döner; çok sadeleştirilmiş bir gaga+baş formu ayakta kalabilir
+2. **Mevcut işaret** (belge silueti + çıkan ok) — 16px'te kanıtlanmış, ama artık isimle ilgisiz
+
+Karar 16px testiyle verilir: iki taslak 16'da yan yana basılır, ayırt edilebilen kazanır. Hiçbiri ayırt edilemiyorsa 2 kalır — **okunmayan bir marka işareti, ilgisiz ama okunan bir işaretten kötüdür.**
 
 **Elenen yön:** Claude'un yıldız/spark işaretini andıran logo — Chrome Web Store impersonation politikası ve marka ihlali riski. Coral rengi tonal akrabalık için yeterli; işaret taklidi gereksiz risk.
 
@@ -1222,7 +1225,7 @@ Telemetri yok (§17), dolayısıyla bir şey bozulduğunda bunu **yalnızca kull
 Popup'ın alt satırında **Teşhis bilgisini kopyala** bağlantısı: panoya, hassas veri içermeyen bir metin bloğu yazar.
 
 ```
-AI Chat Downloader 1.0.0 · Chrome 141 · tr
+Magpie 1.0.0 · Chrome 141 · tr
 Sağlayıcı: chatgpt · adaptör LAST_VERIFIED 2026-09-09
 Kademe: 3 (DOM)            ← hangi kaynak kullanıldı
 Org çözümü: cookie ✓        ← adaptöre özel satırlar; her adaptör kendi teşhis alanlarını ekler
@@ -1458,7 +1461,7 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 
 **Ekran görüntülerinde gerçek sohbet kullanılmaz.** Beş görselin tamamı, bu iş için açılmış **demo bir konuşmadan** üretilir. Aksi hâlde kendi özel verini kalıcı olarak halka açık bir mağaza sayfasına koymuş olursun — geri alınmaz, indekslenir.
 
-**İsim ve marka — artık dört marka.** İsim hiçbir sağlayıcının markasıyla başlamaz ve hiçbirinin resmî ürünü olduğunu ima etmez; `AI Chat Downloader` gibi tarafsız bir ad, açıklamada "Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur" satırıyla. Dört marka, dört kat ihlal yüzeyi. Sağlayıcı adları yalnızca **tanımlayıcı** konumda geçer ("Claude, ChatGPT, Gemini ve Perplexity destekler"). Logo hiçbir sağlayıcının işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
+**İsim ve marka — artık dört marka.** İsim hiçbir sağlayıcının markasıyla başlamaz ve hiçbirinin resmî ürünü olduğunu ima etmez; `Magpie` gibi tarafsız bir ad, açıklamada "Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur" satırıyla. Dört marka, dört kat ihlal yüzeyi. Sağlayıcı adları yalnızca **tanımlayıcı** konumda geçer ("Claude, ChatGPT, Gemini ve Perplexity destekler"). Logo hiçbir sağlayıcının işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
 
 ## 16. Riskler
 
@@ -1590,7 +1593,7 @@ GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriy
 
 ### 19.4 Sürümleme ve paketleme
 
-Semver. `node tools/pack.mjs` → `dist/ai-chat-downloader-<version>.zip`; `docs/`, `test/`, `tools/`, `.superpowers/`, `.github/` hariç. Üretilen zip'in SHA-256'sı `CHANGELOG.md`'ye yazılır — mağazadaki paketin depodaki commit'ten üretildiği doğrulanabilir olsun.
+Semver. `node tools/pack.mjs` → `dist/magpie-<version>.zip`; `docs/`, `test/`, `tools/`, `.superpowers/`, `.github/` hariç. Üretilen zip'in SHA-256'sı `CHANGELOG.md`'ye yazılır — mağazadaki paketin depodaki commit'ten üretildiği doğrulanabilir olsun.
 
 Her yayın bir git tag'i: `v1.0.0`.
 
