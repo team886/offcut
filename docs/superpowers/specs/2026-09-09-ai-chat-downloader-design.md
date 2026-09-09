@@ -154,6 +154,12 @@ Kaynak: konuşma yanıtındaki dosya/ek kayıtları. İçerik mesajda gömülü 
 
 Ekler **ikili olabilir** (PDF, xlsx, png). Kural: içerik hiçbir zaman metne çevrilmez, `ArrayBuffer` olarak alınıp aynen yazılır; `TextEncoder`/`TextDecoder` yoluna sokulmaz — aksi hâlde bozuk dosya üretilir. Ad ve uzantı sunucudaki adından gelir, `sanitize`'dan geçer, tahmin edilmez.
 
+**Toplu indirme bizi tarayıcıya çevirebilir.** 20 ekli bir sohbetin zip'i, arka arkaya 20 istek demektir — sayfanın hiçbir koşulda yapmayacağı bir şey ve §16'daki kendi kuralımızın ("sayfanın atmayacağı istek atılmaz") doğrudan ihlali. Bot koruması bunu tam olarak böyle görür ve sonucu kullanıcının **oturumunu** etkileyebilir; bizim özelliğimiz için kullanıcıya bedel ödetmek kabul edilemez.
+
+Kural: ek indirmeleri **sıralı** (eşzamanlılık 1), aralarında küçük bir gecikmeyle (~150 ms) yapılır ve toplu işlemde ilerleme çubuğu zaten görünür (§8.6) — yani yavaşlık gizlenmiyor, gösteriliyor. Herhangi bir istek 429/403 dönerse toplu işlem **durur**, o ana kadar toplananlar zip'lenmez, kullanıcıya `Sağlayıcı isteği sınırladı — daha az öğe seçip tekrar deneyin` denir. Yarım arşiv üretmiyoruz (§11) ve sınırı zorlamıyoruz.
+
+Aynı disiplin belge/kod için gerekmiyor: onlar zaten çekilmiş konuşma yanıtının içinden geliyor, ek istek yok.
+
 **Doğrulanacak (adım 1):** ek indirme endpoint'i ve yanıt biçimi. Belirlenemezse ekler kapsamdan **çıkarılır** — artifact ve kod tek başına ürünü ayakta tutar; çalışmayan bir feature'ı yarım bırakmaktansa hiç söz vermemek iyidir.
 
 ### 3.4 Sağlayıcı adaptörü
@@ -849,6 +855,7 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Numaralarımız panelin göstergesiyle tutmuyor | `v` etiketi bırakılır, sıra + zaman damgası kullanılır (§8.2) |
 | Ardışık iki versiyon birebir aynı | Menüde `değişiklik yok` etiketi; ikisi de indirilebilir kalır |
 | Zip/toplu indirme iptal edildi | Yarım arşiv **üretilmez**; hiçbir dosya inmez, bilgi toast'ı |
+| Toplu ek indirmede 429/403 | İşlem durur, zip üretilmez, `daha az öğe seçin` mesajı — yeniden denenmez (§3.3.2) |
 | Ek boyutu meta veriden okunamıyor | `boyut bilinmiyor` yazılır, tahmin edilmez |
 | `<a download>` sonrası dosya yazılmadı | Öğrenilemez; toast bu yüzden "indiriliyor" der, "indirildi" demez |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
@@ -1003,6 +1010,8 @@ Bu extension iki tür **güvenilmez veri** işliyor: öğe başlıkları ve öğ
 | Uzak kod **yok**: CDN yok, `eval` yok, `new Function` yok, uzaktan yüklenen script yok | Web Store uzak kodu doğrudan reddediyor. Tüm kod paket içinde |
 | `panel.html` inline `<script>`/`onclick` içermez | MV3 varsayılan CSP inline script'i bloklar; sessiz bozulma olur |
 | `sanitize` yol geçişini de keser: `/` `\` `..` ve baştaki `~` temizlenir | `<a download="../../x">` denemesi. Chrome zaten yol bileşenlerini yok sayar ama savunma bizde de olmalı |
+| Filtre eşleşmelerini vurgulamak için `innerHTML` kullanılmaz; vurgu, metin parçalarının ayrı `textContent` düğümlerine bölünmesiyle yapılır | Kullanıcı girdisi + öğe başlığı aynı satırda buluşuyor; en cazip `innerHTML` kullanım yeri tam da burası |
+| `Sorun bildir` bağlantısı bir **gezinme**dir, istek değil: sabit bir depo adresine açılır, gövdesi teşhis bloğudur ve URL kodlamasından geçer | Kullanıcı tıklamadan hiçbir şey olmaz; "dış istek yok" iddiası korunur, ama incelemede sorulmaması için burada yazılı |
 | Ağa **hiç** çıkılmaz; `fetch` hedefleri yalnızca dört sağlayıcının kendi origin'i | Gizlilik politikasının doğrulanabilir olması için; CI'daki ağ taraması bunun teknik dayanağı (§19.3) |
 
 ### 17.1 Yayıncı hesabı — asıl tedarik zinciri
