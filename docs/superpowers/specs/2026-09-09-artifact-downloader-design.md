@@ -180,6 +180,10 @@ fmtName(template, ctx) → "Sales-Dashboard-v3.tsx"
 
 Bilinmeyen token (`{foo}`) olduğu gibi bırakılır — sessizce silmek, kullanıcının şablonunun çalıştığını sanmasına yol açar.
 
+**Varsayılan şablon `{title}-v{version}` olmalı, `{title}` değil.** Bu extension'ın tipik kullanımı aynı artifact'ı Claude güncelledikçe **tekrar tekrar** indirmek. Versiyonsuz şablonla indirilenler klasöründe `Dashboard.tsx`, `Dashboard (1).tsx`, `Dashboard (2).tsx` birikir — hangisi hangi hâl, kimse bilmez. Chrome'un çakışma soneki tarih sırası bile vermez. Versiyon adın içindeyse dosyalar kendi kendini açıklar ve ikinci indirme aynı adı üretip zaten indirilmiş olanı işaret eder.
+
+**Kademe 3'te (DOM) versiyon numarası yok.** `{version}` o durumda boş bırakılıp `-v` gibi bir kalıntı üretemez; yerine `{date}` konur, yani `{title}-v{version}` şablonu `Dashboard-2026-09-09.tsx` verir. Şablon kullanıcınınsa ve `{version}` içeriyorsa aynı ikame uygulanır.
+
 Zip'in kendi adı **en son versiyonun** başlığından üretilir (başlık versiyonlar arasında değişmiş olabilir, §3).
 
 **Uzantı tablosu**
@@ -277,6 +281,12 @@ v1   31 dk önce · 6.2 KB
 ```
 Zip satırı ayarla kapatılabilir.
 
+**Aynı içerikli ardışık versiyonlar işaretlenir.** Bir `update` hiçbir şeyi değiştirmemiş olabilir (aynı `new_str`, ya da sonuç aynı bayta çıkan bir düzenleme). Menüde iki satır aynı boyutu gösterir ve kullanıcı ikisini de indirip fark arar. Fold sırasında ardışık versiyonların baytları karşılaştırılır; aynıysa satır `değişiklik yok` etiketi alır. Satır **silinmez** — Claude o adımı attıysa kullanıcı bunu görmeyi hak eder; sadece boşuna indirme yapmaz.
+
+**Numaralarımız panelin numarasıyla aynı olmak zorunda.** claude.ai artifact panelinde kendi versiyon göstergesi var ("Version 3"). Bizim fold'umuz op sayısına göre numara üretiyor ve bu **aynı sonucu vermeyebilir**: Claude başarısız bir op'u saymıyor olabilir, `create`'i 0'dan başlatıyor olabilir, ya da ardışık iki `update`'i tek versiyon gösteriyor olabilir. Kayma olursa menüden "v2" seçen kullanıcı, panelin v3 dediği şeyi indirir — ve bunu **asla fark etmez**, çünkü iki numara da makul görünür. Yanlış dosya vermenin en sinsi biçimi.
+
+Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırılır. Birebir tutuyorsa `v1…vN` kullanılır. Tutmuyorsa **kendi numaramızı panelinkiymiş gibi sunmayız**: menü satırları `v` yerine sıra + zaman damgasıyla etiketlenir (`3. düzenleme · 14 dk önce`) ve görüntülenen olan `✓ görüntülenen` ile işaretlenir. Kullanıcı yanlış bir eşleşmeye ikna edilmez.
+
 ### 8.2.1 Sohbet seviyesi zip
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 4 artifact → zip`.
@@ -308,6 +318,17 @@ Ayrım şu ilkeye dayanıyor: davetsiz bildirim ancak **yeni bir şey olduysa** 
 | hata | **elle kapatılana kadar** | `✕ İndirilemedi — artifact okunamadı` |
 
 Hata sessizce kaybolmaz; kullanıcı dosyanın inmediğini fark etmek zorunda.
+
+**Toast yalnızca bildiğimiz şeyi söyleyebilir.** `<a download>` ile başlatılan bir indirmenin sonucunu **öğrenemeyiz**: Chrome tamamlanma veya hata bildirmez (bunu bilmek `downloads` izni ister, onu bilerek almadık). Yani "indirildi" demek, doğrulamadığımız bir iddia. Disk doluysa veya politika engellerse kullanıcı yeşil onay görür ve dosya yoktur.
+
+İki yol, iki farklı doğruluk:
+
+| Yol | Bildiğimiz | Toast |
+|---|---|---|
+| `<a download>` (tarayıcı indirmeleri) | İndirmenin **başlatıldığı** | `↓ Sales-Dashboard-v3.tsx indiriliyor` |
+| File System Access (seçilen klasör) | Yazmanın **tamamlandığı** (`write()` çözüldü) | `✓ Sales-Dashboard-v3.tsx · ~/Projects/artifacts` |
+
+Klasör yolunda `write()` hata verirse gerçek hata toast'ı çıkar. Tarayıcı yolunda yapabileceğimiz en dürüst şey, tamamlandı demek yerine başlatıldı demektir.
 
 **Toast'lar ayara tabi değildir.** Kullanıcının kendi başlattığı bir eylemin sonucudur — kesinti değil, geri bildirim. Ayarlanabilen tek şey *davetsiz* sinyaldir (§8.3 pill, §8.5 badge).
 
@@ -462,7 +483,7 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   notify: "inpage",          // "indirilebilir" duyurusu: "off" | "inpage" (pill) | "system"
   autoDownload: false,
   defaultVersion: "current", // "current" | "latest" | "ask"
-  nameTemplate: "{title}",   // {title} {version} {date} {ext}
+  nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
   dragEnabled: true          // §8.7.1
@@ -514,6 +535,9 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | Kademe 2 gövdesinde artifact işareti kalıntısı | Versiyon `ok:false`, `reason:"tier2_ambiguous"` |
 | `old_str` satır sonu farkından tutmuyor | Mismatch raporlanır; içerik **normalize edilmez**, BREAKAGE.md ilk tanı maddesi |
 | Boş gövdeli `create` | Geçerli; 0 baytlık dosya iner |
+| Numaralarımız panelin göstergesiyle tutmuyor | `v` etiketi bırakılır, sıra + zaman damgası kullanılır (§8.2) |
+| Ardışık iki versiyon birebir aynı | Menüde `değişiklik yok` etiketi; ikisi de indirilebilir kalır |
+| `<a download>` sonrası dosya yazılmadı | Öğrenilemez; toast bu yüzden "indiriliyor" der, "indirildi" demez |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
 | Kısayol basıldı, artifact yok | `! Bu sayfada indirilecek artifact yok` toast'ı |
@@ -567,7 +591,7 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **buton enjekte edilmişken art arda render tetikleyip React hatası aranması** (versiyon değiştir, paneli yeniden boyutlandır, yeni mesaj gönder, sekme değiştir); gövdesinde `</antArtifact>` geçen bir artifact'ın tam inmesi; popup'tan devre dışı bırakma; **menüdeki numaraların panelin "Version N" göstergesiyle karşılaştırılması**; aynı artifact'ı iki kez indirip adların ayrışması; DOM fallback'inde `{version}` yerine tarih gelmesi; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
