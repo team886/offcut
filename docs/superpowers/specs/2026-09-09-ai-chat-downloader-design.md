@@ -228,11 +228,14 @@ Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görün�
 
 **Kademe 3'ün asıl tehlikesi eksik değil, sanki tammış gibi görünen içeriktir.** Uzun kod görünümleri **sanallaştırılmış** olabilir: DOM'da yalnızca ekranda olan satırlar durur, `textContent` geri kalanını hiç görmez. Sonuç 400 satırlık bir dosyanın 60 satırı — ve dosya açıldığında makul görünür, çünkü baştan başlar ve sözdizimi bozulmaz. Sessiz kesilmenin en kötü biçimi.
 
-Kural — okuma **tamlık kanıtı olmadan kabul edilmez**:
-1. Blok/panel kaydırılabiliyorsa (`scrollHeight > clientHeight`) içerik şüphelidir
-2. Kod satırlarını taşıyan düğüm sayısı, kaydırma yüksekliğinin ima ettiği satır sayısıyla karşılaştırılır; tutmuyorsa sanallaştırma var demektir
-3. Sanallaştırma tespit edilirse: içerik **programatik olarak sonuna kadar kaydırılıp** parça parça toplanır (`scrollTop` adım adım, her adımda yeni satırlar biriktirilir), sonra kaydırma konumu **eski hâline döndürülür** (§12'deki sekme geri yükleme ilkesiyle aynı)
-4. Toplama sonrası satır sayısı hâlâ tutmuyorsa öğe `⚠ eksik olabilir` işaretlenir ve dosya adına `-partial` eklenir — bozuk dosyayı sessizce vermeyiz
+Kural — okuma **tamlık kanıtı olmadan kabul edilmez**. Sanallaştırmayı *tespit etmeye* çalışmıyoruz: satır yüksekliğinden satır sayısı tahmin etmek kırılgan bir heuristik ve yanlış tarafa düştüğünde sessizce kesik dosya üretir. Bunun yerine **koşulsuz toplama**:
+
+1. Kod düğümü kaydırılabilir değilse (`scrollHeight <= clientHeight`) içerik zaten tamdır, tek okuma yeter
+2. Kaydırılabiliyorsa içerik **her zaman** kaydırılarak toplanır: `scrollTop` bir ekran yüksekliği eksi bir satır kadar adımlanır, her adımda görünen satırlar konumlarıyla (`offsetTop` veya satır düğümünün kimliği) biriktirilir, örtüşen satırlar tekrar eklenmez. Sanallaştırma yoksa sonuç tek okumayla aynıdır — yani yanlış tarafa düşme riski yok, yalnızca birkaç milisaniye fazla
+3. Toplama sonunda kaydırma konumu **eski hâline döndürülür** (§12'deki sekme geri yükleme ilkesiyle aynı)
+4. Toplanan satır sayısı iki ardışık geçişte artmayı sürdürüyorsa (sonsuz kaydırma / tembel yükleme) 3 sn'lik bir sınırda durulur ve öğe `⚠ eksik olabilir` işaretlenip dosya adına `-partial` eklenir
+
+Heuristiği kaldırmanın bedeli birkaç milisaniye; kazancı, tespit yanlış çalıştığında ortaya çıkan **sessiz kesik dosya** sınıfının tamamen yok olması.
 
 Bu, Kademe 1'i tercih etmenin **üçüncü** gerekçesi: API yanıtı sanallaştırma bilmez, tam metni verir.
 
@@ -421,7 +424,15 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
 
    **Mesaj sayısı akış sırasında değişmez.** Claude yazarken op'lar **aynı** mesajın içine eklenir; mesaj sayısı sabit kalır. Sadece sayıya bakan bir geçersizleştirme, akış ortasında alınmış bir yanıtı 60 saniye boyunca taze sayar ve kullanıcı Claude bitirdikten hemen sonra indirdiğinde **yarım artifact** alır — üstelik §3.2'deki "yazılıyor" uyarısı da o eski anlık görüntüye göre hesaplanır, yani uyarı bile çıkmaz. Kural: akış sürerken alınan yanıt **cache'lenmez**, yalnızca o anlık kullanım için tutulur; akışın bittiği tespit edildiğinde cache koşulsuz geçersizleşir.
 4. `parseOps` → `buildVersions` → versiyon listesi.
-5. **Açık artifact eşleştirme:** panel başlığı → aday artifact'lar. Aynı başlıktan birden fazla varsa, görünen kodun ilk 200 karakteriyle her adayın son versiyonu karşılaştırılıp en yüksek skorlu seçilir. Skorlar birbirine yakınsa menüde her ikisi de gösterilir — belirsizlik sessizce çözülmez.
+5. **Açık artifact eşleştirme:** panel başlığı → aday artifact'lar. Aynı başlıktan birden fazla varsa ayırt etmek gerekir.
+
+   **İlk 200 karakter en kötü ayırt edicidir.** Kod dosyalarının başı en az özgün yeridir: iki React artifact'ı da `import { useState } from "react";` ile başlar, iki Python dosyası da aynı import bloğunu taşır. Bu ölçüt tam da ayırt etmesi gereken durumda başarısız olur.
+
+   Doğru sıra:
+   1. Görünen metnin **uzunluğu** her adayın son sürümünün uzunluğuyla karşılaştırılır; tam eşleşme tek adaya düşüyorsa kazanan odur (uzunluk ucuz ve kod dosyalarında yüksek ayırt edici)
+   2. Birden fazla aday aynı uzunluktaysa görünen metnin **tamamının** hash'i karşılaştırılır
+   3. Görünen metin kesik olabilir (§4 sanallaştırma) — o durumda uzunluk karşılaştırması geçersizdir ve **ortadan bir örnek** (metnin %40-60 aralığındaki 200 karakter) kullanılır; baş taraf değil
+   4. Hiçbiri ayırt etmiyorsa menüde **her iki aday da** gösterilir, başlığın yanında ilk farklı satırıyla — belirsizlik sessizce çözülmez
 6. **Görüntülenen versiyon:** panelin kendi versiyon göstergesinden okunur; okunamazsa son versiyon varsayılır.
 7. Seçim → `Blob` + `<a download>` → başarı toast'ı.
 
@@ -668,7 +679,7 @@ Kural — üç kademeli davranış:
 
 Hiçbir durumda "hiçbir şey olmadı" yok. Ayar kapatılmaz, kullanıcı bir sonraki indirmede yeniden izin verebilir.
 
-Aynı adlı dosya varsa üzerine yazılmaz; `-2`, `-3` soneki eklenir. Tarayıcı indirmesinde bunu Chrome yapıyor; klasöre yazarken **biz** yapmak zorundayız, yoksa sessiz veri kaybı olur. Varlık kontrolü `getFileHandle(name)` ile yapılır — `NotFoundError` fırlatması adın **boş** olduğu anlamına gelir; `create:true` ile çağırmak dosyayı oluşturup kontrolü anlamsız kılar, o yüzden kontrol her zaman `create` olmadan yapılır.
+Aynı adlı dosya varsa üzerine yazılmaz; `-2`, `-3` soneki eklenir (en fazla `-99`; ötesinde hata toast'ı — sonsuz döngü yerine görünür başarısızlık). Tarayıcı indirmesinde bunu Chrome yapıyor; klasöre yazarken **biz** yapmak zorundayız, yoksa sessiz veri kaybı olur. Varlık kontrolü `getFileHandle(name)` ile yapılır — `NotFoundError` fırlatması adın **boş** olduğu anlamına gelir; `create:true` ile çağırmak dosyayı oluşturup kontrolü anlamsız kılar, o yüzden kontrol her zaman `create` olmadan yapılır.
 
 ### 8.8 İlk çalıştırma ve boş durumlar
 
