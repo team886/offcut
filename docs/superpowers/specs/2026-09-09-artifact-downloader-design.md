@@ -61,6 +61,14 @@ Kural: `parent_message_uuid` zincirinden **yaprak → kök** yürünüp aktif da
 
 Bu, "hangi mesajları okuduğumuz" sorusunun tek doğru cevabı ve `selftest.js`'in dallanma testi bunu koruma altına alır.
 
+**Sıralama zaman damgasıyla değil, dal konumuyla yapılır.** Bir mesajda birden fazla op olabilir ve hepsi aynı `created_at`'i taşır; ayrıca düzenlenen dallarda zaman damgaları geriye gidebilir. Op sırası = dal zincirindeki mesaj indeksi, sonra mesaj içindeki blok indeksi. `created_at` yalnızca **gösterim** içindir (menüdeki "14 dk önce"), sıralama için değil.
+
+### 3.2 Yazılmakta olan artifact
+
+Kullanıcı Claude hâlâ yazarken butona basabilir. O anda son op yarım gelmiş olabilir — `content` kesik, `old_str` henüz tamamlanmamış. Bunu indirmek yarım dosya demektir.
+
+Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var ya da son mesaj `stop_reason` taşımıyor), son versiyon `⚠ yazılıyor` işaretlenir. Menü açılır, önceki **tamamlanmış** versiyonlar normal indirilir; yarım versiyonu seçmek için kullanıcının uyarıyı görüp yine de tıklaması gerekir. Varsayılan seçim yarım versiyona düşmez.
+
 ## 4. Veri kaynağı — üç kademe
 
 | # | Kaynak | Ne verir | Ne zaman |
@@ -78,7 +86,7 @@ Kademe 3'e düşüldüğünde menüde tek satır `v? (sayfadan okundu)` görün�
 GET /api/organizations                                        → [0].uuid
 GET /api/organizations/{orgUuid}/chat_conversations/{convUuid}?tree=True&rendering_mode=messages
 ```
-`convUuid` → `location.pathname`'den.
+`convUuid` → `location.pathname`'den. Pathname bir konuşma UUID'si vermiyorsa (`/project/<id>` liste sayfası, `/new`, henüz kaydedilmemiş sohbet) extension **hiçbir şey yapmaz**: buton enjekte edilmez, badge yazılmaz, hata gösterilmez. Proje içi sohbetlerin gerçekten `/chat/<uuid>` yoluna mı düştüğü implementation'ın ilk adımında doğrulanır; düşüyorsa `/project/*` eşleşmesi manifest'ten çıkarılır (kullanılmayan host eşleşmesi, incelemede gereksiz yüzey demektir).
 
 ## 5. Mimari
 
@@ -107,7 +115,7 @@ artifact-downloader/
 ```jsonc
 {
   "manifest_version": 3,
-  "name": "__MSG_extName__", "default_locale": "tr",
+  "name": "__MSG_extName__", "default_locale": "en",
   "permissions": ["storage"],
   "optional_permissions": ["notifications"],
   "host_permissions": ["https://claude.ai/*"],
@@ -121,12 +129,16 @@ artifact-downloader/
   "action": { "default_popup": "src/panel.html" },
   "options_ui": { "page": "src/panel.html", "open_in_tab": true },
   "commands": { "download-current": {
-    "suggested_key": { "default": "Ctrl+Shift+D" },
+    "suggested_key": { "default": "Alt+Shift+D", "mac": "Alt+Shift+D" },
     "description": "__MSG_cmdDownload__" } }
 }
 ```
 
 `downloads` izni **yok** — `Blob` + `<a download>` yeterli. `tabs` izni **yok** — `sw.js` mesajın geldiği `sender.tab.id`'yi kullanır.
+
+**Kısayol neden `Alt+Shift+D`:** `Ctrl+Shift+D` Chrome'da "tüm sekmeleri yer imlerine ekle" komutuna ayrılmış. Extension'ın istediği kısayol tarayıcının kendi komutuyla çakışırsa Chrome onu **sessizce kaydetmez** — kullanıcı basar, hiçbir şey olmaz, sebebini de göremez. `Alt+Shift+D` boşta. Kullanıcı yine de `chrome://extensions/shortcuts` üzerinden istediğine çevirebilir.
+
+**`default_locale` neden `en`:** bu alan, tarayıcı dili desteklenmediğinde kullanılacak **yedek** dili belirler ve Web Store listeleme dilinin temelini oluşturur. `tr` yapılırsa Japon veya Alman bir kullanıcı Türkçe arayüz görür. `en` yedek, `tr` Türkçe tarayıcılarda otomatik devreye girer — Türkçe deneyim aynen korunur.
 
 ## 6. Modül sözleşmeleri
 
@@ -244,7 +256,7 @@ Sayı gösteriliyor çünkü "3 artifact var" bilgisi zaten elimizde — nokta g
 2. Bildirim: toolbar rozeti (aç/kapa) + "indirilebilir" duyurusu (kapalı / sayfa içi pill / sistem bildirimi) — **tek kontrol**, ayrı bir "pulse" anahtarı yok
 3. İndirme: varsayılan versiyon (görüntülenen / son / sor), zip satırı (aç/kapa), otomatik indirme (aç/kapa, **varsayılan kapalı**)
 4. Dosya adı: şablon input + tıklanabilir token chip'leri + **canlı önizleme**
-5. Alt satır: `🔒 Veri cihazdan çıkmıyor · dış istek yok` + `Ctrl ⇧ D`
+5. Alt satır: `🔒 Veri cihazdan çıkmıyor · dış istek yok` + `Alt ⇧ D` (kısayol kullanıcı tarafından değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır)
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -274,6 +286,8 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 }
 ```
 Eksik alanlar okuma anında varsayılanla doldurulur (şema evrimi için migration gerekmez).
+
+`storage.sync` kurumsal politikayla kapatılmış veya kotası dolmuş olabilir; yazma hatasında sessizce `storage.local`'a düşülür. Ayar kaybetmek, senkronizasyon uğruna ödenecek bir bedel değil.
 
 `notify: "system"` seçildiğinde `chrome.permissions.request(["notifications"])` **o an** çağrılır. Kullanıcı reddederse segment sessizce `"inpage"`e döner ve bir kez bilgi toast'ı gösterilir.
 
@@ -336,7 +350,8 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
-- `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş
+- `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
+- `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
 - `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
 - `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `artifact`
@@ -360,6 +375,10 @@ Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React a
 
 Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu veriye ihtiyacın var" sorusudur. Tek amaç beyanı ve dış istek olmaması bunu doğrudan karşılıyor.
 
+**Ekran görüntülerinde gerçek sohbet kullanılmaz.** Beş görselin tamamı, bu iş için açılmış **demo bir konuşmadan** üretilir. Aksi hâlde kendi özel verini kalıcı olarak halka açık bir mağaza sayfasına koymuş olursun — geri alınmaz, indekslenir.
+
+**İsim ve marka.** İsim Anthropic markasıyla başlamaz ve resmîlik ima etmez. "Claude" kelimesi ancak tanımlayıcı bir konumda ve resmî olmadığı açıkken kullanılabilir (ör. `Artifact Downloader for Claude`, açıklamada "Anthropic ile bağlantısı yoktur" satırıyla). Logo Anthropic işaretini andırmaz (§8.5). İkonda ve isimde marka taklidi, incelemede en hızlı ret sebeplerinden.
+
 ## 16. Riskler
 
 | Risk | Etki | Azaltma |
@@ -372,7 +391,22 @@ Web Store incelemesinin en sık takıldığı yer geniş host izni ve "neden bu 
 
 ---
 
-## 17. Depo teslimatları
+## 17. Güvenlik
+
+Bu extension iki tür **güvenilmez veri** işliyor: artifact başlıkları ve artifact içerikleri. İkisi de model çıktısıdır; kullanıcı Claude'a başkasının metnini yapıştırmışsa saldırgan etkisindedir.
+
+| Kural | Neden |
+|---|---|
+| Artifact kaynaklı hiçbir string `innerHTML`/`insertAdjacentHTML` ile DOM'a yazılmaz — **yalnızca `textContent`** | Başlık `<img onerror>` taşıyabilir. Enjeksiyon claude.ai sayfasının DOM'una olur; oturum çerezlerinin yanına XSS koymuş oluruz. Menü satırları, toast'lar, pill, popup başlığı — hepsi `textContent` |
+| Artifact içeriği **asla render/eval edilmez** | HTML artifact'ı önizlemek bizim işimiz değil; sadece bayt olarak diske yazılır |
+| `window.addEventListener("message", …)` **yok** | Sayfa `postMessage` ile bizim ayrıcalıklı çağrılarımızı sürükleyebilirdi. İletişim yalnızca `chrome.runtime` / `chrome.tabs` üzerinden |
+| `externally_connectable` **tanımlanmaz** | Varsayılan "hiç kimse". Başka sitelerin extension'a mesaj atması kapalı |
+| Uzak kod **yok**: CDN yok, `eval` yok, `new Function` yok, uzaktan yüklenen script yok | Web Store uzak kodu doğrudan reddediyor. Tüm kod paket içinde |
+| `panel.html` inline `<script>`/`onclick` içermez | MV3 varsayılan CSP inline script'i bloklar; sessiz bozulma olur |
+| `sanitize` yol geçişini de keser: `/` `\` `..` ve baştaki `~` temizlenir | `<a download="../../x">` denemesi. Chrome zaten yol bileşenlerini yok sayar ama savunma bizde de olmalı |
+| Ağa **hiç** çıkılmaz; tek `fetch` hedefi `https://claude.ai` | Gizlilik politikasının doğrulanabilir olması için |
+
+## 18. Depo teslimatları
 
 - `LICENSE` — MIT
 - `README.md` — ne yapar, kurulum (unpacked + Store linki), ayarlar tablosu, `node selftest.js`, `SEL` katmanının nerede olduğu ve UI kırılınca nasıl tamir edileceği
