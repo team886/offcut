@@ -1749,13 +1749,21 @@ GitHub Actions, **with no npm dependency**, using only Node built-ins. If they a
 
 15. **Core portability:** `parse.js`, `zip.js` and `registry.js` contain **no** `chrome.`, `document.` or `window.` (§4.2). Without this gate the core gets nailed to the browser unnoticed and a second surface becomes a rewrite
 
-16. **Source files are text:** no source file contains a raw control byte, and every one uses a single line ending. Added after `sanitize`'s character class turned out to hold **literal** control bytes rather than the ` -` escape sequence it appears to contain. The code behaved correctly, which is why nothing caught it; the cost was that git classified the file as binary, so it had no reviewable diff. A defect that removes the ability to review the file is worse than one the tests can see
+16. **Source files are text:** no file under `src/` or `tools/`, nor `selftest.js`, contains a raw control byte, and every one uses a single line ending. `tools/` is in scope because that is where it happened the second time — a `perl -pe` substitution wrote a literal backspace into `check-invariants.mjs` itself, and a checker exempt from its own rule is a gap. Added after `sanitize`'s character class turned out to hold **literal** control bytes rather than the ` -` escape sequence it appears to contain. The code behaved correctly, which is why nothing caught it; the cost was that git classified the file as binary, so it had no reviewable diff. A defect that removes the ability to review the file is worse than one the tests can see
 
     The gate also fixes the line ending, because a repository with both kinds shows every normalisation as a whole-file diff and buries the real change
 
+17. **The version is legal and unused:** `manifest.version` is one to four integers of 0–65535 with no leading zeros and **no prerelease suffix** — Chrome has no `-beta` syntax and rejects the upload outright — and it is not lower than any released tag. A published version number can never be reused, even after the release is withdrawn (`docs/VERSIONING.md`)
+
+    This gate is cheap and the failure it prevents is not: a malformed number costs a round trip through store review before anything else is even looked at
+
 ### 19.4 Versioning and packaging
 
-Semver. `node tools/pack.mjs` → `dist/magpie-<version>.zip`. The tool packs a **whitelist** — `manifest.json`, `LICENSE`, `src/`, `_locales/`, `icons/` — rather than excluding a list of directories: the failure mode of a blacklist is publishing a file nobody meant to ship, and it fails silently. The archive is written by `src/zip.js`, the same writer that ships to users, so every release exercises it; that is how the End of Central Directory defect in §6 was found. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
+Semver, with the axes redefined for a product whose users cannot choose a version — the full policy is `docs/VERSIONING.md`, and the short form is: **major** when the product takes on a dependency it does not own (a provider's internal schema, a new surface), **minor** when a capability arrives on machinery already present, **patch** for repairs. A new permission, a `cfg` key changing meaning, or a provider being dropped forces a major whatever the diff size, because each of those can hurt someone who asked for nothing.
+
+`node tools/release.mjs <major|minor|patch|current>` performs the release and refuses at the first step that is not ready: dirty tree, an empty pending changelog section, an illegal or already-tagged number, a failing gate, or an archive that does not open. One command writes the manifest version, the changelog entry, the package and the tag, so the four cannot drift apart.
+
+`node tools/pack.mjs` → `dist/magpie-<version>.zip`. The tool packs a **whitelist** — `manifest.json`, `LICENSE`, `src/`, `_locales/`, `icons/` — rather than excluding a list of directories: the failure mode of a blacklist is publishing a file nobody meant to ship, and it fails silently. The archive is written by `src/zip.js`, the same writer that ships to users, so every release exercises it; that is how the End of Central Directory defect in §6 was found. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
 
 Every release gets a git tag: `v1.0.0`.
 

@@ -2,6 +2,8 @@
 
 Each version below is independently publishable and earns its own release note. The order is the implementation order in the design document; the cut lines are where a version stops being worth holding back.
 
+The numbers follow `docs/VERSIONING.md`: the major digit tracks **what the product depends on that it does not own**, not how large the change feels. That is why v2.1 adds four item kinds and is still a minor — every one of them arrives through the adapter and API tier that v2.0 already signed up for — while v2.0 itself is a major for introducing them.
+
 The rule that shapes every cut: **what falls below a line is not hidden, it is not drawn** (§3.4.5). A version never shows a control for something it cannot do.
 
 ---
@@ -28,6 +30,8 @@ Why it is publishable alone: code blocks come out through one code path regardle
 
 ## v1.1 — Bulk and placement
 
+**minor** — nothing new is depended on; all of it sits on what v1 already extracts.
+
 **Design steps 11 and part of 8.2.1.** The first version people ask for after using v1.
 
 - Conversation-level zip, foldered by kind
@@ -40,6 +44,8 @@ No new provider knowledge is required — all of it sits on top of what v1 alrea
 ---
 
 ## v1.2 — Memory
+
+**minor** — new storage of our own, no new external contract.
 
 **Design step 8c and the spine trio (§2.1.1).**
 
@@ -54,6 +60,8 @@ This is the version that changes what the product is for: not downloading, but k
 
 ## v2.0 — Documents and versions
 
+**major** — the first release that depends on a provider's internal schema: the conversation tree, the branch fields, the artifact command shape. The number of ways this can break rises here, and that is what the digit is telling the reader.
+
 **Design steps 6–7.** Held until here deliberately: the artifacts schema is still unmeasured (`docs/DISCOVERY-claude.md`), and nothing in v1–v1.2 depends on it.
 
 - Claude adapter: active-branch walk, op-log fold, version menu with line deltas, the three tiers
@@ -66,6 +74,8 @@ This is the version that changes what the product is for: not downloading, but k
 
 ## v2.1 — The rest of the conversation
 
+**minor** — four new item kinds, all read through the tier v2.0 introduced.
+
 **Design steps 8, 8a, 8b.**
 
 - Tool and MCP outputs, with call parameters
@@ -76,6 +86,8 @@ This is the version that changes what the product is for: not downloading, but k
 ---
 
 ## v3.0 — Beyond the browser
+
+**major** — a second surface with its own lifecycle, its own security boundary and its own way of failing.
 
 **Design §4.2.** Only once a library has accumulated, which needs v1.1's folder saving and v1.2's history to be in use.
 

@@ -106,7 +106,7 @@ const schemaKeys = (() => {
         .filter((t) => /^\w+$/.test(t))
   );
   const bad = new Set();
-  for (const m of spec.matchAll(/SEL\.(\w+)/g)) {
+  for (const m of spec.matchAll(/\bSEL\.(\w+)/g)) {
     if (!selDefs.has(m[1])) bad.add(m[1]);
   }
   for (const k of [...bad].sort()) fail(`SEL.${k} is referenced but §12 does not declare it`);

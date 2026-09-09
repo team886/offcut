@@ -1,5 +1,5 @@
 /**
- * Magpie — mechanical gates (design §19.3, gates 2–16)
+ * Magpie — mechanical gates (design §19.3, gates 2–17)
  *
  *   node tools/check-invariants.mjs
  *
@@ -67,7 +67,7 @@ const manifest = JSON.parse(read("manifest.json"));
 {
   const banned = [
     [/insertAdjacentHTML/g, "insertAdjacentHTML"],
-    [/eval\s*\(/g, "eval"],
+    [/\beval\s*\(/g, "eval"],
     [/new\s+Function\s*\(/g, "new Function"],
     [/document\.write\s*\(/g, "document.write"],
     [/addEventListener\(\s*["']message["']/g, 'a window "message" listener'],
@@ -218,7 +218,11 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
 // bytes instead of the escape sequences it appears to contain. One line ending
 // too, or every normalisation shows up as a whole-file diff.
 {
-  for (const f of [...srcFiles, "selftest.js"]) {
+  // tools/ is in scope because that is where it happened the second time: a
+  // `perl -pe 's/\b.../'` wrote a literal backspace into this very file, and
+  // the gate could not see it. A checker exempt from its own rule is a gap.
+  const toolFiles = all.filter((p) => p.startsWith("tools") && /\.m?js$/.test(p));
+  for (const f of [...srcFiles, ...toolFiles, "selftest.js"]) {
     const buf = readFileSync(f);
     for (let i = 0; i < buf.length; i++) {
       const c = buf[i];
@@ -229,6 +233,48 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
       }
     }
   }
+}
+
+// ── gate 17: the version is legal and has never been used ────────────────────
+// Chrome validates `version` before it looks at anything else and rejects the
+// whole upload, so a malformed number costs a round trip through review. A
+// reused number is worse: once published, a version can never be published
+// again, even after the release is taken down (docs/VERSIONING.md).
+{
+  const parts = manifest.version.split(".");
+  if (parts.length < 1 || parts.length > 4) {
+    fail(17, `version ${manifest.version} must have one to four components`);
+  }
+  for (const p of parts) {
+    if (!/^(0|[1-9]\d*)$/.test(p)) fail(17, `version component "${p}" has a leading zero or is not an integer`);
+    else if (Number(p) > 65535) fail(17, `version component ${p} is over Chrome's 65535 limit`);
+  }
+  if (/-/.test(manifest.version)) {
+    fail(17, `version ${manifest.version} carries a prerelease suffix — Chrome has no such syntax (docs/VERSIONING.md)`);
+  }
+
+  // Monotonicity, where the history is available. Absent git this is skipped
+  // rather than guessed at: a gate that invents a baseline is not a check.
+  try {
+    const { execFileSync } = await import("node:child_process");
+    const tags = execFileSync("git", ["tag", "--list", "v*"], { encoding: "utf8" })
+      .split("\n").map((t) => t.trim()).filter(Boolean);
+    const cmp = (a, b) => {
+      const x = a.split("."), y = b.split(".");
+      for (let i = 0; i < 4; i++) {
+        const d = (Number(x[i]) || 0) - (Number(y[i]) || 0);
+        if (d) return d;
+      }
+      return 0;
+    };
+    for (const t of tags) {
+      const v = t.slice(1);
+      if (!/^\d+(\.\d+){0,3}$/.test(v)) continue;
+      if (cmp(manifest.version, v) < 0) {
+        fail(17, `manifest.version ${manifest.version} is lower than the released tag ${t}`);
+      }
+    }
+  } catch { /* no git, or no tags yet */ }
 }
 
 // ── report ───────────────────────────────────────────────────────────────────
