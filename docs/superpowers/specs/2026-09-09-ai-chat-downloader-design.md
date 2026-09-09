@@ -100,7 +100,7 @@ Item = {
 }
 ```
 
-**`key` akış sırasında kaymamalı.** Artifact/canvas'ta kimlik sağlayıcının kendi id'sinden gelir, sorun yok. Kod bloğunda doğal kimlik "mesaj indeksi + blok indeksi"dir; ama Claude yazarken **yeni bloklar araya değil sona eklenir**, dolayısıyla mevcut blokların indeksi sabit kalır — kural: kod bloğu anahtarı `msgIndex:blockIndex` olarak hesaplanır ve akış sırasında yeniden numaralandırılmaz. Anahtar kayarsa açık menü yanlış öğeye bağlanır ve kullanıcı beklediğinden başka bir dosya indirir.
+**`key` akış sırasında kaymamalı.** Artifact/canvas'ta kimlik sağlayıcının kendi id'sinden gelir, sorun yok. Kod bloğunda doğal kimlik "mesaj indeksi + blok indeksi"dir; ama Claude yazarken **yeni bloklar araya değil sona eklenir**, dolayısıyla mevcut blokların indeksi sabit kalır — kural: kod bloğu anahtarı `msgIndex:blockIndex` olarak hesaplanır ve akış sırasında yeniden numaralandırılmaz. **DOM kademesinde mesaj indeksi olmayabilir**; orada anahtar, sohbet kökünde `SEL.codeBlock` ile bulunan blokların **belge sırasındaki indeksidir** (`code:<n>`). Aynı kararlılık kuralı geçerli: yeni bloklar sona eklendiği için mevcut indeksler kaymaz. Anahtar kayarsa açık menü yanlış öğeye bağlanır ve kullanıcı beklediğinden başka bir dosya indirir.
 
 **Bu genelleştirme bugün bedava, sonra pahalı.** Normalde tek implementasyonlu soyutlama YAGNI'dir; ama ikinci ve üçüncü implementasyonun **isteneceğini bildiğimiz** an kural tersine döner. Kritik gözlem: `getConversation` zaten konuşmanın tamamını getiriyor — artifact'lar onun içinden süzdüğümüz bir alt küme. Kod blokları aynı yanıtın içinde, **ek ağ maliyeti sıfır**. "Artifact indirici" olmak mimari bir sınır değildi, sadece bir filtreydi.
 
@@ -108,17 +108,45 @@ Item = {
 
 Kaynak: API kademesi varsa asistan mesajlarının metin blokları (Claude'da **aktif dal**, §3.1; dallanma kavramı olmayan sağlayıcılarda tüm görünür akış), fenced code (```lang) parse edilir. API kademesi yoksa `common-dom.js` DOM'dan `pre > code` toplar. Her iki yolda da ek ağ isteği yok.
 
-**Kod bloğunun başlığı yoktur.** Ad şu zincirle türetilir, ilk tutan kazanır:
-1. Fence'te dosya adı: ```python:app.py → `app.py`
-2. Kodun ilk anlamlı tanımı: `class OrderService` → `order-service.py`, `func ParseTree` → `parse-tree.go`, `export function useCart` → `use-cart.ts`
-3. Bloktan hemen önceki markdown başlığı (`### Migration script` → `migration-script.sql`)
-4. Sırayla: `kod-3.py`
+**Kod bloğunun başlığı yoktur.** Ad şu zincirle türetilir, ilk tutan kazanır. Zincir **taban ad** üretir; uzantı ayrı belirlenir (aşağıda):
+
+1. **Fence'te dosya adı** — ```python:app.py → taban `app`, uzantı `.py` (bu basamakta uzantı da fence'ten gelir, dil tablosuna bakılmaz)
+2. **Kodun ilk anlamlı tanımı.** Dile göre tek bir regex, ilk eşleşmenin adı kebab-case'e çevrilir:
+   ```
+   py            ^\s*(?:class|def)\s+(\w+)
+   js ts jsx tsx ^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|class|const)\s+(\w+)
+   go            ^\s*(?:func|type)\s+(\w+)
+   java kt cs    ^\s*(?:public\s+|private\s+)?(?:final\s+)?(?:class|interface|enum)\s+(\w+)
+   rs            ^\s*(?:pub\s+)?(?:fn|struct|enum|trait)\s+(\w+)
+   rb            ^\s*(?:class|module|def)\s+(\w+)
+   php           ^\s*(?:class|function)\s+(\w+)
+   sql           ^\s*(?:CREATE|ALTER)\s+(?:TABLE|VIEW|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?[`\"]?(\w+)
+   sh bash       ^\s*(\w+)\s*\(\)\s*\{
+   ```
+   Tablosu olmayan diller bu basamağı **atlar** — uydurma bir kural yanlış ad üretir, atlamak bir sonraki basamağa düşürür. Basamak best-effort'tur, hiçbir zaman hata vermez.
+3. **Bloktan hemen önceki markdown başlığı** (`### Migration script` → `migration-script`)
+4. **Sırayla:** `kod-3` — numara, o sohbetteki kod bloklarının görünme sırasıdır (§3.3'teki `key` ile aynı sıra, yeniden numaralandırılmaz)
+
+**Uzantı** (1. basamak kazanmadıysa) fence dilinden, aşağıdaki tabloya göre:
+```
+py python → .py        js javascript node → .js    ts typescript → .ts
+jsx → .jsx             tsx → .tsx                  go golang → .go
+rs rust → .rs          rb ruby → .rb               java → .java
+kt kotlin → .kt        cs csharp → .cs             cpp c++ cc → .cpp
+c → .c                 php → .php                  swift → .swift
+sh bash shell zsh → .sh   sql → .sql               yaml yml → .yaml
+json → .json           xml → .xml                  html → .html
+css → .css             scss sass → .scss           md markdown → .md
+toml → .toml           ini → .ini                  diff patch → .diff
+dockerfile → .dockerfile   (dilsiz / tanınmayan) → .txt
+```
+Bu tablo **çekirdeğe** aittir ve dört sağlayıcıda ortaktır; §6'daki MIME tablosu yalnızca Claude adaptörünündür.
 
 Uzantı fence dilinden gelir; dil yoksa ve içerik ayırt edilemiyorsa `.txt`. Versiyon kavramı yok (`versions` tek elemanlı).
 
 **Türetilen adlar çakışabilir.** Aynı sohbette iki blok da `class OrderService` içerebilir; ikisi de `order-service.py` olur. Tek dosya indirmede Chrome `(1)` ekler, ama **zip içinde iki özdeş ad bozuk arşiv demektir**. Kural: zip'e eklenirken `kod/` altında ad çakışması sayılır ve ikinciden itibaren `-2`, `-3` eklenir. Aynı kural klasöre kaydetmede de geçerli (§8.7.2).
 
-**Üç satırdan kısa bloklar atlanır.** Tek satırlık `npm install x` veya bir değişken adı dosya değildir; her birine kontrol koymak arayüzü çöplüğe çevirir.
+**Üç satırdan kısa bloklar atlanır.** Ölçü **boş olmayan satır** sayısıdır (`trim()` sonrası boş olanlar sayılmaz), böylece iki satırlık kod + üç boş satır kontrol almaz. Tek satırlık `npm install x` veya bir değişken adı dosya değildir; her birine kontrol koymak arayüzü çöplüğe çevirir. Eşik `MIN_CODE_LINES = 3` olarak tek yerde tanımlıdır.
 
 ### 3.3.2 Ekler
 
@@ -158,7 +186,9 @@ Sözleşme **tam** olmak zorunda: bir feature'ın (ek indirme, sohbet zip'i, taz
 
 Her adaptör **DOM kademesini uygulamak zorundadır**; API kademesi opsiyoneldir. Böylece bir sağlayıcının dahilî API'si bulunamasa, değişse veya direnç gösterse bile ürün o sağlayıcıda çalışmaya devam eder — sadece daha az yetenekle.
 
-Bunu mümkün kılan gözlem: **DOM kod-bloğu çıkarımı neredeyse sağlayıcıdan bağımsız.** Dördü de kod bloğunu `pre > code` olarak, dili bir sınıf adıyla (`language-python`, `hljs python`) çizer. Çekirdek bunun **ortak varsayılan implementasyonunu** taşır; adaptör yalnızca farklıysa geçersiz kılar. Kod blokları — yani değerin büyük kısmı — dört sağlayıcıda tek kod yoluyla çalışır.
+Bunu mümkün kılan gözlem: **DOM kod-bloğu çıkarımı neredeyse sağlayıcıdan bağımsız.** Dördü de kod bloğunu `pre > code` olarak, dili bir sınıf adıyla çizer. Ortak varsayılan, dili şu sırayla arar ve ilk bulduğunu kullanır: `data-language` / `data-lang` özniteliği → `language-*` sınıfı → `hljs` yanındaki dil sınıfı → `pre`'nin aynı özniteliklerinden biri. Hiçbiri yoksa dil bilinmiyor sayılır ve uzantı `.txt` olur — tahmin edilmez.
+
+Gezici düğme `SEL.chatRoot` üzerinde tek bir `mouseover`/`focusin` delegasyonuyla çalışır; her blok için ayrı dinleyici bağlanmaz (uzun sohbette yüzlerce dinleyici demek olurdu). Çekirdek bunun **ortak varsayılan implementasyonunu** taşır; adaptör yalnızca farklıysa geçersiz kılar. Kod blokları — yani değerin büyük kısmı — dört sağlayıcıda tek kod yoluyla çalışır.
 
 ### 3.4.2 Yetenek matrisi
 
@@ -720,7 +750,8 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 Bir sağlayıcıya ait **tüm** selector'lar, o adaptörün dosyasındaki tek `SEL` objesinde. `content.js` hiçbir sağlayıcı seçicisi içermez — içerirse adaptör yalıtımı (§3.4.3) delinir ve bir sağlayıcının değişimi çekirdeği tamir etmeyi gerektirir:
 ```js
 // Bu sağlayıcının arayüzü değişirse SADECE burası güncellenir.
-const SEL = { panel, panelTitle, actionBar, docCard,      // docCard → badge sayımı (§8.5)
+const SEL = { chatRoot,                                  // olay delegasyonu + gezici düğme kapsayıcısı
+              panel, panelTitle, actionBar, docCard,      // docCard → badge sayımı (§8.5)
               codeBlock, codeLang,                        // common-dom.js override noktası
               versionIndicator, codeTab, streamIndicator,  // akış tespiti (§3.2)
               attachmentChip };                           // capabilities.attachments ise
