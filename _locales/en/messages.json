@@ -137,5 +137,29 @@
         "example": "app.py"
       }
     }
+  },
+  "notRunningHere": {
+    "message": "Loaded, but not running on this tab"
+  },
+  "emptyReload": {
+    "message": "Magpie was added or updated after this page opened, so it is not running in it yet. Reload the page."
+  },
+  "reloadPage": {
+    "message": "Reload the page"
+  },
+  "shortSkipped": {
+    "message": "$1 short blocks were not offered — under 3 lines, so they are snippets rather than files.",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "showShort": {
+    "message": "Show them anyway"
+  },
+  "shortBadge": {
+    "message": "short"
   }
 }

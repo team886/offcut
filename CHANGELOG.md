@@ -30,6 +30,14 @@ The MVP: **code blocks, on every provider in the registry.** No documents, no ve
 
 - **Seven user-visible strings were hardcoded English.** Five toasts and two `aria-label`s never went through `chrome.i18n`, so a Turkish user would have met them untranslated — including the clipboard failure message and the download button's screen-reader label. All routed through the catalogue, which gained four message keys.
 
+- **Copy from the popup could never have worked.** The clipboard belongs to whichever document has focus, and while the popup is open the page is not it, so `navigator.clipboard.writeText` in the content script rejected every time — surfacing as "the page blocked clipboard access", which blamed the site for the extension's own mistake. The page now resolves the text and the popup, which has both focus and the click, writes it. The in-page path (Alt+click on the control) still writes directly, because there the click is a real gesture in a focused document.
+
+- **The popup said "not a supported chat" when it simply had not been reached.** Chrome does not inject content scripts into tabs that were already open when an extension is loaded or updated, and silence from the content script was being reported as an unsupported site — sending the user to fix the wrong thing. The popup now reads the tab's host itself and, on a registry origin with no answer, says the extension is not running in that tab yet and offers a reload button.
+
+- **Sub-threshold code blocks were dropped silently.** A conversation full of one-line commands produced "Nothing to download in this conversation", which on a page visibly containing fenced code reads as a fault rather than a rule. Blocks under `MIN_CODE_LINES` are now counted, the count and the reason are shown, and a single click lists them anyway, marked `short`.
+
+- The line count inside a row's `aria-label` was hardcoded English inside an otherwise localised string, so a Turkish screen reader announced "3 lines".
+
 ### Notes
 
 - No telemetry, no external requests, no account. CI gate 8 checks that mechanically: no source file may name a host outside the registry origins.

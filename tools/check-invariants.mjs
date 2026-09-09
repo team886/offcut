@@ -277,34 +277,75 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
   } catch { /* no git, or no tags yet */ }
 }
 
-// ── gate 18: no user-visible string is written literally ─────────────────────
-// §13 forbids hardcoded user-visible text and had no gate, so it rotted: the
-// content script shipped five English sentences and two aria-labels that no
-// Turkish user would ever see translated. A rule the build does not check is
-// a rule that survives exactly as long as someone remembers reading it.
+// ── gate 18: no user-visible string is written literally ─────────────────
+// §13 forbids hardcoded user-visible text and had no gate, so it rotted: v1
+// shipped five English sentences and two aria-labels no Turkish user would
+// have seen translated.
 //
-// A literal counts as user-visible when it reaches a person: a toast, an
-// aria-label, a title, or textContent. Symbols are not text — "↓" and "✕"
-// carry no language — so the test is three consecutive ASCII letters.
+// It scans the argument that carries the text, not the whole call. The first
+// draft looked only at the literal after the comma and missed English spliced
+// into the middle of a localised string; the second scanned everything and
+// flagged `showToast(msg, "warn")`, where "warn" is a severity, not prose.
+//
+// Symbols are not text — "↓" and "⧉" carry no language — so the test is three
+// consecutive ASCII letters. t(…) is removed first: its second argument is a
+// deliberate fallback for an unreachable catalogue.
 {
-  const looksLikeProse = (lit) => /[A-Za-z]{3}/.test(lit);
-  const sinks = [
-    [/showToast\(\s*"([^"]*)"/g, "a toast"],
-    [/setAttribute\(\s*["']aria-label["']\s*,\s*"([^"]*)"/g, "an aria-label"],
-    [/\.title\s*=\s*"([^"]*)"/g, "a title attribute"],
-    [/\.placeholder\s*=\s*"([^"]*)"/g, "a placeholder"],
+  /** Balanced source inside the parens that start at `open`. */
+  const inside = (body, open) => {
+    let depth = 0;
+    for (let i = open; i < body.length; i++) {
+      if (body[i] === "(") depth++;
+      else if (body[i] === ")") { depth--; if (depth === 0) return body.slice(open + 1, i); }
+    }
+    return "";
+  };
+
+  /** Split on top-level commas, ignoring those inside parens or strings. */
+  const splitArgs = (src) => {
+    const out = []; let depth = 0, quote = null, cur = "";
+    for (let i = 0; i < src.length; i++) {
+      const c = src[i];
+      // 92 is a backslash; comparing by code point keeps this line free of one.
+      if (quote) { cur += c; if (c === quote && src.charCodeAt(i - 1) !== 92) quote = null; continue; }
+      if (c === '"' || c === "'" || c === "`") { quote = c; cur += c; continue; }
+      if (c === "(" || c === "[" || c === "{") depth++;
+      if (c === ")" || c === "]" || c === "}") depth--;
+      if (c === "," && depth === 0) { out.push(cur); cur = ""; continue; }
+      cur += c;
+    }
+    out.push(cur);
+    return out;
+  };
+
+  /** Drop t(…) regions: their fallback argument is English on purpose. */
+  const stripT = (src) => src.replace(/\bt\((?:[^()]|\([^()]*\))*\)/g, "");
+
+  // [pattern, which argument carries user text, what it is]
+  const SINKS = [
+    [/\bshowToast\(/g, 0, "a toast"],
+    [/\bsetAttribute\(\s*["']aria-label["']/g, 1, "an aria-label"],
   ];
+
   for (const f of srcFiles) {
     const body = read(f);
-    for (const [re, where] of sinks) {
-      for (const m of body.matchAll(re)) {
-        if (!looksLikeProse(m[1])) continue;
-        // The orphaned-context message is the one deliberate exception: by the
-        // time it is shown, chrome.i18n is gone (§7.2). It is precached under
-        // UPDATED_TEXT and never written at a sink literally.
-        const line = body.slice(0, m.index).split("\n").length;
-        fail(18, `${f}:${line} writes "${m[1].slice(0, 40)}" into ${where} — §13 requires chrome.i18n`);
+    const flag = (arg, where, index) => {
+      for (const lit of stripT(arg).matchAll(/"([^"\\]*)"/g)) {
+        if (!/[A-Za-z]{3}/.test(lit[1])) continue;
+        const line = body.slice(0, index).split("\n").length;
+        fail(18, `${f}:${line} puts "${lit[1].slice(0, 40)}" in ${where} — §13 requires chrome.i18n`);
       }
+    };
+    for (const [re, argIndex, where] of SINKS) {
+      for (const m of body.matchAll(re)) {
+        const open = body.indexOf("(", m.index);
+        const args = splitArgs(inside(body, open));
+        if (args[argIndex] != null) flag(args[argIndex], where, m.index);
+      }
+    }
+    // Assignment sinks carry the text alone, so the whole right-hand side counts.
+    for (const m of body.matchAll(/\.(?:title|placeholder)\s*=([^\n]*)/g)) {
+      flag(m[1], "a title or placeholder", m.index);
     }
   }
 }

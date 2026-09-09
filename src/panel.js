@@ -31,6 +31,8 @@
   let cfg = DEFAULTS;
   let items = [];
   let tabId = null;
+  let needsReload = false;      // supported host, but no content script answered
+  let skipped = 0;              // blocks below MIN_CODE_LINES, counted not hidden
   let focusIndex = 0;
 
   // ── i18n: every visible string comes from _locales (§13) ─────────────────
@@ -92,7 +94,19 @@
   function emptyState() {
     const d = document.createElement("div");
     d.className = "empty";
-    if (tabId == null || !items.provider) {
+    if (needsReload) {
+      // The one empty state with a fix the user can perform from here.
+      d.textContent = t("emptyReload", "Reload the page.");
+      const b = document.createElement("button");
+      b.className = "reload";
+      b.textContent = t("reloadPage", "Reload the page");
+      b.addEventListener("click", () => {
+        if (tabId != null) chrome.tabs.reload(tabId);
+        window.close();
+      });
+      d.appendChild(document.createElement("br"));
+      d.appendChild(b);
+    } else if (tabId == null || !items.provider) {
       d.textContent = t("emptyUnsupported", "Open a conversation on a supported AI chat.");
       const p = document.createElement("div");
       R.REGISTRY.slice(0, 4).forEach((row, i) => {
@@ -104,6 +118,26 @@
       });
       d.appendChild(document.createElement("br"));
       d.appendChild(p);
+    } else if (skipped > 0) {
+      // "Nothing to download" on a page that visibly contains fenced code reads
+      // as a fault. Saying how many were held back, and why, turns an invisible
+      // threshold into a stated one the user can overrule (§8.4).
+      d.textContent = t("shortSkipped", "$1 short blocks were not offered.")
+        .replace("$1", skipped);
+      const b = document.createElement("button");
+      b.className = "reload";
+      b.textContent = t("showShort", "Show them anyway");
+      b.addEventListener("click", async () => {
+        const provider = items.provider;          // read before items is replaced
+        const r = await send({ type: "short:show" });
+        if (!r || !r.items) return;
+        items = r.items;
+        items.provider = provider;
+        skipped = 0;
+        render();
+      });
+      d.appendChild(document.createElement("br"));
+      d.appendChild(b);
     } else {
       d.textContent = t("emptyNoItems", "Nothing to download in this conversation.");
     }
@@ -131,16 +165,17 @@
     const meta = document.createElement("span");
     meta.className = "meta";
     meta.textContent = (item.taken ? "✓ " : "") +
-      (item.lines != null ? t("lines", "$1 lines").replace("$1", item.lines) : "");
+      (item.lines != null ? t("lines", "$1 lines").replace("$1", item.lines) : "") +
+      (item.short ? " · " + t("shortBadge", "short") : "");
 
     // The accessible name carries what the icons convey visually (§8.6.1)
     row.setAttribute("aria-label",
       item.name + ", " + t(KIND_LABEL[item.kind] || "items", item.kind) +
-      (item.lines != null ? ", " + item.lines + " lines" : ""));
+      (item.lines != null ? ", " + t("lines", "$1 lines").replace("$1", item.lines) : ""));
 
     const act = document.createElement("span");
     act.className = "act";
-    act.appendChild(iconButton("⧉", t("copy", "Copy"), () => send({ type: "item:copy", key: item.key })));
+    act.appendChild(iconButton("⧉", t("copy", "Copy"), () => copyToClipboard(item)));
     const dl = iconButton("↓", t("download", "Download"), () => send({ type: "item:download", key: item.key }));
     dl.className = "pri";
     act.appendChild(dl);
@@ -212,7 +247,7 @@
       case "ArrowDown": e.preventDefault(); setFocus(focusIndex + 1); break;
       case "ArrowUp": e.preventDefault(); setFocus(focusIndex - 1); break;
       case "Enter": if (it) { e.preventDefault(); send({ type: "item:download", key: it.key }); } break;
-      case "c": case "C": if (it && !e.metaKey && !e.ctrlKey) { e.preventDefault(); send({ type: "item:copy", key: it.key }); } break;
+      case "c": case "C": if (it && !e.metaKey && !e.ctrlKey) { e.preventDefault(); copyToClipboard(it); } break;
       case "e": case "E": {
         if (!it || e.metaKey || e.ctrlKey) break;
         e.preventDefault();
@@ -314,6 +349,33 @@
   }
 
   // ── footer actions ───────────────────────────────────────────────────────
+  /**
+   * Copy runs HERE, not in the page. While this popup is open the page is not
+   * the focused document, and navigator.clipboard.writeText() rejects on an
+   * unfocused document — which surfaced to the user as "the page blocked
+   * clipboard access", blaming the site for the extension's own mistake.
+   * The page resolves the text; the popup, which has focus and the click,
+   * writes it (§8.6 item 10).
+   */
+  async function copyToClipboard(item, feedbackEl) {
+    const r = await send({ type: "item:copy", key: item.key });
+    if (!r || !r.ok) return flash(feedbackEl, t("toastItemGone", "That item is no longer on the page"));
+    try {
+      await navigator.clipboard.writeText(r.content);
+      flash(feedbackEl, t("copied", "Copied"));
+    } catch {
+      flash(feedbackEl, t("toastCopyBlocked", "Could not copy"));
+    }
+  }
+
+  /** Feedback in the popup's live region, so a screen reader hears it too. */
+  function flash(_el, text) {
+    const c = el("count");
+    const prev = c.textContent;
+    c.textContent = text;
+    setTimeout(() => { if (c.textContent === text) c.textContent = prev; }, 1500);
+  }
+
   async function copyDiagnostics() {
     const d = await send({ type: "diag:get" });
     const lines = d
@@ -341,14 +403,33 @@
     const tabs = await new Promise((res) => chrome.tabs.query({ active: true, currentWindow: true }, res));
     tabId = tabs && tabs[0] ? tabs[0].id : null;
 
+    // The tab's URL is readable without the "tabs" permission for any origin
+    // we already hold a host permission for — which is exactly the registry's
+    // origins, and the only ones this answer needs (§19.6).
+    let urlRow = null;
+    try {
+      const u = tabs && tabs[0] && tabs[0].url;
+      if (u) urlRow = R.findProvider(new URL(u).hostname);
+    } catch { urlRow = null; }
+
     const resp = await send({ type: "items:list" });
     items = (resp && resp.items) || [];
     items.provider = resp && resp.provider;
+    skipped = (resp && resp.skipped) || 0;
+
+    // Three states, not two. Silence from the content script is not evidence
+    // that the site is unsupported — Chrome does not inject into tabs that
+    // were already open when the extension was loaded or updated, and saying
+    // "not a supported chat" on a supported chat sends the user to fix the
+    // wrong thing (§8.4: we can only claim what we know).
+    needsReload = !items.provider && !!urlRow;
 
     el("dot").classList.toggle("off", !items.provider);
     el("strip").textContent = items.provider
       ? items.provider + " · " + t("codeOnly", "code blocks")
-      : t("unsupportedSite", "Not a supported chat");
+      : needsReload
+        ? t("notRunningHere", "Loaded, but not running on this tab")
+        : t("unsupportedSite", "Not a supported chat");
 
     el("filter").addEventListener("input", render);
     el("list").addEventListener("keydown", onKey);

@@ -133,12 +133,21 @@ const MagpieDom = (() => {
    * never renumbered mid-stream: new blocks append, so existing keys hold
    * (§3.3). A shifting key would rebind an open menu to another item.
    */
-  function collectCodeItems(root, selector) {
+  function collectCodeItems(root, selector, opts) {
     const nodes = codeNodes(root, selector);
     const items = [];
+    let skipped = 0;
     nodes.forEach((el, i) => {
       const text = readCodeText(el);
-      if (!P.isDownloadableCodeBlock(text)) return;      // §3.3.1, MIN_CODE_LINES
+      // Below MIN_CODE_LINES a block is a command or a one-liner, not a file
+      // (§3.3.1). Dropping those silently was wrong: on a page that visibly
+      // contains fenced code the panel then said "nothing to download", which
+      // reads as a fault rather than a threshold. They are counted, and the
+      // count is offered, so the rule is visible instead of invisible.
+      if (!P.isDownloadableCodeBlock(text)) {
+        skipped++;
+        if (!(opts && opts.includeShort)) return;
+      }
       const lang = languageOf(el);
       const { base, ext } = P.deriveCodeName({
         fenceInfo: lang,
@@ -148,6 +157,7 @@ const MagpieDom = (() => {
       });
       items.push({
         kind: "code",
+        short: !P.isDownloadableCodeBlock(text),
         key: "code:" + i,
         title: base,
         ext,
@@ -157,6 +167,7 @@ const MagpieDom = (() => {
         versions: [{ v: 1, content: text, ok: true, bytes: new TextEncoder().encode(text).length }],
       });
     });
+    items.skipped = skipped;
     return items;
   }
 

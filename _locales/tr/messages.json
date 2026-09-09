@@ -137,5 +137,29 @@
         "example": "app.py"
       }
     }
+  },
+  "notRunningHere": {
+    "message": "Yüklü, ama bu sekmede çalışmıyor"
+  },
+  "emptyReload": {
+    "message": "Magpie bu sayfa açıldıktan sonra eklendi veya güncellendi, bu yüzden içinde henüz çalışmıyor. Sayfayı yenile."
+  },
+  "reloadPage": {
+    "message": "Sayfayı yenile"
+  },
+  "shortSkipped": {
+    "message": "$1 kısa blok sunulmadı — 3 satırın altında, yani dosya değil parçacık.",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "showShort": {
+    "message": "Yine de göster"
+  },
+  "shortBadge": {
+    "message": "kısa"
   }
 }

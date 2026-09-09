@@ -25,6 +25,7 @@
     host: null, shadow: null, control: null, toastHost: null,
     hoverEl: null, observer: null, rafPending: false, dead: false,
     lastError: null, seenIntro: false, hoverCapable: true,
+    includeShort: false, skipped: 0,   // sub-threshold blocks: counted, offered on request
   };
 
   // ── chrome.* wrapper: an orphaned content script must not spam (§7.2) ──────
@@ -238,10 +239,18 @@
     return "text/plain;charset=utf-8";
   }
 
+  /**
+   * In-page copy (the control's Alt+click). Works because the click is a real
+   * user gesture in a focused document — the two things the clipboard API
+   * requires. The popup's copy cannot use this path; see the "item:copy"
+   * handler for why.
+   */
   async function copyItem(item) {
-    const v = item.versions[item.versions.length - 1];
-    try { await navigator.clipboard.writeText(v.content); showToast("⧉ " + displayName(item), "ok"); }
-    catch (e) { showToast(t("toastCopyBlocked"), "err"); }
+    const { content, complete } = await resolveContent(item);
+    try {
+      await navigator.clipboard.writeText(content);
+      showToast("⧉ " + displayName(item, !complete), "ok");
+    } catch (e) { showToast(t("toastCopyBlocked"), "err"); }
   }
 
   function onControlClick(ev) {
@@ -258,8 +267,10 @@
     state.root = resolved.node;
     state.rootVia = resolved.via;
     state.items = state.cfg.kinds.code
-      ? D.collectCodeItems(state.root || document, state.row && state.row.codeBlock)
+      ? D.collectCodeItems(state.root || document, state.row && state.row.codeBlock,
+                           { includeShort: state.includeShort })
       : [];
+    state.skipped = state.items.skipped || 0;
     state.byKey = new Map(state.items.map((i) => [i.key, i]));
     if (state.hoverEl && !document.contains(state.hoverEl)) hideControl();
     safe(() => chrome.runtime.sendMessage({
@@ -317,7 +328,7 @@
   function serialiseItem(i) {
     return { kind: i.kind, key: i.key, title: state.renamed.get(i.key) || i.title, ext: i.ext,
              language: i.language, lines: i.lines, name: displayName(i),
-             taken: state.tookThisSession.has(i.key) };
+             short: !!i.short, taken: state.tookThisSession.has(i.key) };
   }
 
   function onMessage(msg, _sender, reply) {
@@ -325,17 +336,32 @@
     switch (msg && msg.type) {
       case "items:list":
         rescan();
-        reply({ provider: state.row ? state.row.name : null, items: state.items.map(serialiseItem) });
+        reply({ provider: state.row ? state.row.name : null,
+                items: state.items.map(serialiseItem),
+                skipped: state.skipped, includeShort: state.includeShort });
         return true;
       case "item:download": {
         const it = state.byKey.get(msg.key);
         if (it) download(it); else showToast(t("toastItemGone"), "warn");
         reply({ ok: !!it }); return true;
       }
+      case "short:show":
+        state.includeShort = true;
+        rescan();
+        reply({ ok: true, items: state.items.map(serialiseItem) });
+        return true;
       case "item:copy": {
+        // The clipboard belongs to whatever document has focus. A request from
+        // the popup arrives while the POPUP holds focus, so writeText() here
+        // throws NotAllowedError and the user is told the page blocked it —
+        // which is not what happened. The page hands the text back instead and
+        // the popup, which has both focus and the click, does the writing.
         const it = state.byKey.get(msg.key);
-        if (it) copyItem(it);
-        reply({ ok: !!it }); return true;
+        if (!it) { reply({ ok: false }); return true; }
+        resolveContent(it).then(({ content, complete }) => {
+          reply({ ok: true, content, name: displayName(it, !complete), complete });
+        }, () => reply({ ok: false }));
+        return true;
       }
       case "item:rename": {
         const it = state.byKey.get(msg.key);
