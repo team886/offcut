@@ -104,9 +104,14 @@ FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip oldu�
 
 ### 2.2.1 Gözlem: FindAgent bir ajan platformu, sohbet arayüzü değil
 
-2026-09-09'da bu oturumda görülenler (varsayım değil, gözlem): ajanlar **ajan başına ayrı MCP sunucuları** olarak sunuluyor (`mcp.findagent.cloud`, `findagent-bot.fly.dev`), OAuth ile yetkilendiriliyor, ve hepsi aynı araç kalıbını paylaşıyor: `list_capabilities` → `plan_inputs` → salt-okunur `fetch_*` → deterministik `score_*` / `detect_*` → LLM anlatısı üreten `run_full`. Örnekler: GA4 Anomaly Detector, MLS Listing Sync Analyzer.
+2026-09-09'da bu oturumda **gözlemlenenler** (varsayım değil; platformun kendi araçları sorgulanarak):
 
-**Sonuç: birinci dal (kayıt satırı) elenir.** Scrape edilecek bir sohbet arayüzü yok. Doğru dal üçüncüsü — MCP.
+- FindAgent bir **ajan pazaryeri ve yayınlama platformu**: gezinme/satın alma (`browse_agents`, `buy_agent`, `list_categories`), fiyat ve kazanç (`edit_price`, `earnings`), istek panosu (`list_requests`, `vote_request`)
+- **Yayınlama hattı**: taslak → `preflight` → `submit_for_review` → `bump_version` / `rollback_version`; ajan kaynağı ya kod (`create_code_draft`, `import_repo`, `connect_github`) ya da uzak MCP (`create_remote_mcp`)
+- **Hesap tabanlı**; MCP connector'ı belirli bir hesap adına çalışıyor (`whoami`)
+- Satın alınan ajanlar **ajan başına MCP sunucusu** olarak tüketiliyor (`mcp.findagent.cloud`), platform botu `bot.findagent.cloud`; ajanlar ortak bir araç kalıbı paylaşıyor: `list_capabilities` → `plan_inputs` → salt-okunur `fetch_*` → deterministik `score_*`/`detect_*` → LLM anlatılı `run_full`
+
+**Sonuç: birinci dal (kayıt satırı) elenir.** Scrape edilecek bir sohbet arayüzü yok — FindAgent'ta kullanıcı "sohbet etmiyor", ajan kuruyor/satın alıyor. Doğru dal MCP, ama artık **iki ayrı yönü** var ve ikisi farklı şeyler:
 
 **Ama yön kritik ve gizlilik çerçevesini belirliyor:**
 
@@ -115,11 +120,19 @@ FindAgent'ın bu üründe nasıl yer alacağı, **onun hangi yüzeye sahip oldu�
 | **Bizim yerel MCP sunucumuz, FindAgent ajanlarının tükettiği** | Uyumlu. §4.2'deki v3 yüzeyi **stdio/yerel** çalıştığı sürece veri cihazdan çıkmaz ve §17.2 korunur. Kütüphane yerelde durur, ajan yerelde okur |
 | **Bizim verimizi FindAgent bulutuna göndermek** | **Uyumsuz.** `findagent.cloud` ve `fly.dev` uzak host'lar; oraya konuşma içeriği ya da indirme kütüphanesi göndermek "dış istek yok" taahhüdünü (§17.2) ve mağaza veri beyanını (§19.6) doğrudan bozar. Yapılacaksa ayrı bir onay akışı, ayrı bir gizlilik politikası ve muhtemelen ayrı bir ürün gerekir |
 
+**Üçüncü, yeni görülen yön — dağıtım.** FindAgent kod/repo tabanlı ajanları kabul ediyor (`import_repo`, `create_code_draft`). §4.2'deki **yerel MCP sunucumuz** tam olarak bu biçimde bir şey: küçük, bağımlılıksız, kullanıcının makinesinde çalışan bir repo. FindAgent'ta yayınlanması, veri paylaşımı **değil dağıtım** olur — kod kullanıcıya gider, veri hiçbir yere. Gizlilik çerçevesine dokunmaz.
+
+Bu, bu ürünün FindAgent'la en doğal kesişimi: extension veriyi üretir, yerel MCP sunucusu onu ajanlara açar, FindAgent o sunucunun **bulunmasını** sağlar.
+
 **Karar:** entegrasyon **yerel MCP** yönünde tasarlanır. Bizim tarafımızdaki iş, §4.2'deki MCP yüzeyini FindAgent'ın araç kalıbıyla **uyumlu** yazmaktır — `list_capabilities` ile ne sunduğumuzu bildiren, `plan_inputs` ile girdi şemasını veren, salt-okunur `fetch_*` ile kütüphaneyi açan bir sunucu. Aynı kalıbı izlemek, FindAgent ajanlarının bizi ekstra uyarlama olmadan tüketebilmesi demek.
 
 **Önkoşul sırası değişmiyor:** klasöre kaydetme (v1) → indirme geçmişi (§4.3) → yerel MCP sunucusu (§4.2 v3) → FindAgent uyumu. Kütüphane birikmeden ajana açılacak bir şey yok.
 
-**Hâlâ cevaplanmamış tek soru:** FindAgent ajanları yalnızca bulutta mı çalışıyor, yoksa kullanıcının makinesindeki bir MCP sunucusunu da tüketebiliyor mu? Cevap "yalnızca bulut" ise bu entegrasyon **yapılmaz** — çünkü tek yolu veriyi dışarı göndermek olurdu ve bu ürün onu yapmaz.
+**Cevaplanmamış iki soru:**
+1. FindAgent ajanları yalnızca bulutta mı çalışıyor, yoksa kullanıcının makinesindeki bir MCP sunucusunu da tüketebiliyor mu? "Yalnızca bulut" ise **tüketim** yönü yapılmaz — tek yolu veriyi dışarı göndermek olurdu.
+2. Pazaryeri, kullanıcının kendi makinesinde çalışan (self-hosted) bir ajanı listelemeye izin veriyor mu? Veriyorsa **dağıtım** yönü, birinci sorunun cevabından bağımsız olarak geçerlidir.
+
+İkisi de platformun kuralına bağlı, bizim tasarımımıza değil — o yüzden burada karar değil, **koşul** olarak duruyorlar.
 
 ## 3. Kritik iç görü — artifact bir op-log'dur
 
