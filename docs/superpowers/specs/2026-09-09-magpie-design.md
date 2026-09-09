@@ -905,6 +905,46 @@ Ama sessizce kaybolmak da yanlış: kullanıcı butonu arar, bulamaz, sebebini b
 
 ## 8. UI kararları
 
+### 8.0 Basitlik ilkeleri — tasarım büyüdükçe bunlar hakem
+
+Bu doküman boyunca özellik eklendi: altı öğe türü, filtre, çoklu seçim, geçmiş, taşıma, sürüm menüsü. Her biri tek başına gerekçeliydi. **Toplamı, gerekçesiz bir karmaşıklık üretebilir.** Aşağıdakiler o toplamı sınırlayan kurallar; yeni bir şey eklenirken bunlara karşı ölçülür.
+
+**1. Asıl ürün sayfadaki düğme, popup değil.** Kullanıcıların çoğu popup'ı hiç açmayacak: hover → `↓` → doğru adla dosya. Popup toplu işler, geçmiş ve nadir durumlar için. Optimizasyon sırası da budur — sayfadaki akış hiçbir zaman popup'a bağımlı hâle gelmez.
+
+**2. Sıfır yapılandırmayla çalışır.** Hiçbir ayar, hiçbir onay, hiçbir kurulum adımı gerekmeden ilk indirme çalışır. Her ayarın varsayılanı **doğru cevap** olmak zorunda; "kullanıcı ayarlardan açar" bir tasarım çözümü değil, çözümsüzlüğün ertelenmesi.
+
+**3. Kademeli açığa çıkarma.** Birincil eylem her zaman görünür (`↓`). İkincil eylemler (kopyala, sürüm, taşı) **hover'da** belirir. Üçüncül olanlar `…` altında. Ayarlar popup'ta **değil**, options sayfasında — popup iş yapmak içindir, yapılandırmak için değil.
+
+**4. Kontrol ancak seçenek varsa var.** §3.4.5'teki kural her yerde geçerli: tek sürüm varsa `▾` yok, geçmiş kapalıysa sekme yok, sağlayıcıda o tür yoksa grup yok, 10'dan az öğe varsa filtre yok. Boş kabuk göstermek, olmayan bir yeteneği vaat etmek.
+
+**5. Öğrenilecek şey yok.** İkonlar tek başına bırakılmaz — hover ipucu üretilecek dosya adını söyler, satırlar okunabilir etikete sahiptir. İlk kullanımda tek satırlık bir ipucu, sonra sessizlik. Kılavuz okumayı gerektiren bir indirme düğmesi başarısız bir düğmedir.
+
+**Ölçüt:** yeni bir özellik, **hiçbir şey öğrenmemiş** bir kullanıcının ilk indirmesini zorlaştırıyorsa, o özellik ikincil yüzeye taşınır ya da eklenmez.
+
+### 8.0.1 Renk paleti — Claude'un rengini bırakmak
+
+Önceki palet Claude'un coral'ı (#d97757) üzerine kuruluydu; ürün Claude'a özgüyken makuldü. Artık dört sağlayıcıda çalışıyor ve başka bir şirketin marka rengini taşımak iki sorun üretiyor: ChatGPT'de Claude rengi görmek **yanlış bir bağ** kuruyor, ve §15'teki marka kuralı ("hiçbir sağlayıcının markasını ima etme") kendi paletimizle çelişiyor.
+
+**Yeni palet — saksağan.** Ad hikâyeyi zaten veriyor: siyah-beyaz kuş, gagasında parlayan altın.
+
+| Token | Koyu tema | Açık tema | Kullanım |
+|---|---|---|---|
+| `--mg-ink` | `#17161A` | `#FFFFFF` | zemin |
+| `--mg-surface` | `#201F24` | `#F4F3F1` | kart, menü, popup yüzeyi |
+| `--mg-line` | `#35333B` | `#E2E0DC` | kenarlık, ayırıcı |
+| `--mg-fg` | `#F2F0EC` | `#1A1A1E` | metin |
+| `--mg-dim` | `#9C99A3` | `#6B6870` | ikincil metin |
+| `--mg-gold` | `#E8B44A` | `#8A6212` | **vurgu** — birincil eylem, seçim, odak |
+| `--mg-ok` | `#3F8F5E` | `#2E6B45` | başarı |
+| `--mg-warn` | `#E0A32E` | `#8A5D0F` | uyarı |
+| `--mg-err` | `#C0392B` | `#A32B1F` | hata |
+
+**Neden altın:** anlamı isimden geliyor — saksağanın gagasındaki parlayan şey, yani ürünün kendisi. Ve dört sağlayıcının hiçbirinin marka renginde değil: Claude mercan, ChatGPT yeşil, Gemini mavi-mor, Perplexity turkuaz. **Turkuaz ve yeşil bilerek elendi** — ilk akla gelen "iridescent" tonlar tam da Perplexity ve ChatGPT ile çakışıyordu.
+
+**Kontrast, tercih değil kısıt.** Altın açık zeminde okunmaz (`#E8B44A` beyaz üstünde ~1.9:1). Bu yüzden vurgu **iki ayrı token**: koyu temada parlak altın, açık temada derin kehribar (`#8A6212`, beyaz üstünde 4.6:1). Tek renk kullanıp "temaya göre opaklık ayarlarız" demek, açık temada okunmayan bir birincil eylem üretirdi.
+
+Bu tokenlar §12'deki sağlayıcıdan renk okuma kuralının **yerine geçmez**: zemin ve metin hâlâ sayfadan okunur (enjekte UI sayfaya oturmalı), ama **vurgu bize aittir ve sabittir** — markanın tek görünür işareti odur.
+
 ### 8.1 İndirme kontrolü — split buton
 `↓` yarısı varsayılan versiyonu **tek tıkla** indirir; `▾` yarısı versiyon menüsünü açar. Gerekçe: indirmelerin çoğu "şu an baktığım versiyon"; menü-önce tasarım her kullanıcıya, her seferinde, azınlığın vergisini ödetir.
 
@@ -1022,7 +1062,7 @@ Klasör yolunda `write()` hata verirse gerçek hata toast'ı çıkar. Tarayıcı
 - **C — mevcut işaret** (belge + ok): 16'da okunuyor ama çizgi ağırlıklı olduğu için soluyor, ve artık isimle bağı yok. Elendi
 - **B — baş + gaga + coral nokta: seçildi**
 
-**Seçilen işaret:** ink (#262624) yuvarlak kare zemin, cream (#f5f4ef) dolu kuş başı + üçgen gaga, gaganın önünde coral (#d97757) nokta.
+**Seçilen işaret:** ink (`#17161A`) yuvarlak kare zemin, bone (`#F2F0EC`) dolu kuş başı + üçgen gaga, gaganın önünde **altın** (`#E8B44A`) nokta — gagasındaki parlayan şey (§8.0.1).
 
 Üç gerekçe: (1) yalnızca üç şekil ve hepsi 16px'te 3px'in üstünde — siluet bozulmuyor; (2) **dolu formlar çizgiden dayanıklı**, küçükte incelmiyor; (3) coral nokta hem marka vurgusu hem anlam — gagasındaki şey, yani ürünün kendisi.
 
@@ -1061,7 +1101,7 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 Üstte **eylem**, altta ayarlar. Her `cfg` anahtarının (§9) burada bir karşılığı vardır; şemada olup panelde olmayan ayar bırakılmaz.
 
 1. **Sağlayıcı şeridi:** aktif sağlayıcı + o sağlayıcıda ne alınabileceği (`ChatGPT · canvas + kod · versiyon yok`). Kullanıcı eksik yeteneği bozukluk sanmasın diye.
-2. **Öğe listesi**, `kind` başına gruplu: *Belgeler* (artifact/canvas), *Kod blokları · N*, ***Araç çıktıları · N***, *Ekler · N*, *Sohbet*. Araç çıktısı satırında araç adı ve sonuç büyüklüğü görünür (`search_events · 214 satır`) — hangi çağrının hangisi olduğu ancak böyle ayırt edilir. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
+2. **Öğe listesi**, `kind` başına gruplu. Satırda **yalnızca `↓` her zaman görünür**; kopyala, sürüm ve taşı hover'da belirir (§8.0 kural 3). Dört düğümü sürekli göstermek, listeyi kontrol duvarına çevirirdi. Gruplama: *Belgeler* (artifact/canvas), *Kod blokları · N*, ***Araç çıktıları · N***, *Ekler · N*, *Sohbet*. Araç çıktısı satırında araç adı ve sonuç büyüklüğü görünür (`search_events · 214 satır`) — hangi çağrının hangisi olduğu ancak böyle ayırt edilir. Her satır: ad, kısa meta (tip/satır/boyut), `↓`. Belge satırlarında ayrıca `▾` (versiyon) ve `🗜`. En altta `🗜 Tümü → zip`.
    Eski tek-kartlı "şu an" tasarımının yerini bu aldı: artık öğe tek değil ve panel açık olmak zorunda değil (§8.8).
 3. **Neleri göster** (`kinds`): altı anahtar — `artifact` (belge/canvas) · `code` · `tool_output` · `citations` · `image` · `attachment` · `conversation`. Sağlayıcıda o tür hiç yoksa anahtar da çizilmez (§3.4.5).
 
@@ -1397,7 +1437,7 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **Selector'lar metne bağlanamaz.** Sağlayıcı arayüzleri yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: her sağlayıcının arayüzü Türkçeye alınıp tüm akış tekrar denenir.
 
-**Tema.** Sağlayıcıların açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--mg-bg`, `--mg-fg`, `--mg-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
+**Tema.** Sağlayıcıların açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--mg-bg`, `--mg-fg`, `--mg-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi sayfadan **okunmaz**, bizimdir (§8.0.1): koyu temada `--mg-gold` parlak altın, açık temada derin kehribar. Zemin ve metin sayfadan gelir, vurgu markadan.
 
 ### 12.1 DOM'dan metin okuma kuralları
 
