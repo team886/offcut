@@ -125,6 +125,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 - Artifact'ın **her versiyonunu** ayrı ayrı indirilebilir yap
 - **Mesaj içindeki kod bloklarını** dosya olarak indir (çoğu kod artifact olmuyor)
 - **Kullanıcının sohbete yüklediği ekleri** geri indir
+- **MCP/araç çağrısı çıktılarını** tam hâliyle indir (§2.1.3) — arayüzün kırptığı hâlini değil
 - **Sohbetin tamamını Markdown olarak** indir; istenirse başka bir sağlayıcıda devam ettir (§3.3.3)
 - Sohbet uzadığında **bağlam devri** öner (§2.1.1)
 - Sohbette **hiç alınmamış** öğeleri göster (§2.1.1)
@@ -192,6 +193,37 @@ Doğru ayrım: **isim işi söyler, açıklama omurgayı söyler.**
 Bu, ürünün kendini iki farklı yerde iki farklı şekilde tanıtması değil — **aynı ürünün girişi ve tarifi.** Tek amaç beyanı (§19.6) omurga cümlesiyle birebir aynı kalır; ad bir arama anahtarı, beyan değildir.
 
 Yeniden değerlendirme koşulu: kullanıcıların çoğunluğu ürünü indirme dışındaki bir özellik için kuruyorsa (mağaza yorumları ve issue'lardan görülür), ad o zaman tartışılır. Şimdi tartışmak, elde veri yokken kimlik değiştirmek olurdu.
+
+## 2.1.3 MCP araç çıktıları — beşinci öğe türü
+
+FindAgent örneğinden çıkan gözlem (§2.2.2) aslında **FindAgent'a özgü değil**: bir MCP sunucusunun ürettiği her şey, o sohbetin içine düşüyor. Bugün bir sohbette Linear, Sentry, Notion, GA4, Postman, Slack, kendi yazdığın bir sunucu — onlarca araç çağrılıyor ve hepsinin çıktısı konuşmanın parçası oluyor.
+
+Bu, "AI sohbetlerinde üretilen işin" **en hızlı büyüyen kısmı** ve şu an bu ürünün göremediği tek kısım.
+
+**`kind: "tool_output"` ekleniyor.** Araç çağrısı sonucu birinci sınıf bir öğe olur:
+
+| Alan | Kaynak |
+|---|---|
+| Ad | Araç adı + çağrı sırası: `search_events-2`, `list_agent_runs-1` |
+| Uzantı | İçerik şekline göre: nesne/dizi → `.json`; düz satır+sütun → `.csv`; metin → `.md`; ikili → sunucunun verdiği tip |
+| İçerik | `tool_result` bloğunun **tamamı** — arayüzün gösterdiği kısaltılmış hâli değil |
+| Sürüm | Yok; her çağrı ayrı bir öğedir (aynı araç 5 kez çağrıldıysa 5 öğe) |
+
+### 2.1.3.1 Burası DOM'un en çok yalan söylediği yer
+
+Araç çıktıları arayüzlerde **varsayılan olarak katlanmış** ve çoğu zaman kırpılmış gösteriliyor — "500 satır sonuç" yazıp ilk 10 satırı açan bir kutu. §12.1'deki bütün DOM tuzakları burada aynı anda geçerli: katlanmış içerik, sanallaştırma, UI parçaları (genişlet düğmesi, satır sayacı) kod düğümünün içinde.
+
+Sonuç iki yönlü:
+- **API kademesi burada zorunlu gibi.** `content[]` içindeki `tool_use`/`tool_result` blokları yapısal gelir; sınırlar veriden değil şemadan (§4). Araç çıktısı desteği, bir sağlayıcıda API kademesi varsa **tam**, yoksa **en iyi ihtimalle kısmi** olur ve öğe `⚠ kırpılmış olabilir` işaretlenir
+- Yetenek matrisine (§3.4.5) yeni satır: **araç çıktısı** — `api` yeteneğine bağlı
+
+### 2.1.3.2 Neden bu, sıradan bir "bir tür daha" değil
+
+Bir kod bloğunu kaybedersen modelden yeniden isteyebilirsin. Bir **araç çıktısını** kaybedersen — 40 ilanın skoru, bir haftalık GA4 anomali listesi, 200 satırlık bir sorgu sonucu — onu geri getirmek aracı **yeniden çalıştırmak** demek: zaman, kota, bazen para, ve veri o arada değişmişse **aynı sonuç bir daha gelmez.**
+
+Yani araç çıktısı, bu ürünün taşıdığı öğeler arasında **en pahalı yeniden üretilebilen** olanı. Sahiplenmenin değeri en yüksek olduğu yer burası.
+
+**Gizlilik notu:** araç çıktıları genelde düz metinden **daha hassas** (analitik, müşteri listesi, hata kayıtları). Yeni bir kural gerekmiyor — §17'deki her şey aynen geçerli — ama teşhis bloğunun (§8.9) araç adlarını bile taşımaması gerektiği burada özellikle geçerli: araç adı tek başına iş bilgisi sızdırabilir.
 
 ## 2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek
 
@@ -309,7 +341,7 @@ Kural: akış hâlâ sürüyorsa (panelde/kompozitörde durdurma göstergesi var
 
 ```js
 Item = {
-  kind: "artifact" | "code" | "attachment" | "conversation",
+  kind: "artifact" | "code" | "attachment" | "conversation" | "tool_output",
   key,               // sohbet içinde kararlı kimlik (bkz. aşağıdaki kararlılık kuralı)
   title,             // görünen ad (kind'e göre türetilir)
   ext,               // ".tsx" | ".py" | ".csv" ...
@@ -499,6 +531,7 @@ Bu, kayda giren her sağlayıcının **ön koşuludur**: eklenmeden önce sıray
 |---|---|---|---|---|
 | **DOM erişilebilir** (kapalı shadow root / iframe yok) | ? | ? | ? | ? |
 | Kod blokları (DOM) | ✓* | ✓* | ✓* | ✓* |
+| **Araç çıktısı** (`tool_output`) | api'ye bağlı | api'ye bağlı | api'ye bağlı | api'ye bağlı |
 | Panel/canvas belgesi | ✓ artifact | ✓ canvas | — | — |
 | **Versiyon geçmişi** | ✓ op-log (§3) | ? canvas sürümleri | ✗ | ✗ |
 | Ekler | ? | ? | ? | ? |
@@ -876,7 +909,7 @@ Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırı
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 9 öğe → zip`.
 
-İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`.
+İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/`, `arac-ciktilari/`.
 
 **Sıra önemli: `sanitize` önce, klasör öneki sonra.** `sanitize` dosya adındaki `/` karakterini temizliyor (§6) — klasör önekini ada önce eklersek onu da siler ve zip düz bir liste olur. Zip girdisi `kind öneki + "/" + sanitize(ad)` olarak kurulur; ayırıcı `/`'ler sanitize'dan **geçmez**. Aynı kural klasöre kaydetmede yok, çünkü orada alt klasör üretmiyoruz (§8.6). Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
 
@@ -1131,7 +1164,7 @@ SEL: panel ✓ · actionBar ✓ · codeBlock ✗ · versionIndicator ✗
 Son hata: TypeError: ... (ilk satır)
 ```
 
-**İçinde ne yok:** konuşma metni, öğe içeriği, öğe başlığı, **geçmiş kayıtları**, konuşma/org UUID'si, kullanıcı adı, e-posta, URL. Yalnızca hangi kademenin çalıştığı, hangi selector'ın tuttuğu, hata tipi.
+**İçinde ne yok:** konuşma metni, öğe içeriği, öğe başlığı, **araç adları** (§2.1.3.2 — araç adı tek başına iş bilgisi sızdırır), **geçmiş kayıtları**, konuşma/org UUID'si, kullanıcı adı, e-posta, URL. Yalnızca hangi kademenin çalıştığı, hangi selector'ın tuttuğu, hata tipi.
 
 Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tanı tablosuyla doğrudan eşleşir. Sıfır telemetriyle, gerçek bir hata raporu.
 
@@ -1147,7 +1180,7 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   nameTemplate: "{title}-v{version}",  // {title} {version} {date} {ext}
   zipAll: true,              // menüde "tüm versiyonlar → zip" satırı
   saveTo: "downloads",       // "downloads" | "folder"  (§8.7.2)
-  kinds: { artifact:true, code:true, attachment:true, conversation:true },  // hangi öğe türleri
+  kinds: { artifact:true, code:true, attachment:true, conversation:true, tool_output:true },
   sites: { … },              // kayıt id → bool; eksik id varsayılan açık
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.2)
   history: false,            // indirme geçmişi — opt-in, kapalı (§4.3)
@@ -1211,6 +1244,7 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
 | Adaptör `Item[]` doğrulamasından geçemedi | O adaptör devre dışı, teşhise yazılır, diğerleri çalışır (§3.4.6) |
 | Sağlayıcıda yetenek yok | Kontrol hiç çizilmez — gri/pasif kontrol de gösterilmez |
+| Araç çıktısı yalnızca DOM'dan okunabildi | Öğe `⚠ kırpılmış olabilir`, ad `-partial`; arayüz katlanmış/kırpılmış gösteriyor olabilir (§2.1.3.1) |
 | Ek indirme endpoint'i bulunamadı | Ekler o sağlayıcıda kapsam dışı; UI'da hiç söz edilmez |
 | Sağlayıcı kapalı shadow root kullanıyor | O sağlayıcı **kapsamdan çıkarılır** (§3.4.4.1); yarım destek verilmez |
 | Konuşma iframe içinde | `all_frames` gerekiyorsa eklenir; gerekmiyorsa eklenmez (izin yüzeyi) |
@@ -1316,6 +1350,7 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
+- `toolOutputs`: `tool_result` bloğundan ad (araç + sıra), uzantı (nesne→`.json`, satır/sütun→`.csv`, metin→`.md`); aynı araç 5 kez çağrılınca 5 ayrı öğe; içerik kırpılmadan
 - `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
 - `readCodeText`: gutter/kopyala düğmesi içeren blokta yalnızca kod döner; U+200B temizlenir; `text-transform` uygulanmış temada büyük/küçük harf korunur
 - `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
@@ -1555,6 +1590,7 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 6. `claude.js`: aktif dal çıkarımı → op toplama → versiyonlar → versiyon menüsü + üç kademe
 7. `chatgpt.js` ve keşifte belge/versiyon çıkan diğer adaptörler — yetenek matrisine göre; doğrulanamayan yetenek kapatılır. Taban sağlayıcılar adaptör almaz, kayıt satırıyla yetinir
 8. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
+8a. Araç çıktıları (§2.1.3): `tool_use`/`tool_result` blokları → `kind:"tool_output"`, ad/uzantı türetme, API'siz sağlayıcıda `⚠ kırpılmış olabilir`
 8b. Sohbet Markdown'ı + taşıma (§3.3.3): `kind:"conversation"`, pano, `newChatUrl`, boyut uyarısı
 8c. İndirme geçmişi (§4.3): opt-in, hash indeksi, `Geçmiş` sekmesi, sohbetler arası tanıma
 8d. Omurga üçlüsü (§2.1.1): bağlam devri önerisi, alınmamış öğe göstergesi, `Bağlam olarak kopyala` — üçü de 8c'ye bağlı ya da ondan ucuzlar
@@ -1571,6 +1607,8 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 ### MVP kesme çizgisi
 
 Kapsam bu dokümanın ömrü boyunca büyüdü (artifact → dört öğe türü → sağlayıcı kaydı + kullanıcı hostları). Tek kişilik bir projede bunun gerçek riski kod değil, **hiçbirinin bitmemesi**. Bu yüzden kesme çizgisi baştan yazılı:
+
+**MVP = 1-5. adımlar.** (Araç çıktıları 8a'da, MVP dışında — API kademesi gerektirdiği için taban sağlayıcılarda zaten çalışmaz.)
 
 **MVP = 1-5. adımlar.** Yani: çekirdek + `common-dom.js` + gezici düğme, **kayıttaki her sağlayıcıda** kod bloğu indirme, doğru ad ve uzantı, tekil dosya indirmesi, adı düzeltebilme, kopyalama. Versiyon yok, zip yok, ek yok, klasör yok, sürükleme yok.
 
