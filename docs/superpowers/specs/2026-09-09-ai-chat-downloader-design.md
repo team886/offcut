@@ -204,6 +204,25 @@ Bir satır = kod bloğu indirme, doğru ad ve uzantı, sürükle-bırak, klasör
 
 **Bakım muhasebesi düzeliyor:** taban sağlayıcı kırıldığında tamir tek bir `chatRoot` seçicisidir ve `LAST_VERIFIED` mekanizması (§19.8) zaten sağlayıcı başına çalışıyor. Yirmi taban sağlayıcı, dört adaptörden **daha ucuz**dur.
 
+### 3.4.-1 Kendi kendini onaran `chatRoot`
+
+Kayıt satırının tek kırılgan alanı `chatRoot`. Sağlayıcı düzenini değiştirdiğinde seçici tutmaz ve kullanıcı, tek satırlık bir düzeltme için **mağaza inceleme süresini** beklemek zorunda kalır (günler). Kayıt modelinin ucuzluğu burada bedele dönüşür.
+
+Çözüm, seçiciyi zorunlu olmaktan çıkarmak: **`chatRoot` bir ipucudur, dayanak değil.**
+
+1. `SEL.chatRoot` varsa ve tutuyorsa kullanılır (hızlı yol)
+2. Tutmuyorsa sezgisel: sayfadaki tüm `pre > code` düğümlerinin **en yakın ortak atası** hesaplanır. Kod bloklarını içeren kapsayıcı, tanım gereği aradığımız köktür
+3. Sayfada hiç `pre > code` yoksa zaten yapacak iş yok — sessiz kalınır (§3.4.0'daki aynı koşul)
+
+Sezgisel yol, seçicili yoldan yalnızca birkaç DOM sorgusu pahalı ve **her sağlayıcıda çalışır** — çünkü hiçbir sağlayıcıya özgü bilgi kullanmıyor.
+
+Sonuçları büyük:
+- Bir sağlayıcı düzenini değiştirdiğinde kod bloğu indirme **çalışmaya devam eder**; acil sürüm gerekmez
+- Kayıtta olmayan bir site için `chatRoot` yazmak **zorunlu değil** — kullanıcının izin verdiği host (§3.4.0) hiçbir kayıt satırı olmadan çalışır
+- Yeni sağlayıcı eklemek çoğu zaman yalnızca `host` + `name` + `newChatUrl` demek
+
+Teşhis bloğu hangi yolun kullanıldığını yazar (`chatRoot: seçici` / `chatRoot: sezgisel`). Sezgisele düşen bir sağlayıcı, kayıt satırının güncellenmesi gerektiğinin sinyalidir — ama **acil** değil, planlı.
+
 ### 3.4.0 Listede olmayan siteler — kullanıcı izniyle
 
 Kendi barındırdığı arayüzler (Open WebUI, LibreChat, kurum içi kurulumlar) sabit bir hosta sahip değil; kuyruğu kayıtla kapatmak imkânsız. Çözüm **`optional_host_permissions`**: popup'ta `Bu sitede de çalıştır` düğmesi, `chrome.permissions.request({origins:[…]})` çağırır ve izin verilirse `chrome.scripting.registerContentScripts` ile taban script o hosta kaydedilir.
@@ -1182,6 +1201,8 @@ Gelecekte "buluta yedekle", "sohbetlerini ara", "kullanım istatistiği" gibi is
 - `CHANGELOG.md` — sürüm notları + her sürümün paket SHA-256'sı (§19.4)
 - `docs/LIMITATIONS.md` — kullanıcıya açık bilinen sınırlar (§19.9)
 - `docs/SMOKE.md` — aylık smoke test listesi, sonuçlar commit'lenir (§19.8)
+- `docs/ADDING-A-PROVIDER.md` — kayıt satırı nasıl eklenir: hangi alanlar zorunlu (`host`, `name`), hangileri opsiyonel (`chatRoot`, `newChatUrl`), fixture nasıl çıkarılır ve temizlenir, uyumluluk paketi nasıl koşulur. Kayıt modeli katkıya açık olmayı hedefliyor; nasıl katkı verileceği yazılı değilse hedef değil temennidir
+- `.github/ISSUE_TEMPLATE/provider.yml` — yeni sağlayıcı isteği: host, ekran görüntüsü, `pre > code` var mı
 - `tools/pack.mjs` — mağaza zip'i üretir, dev dosyalarını hariç tutar
 - `tools/check-invariants.mjs` — §19.3'teki mekanik kapılar (8-13); npm bağımlılığı yok
 - `tools/check-spec.mjs` — §19.3 kapı 14; spec'in kendi tutarlılığı
