@@ -174,7 +174,9 @@ application/vnd.ant.code        → language'a göre (~20 dil: py js ts go rs ja
 bilinmeyen                      → .txt
 ```
 
-**sanitize kuralları:** `<>:"/\|?*` ve kontrol karakterleri → `-`; ardışık `-` teke iner; baş/son `.` ve boşluk kırpılır; Windows rezerve adları (`CON PRN AUX NUL COM1-9 LPT1-9`) `_` önek alır; 120 karakter cap; boş kalırsa `artifact`.
+**sanitize kuralları:** `<>:"/\|?*` ve kontrol karakterleri → `-`; ardışık `-` teke iner; baş/son `.` ve boşluk kırpılır; Windows rezerve adları (`CON PRN AUX NUL COM1-9 LPT1-9`) `_` önek alır; boş kalırsa `artifact`.
+
+**Kırpma kod noktasına göre yapılır, UTF-16 birimine göre değil.** `slice(0,120)` bir emoji'nin ortasından keserse geriye yarım surrogate çifti kalır — dosya adı geçersiz karaktere düşer, bazı sistemlerde yazma başarısız olur. `[...str]` ile kod noktalarına ayrılıp kırpılır. Ayrıca dosya sistemleri adı **bayt** olarak sınırlar (ext4/APFS: 255 bayt): Türkçe ve emoji karakterler 2-4 bayt tuttuğu için sınır hem 120 kod noktası hem 200 bayt olarak uygulanır, hangisi önce dolarsa.
 
 ### zip.js (saf)
 Store-only (compression method 0) ZIP yazıcı: CRC32 tablosu + local file header + central directory + EOCD. Deflate **bilerek yok** — metin sıkıştırma kazancı burada önemsiz, `CompressionStream` async'i ve boyut muhasebesini işin içine sokmaya değmez.
@@ -185,6 +187,10 @@ buildZip([{name, bytes}]) → Uint8Array
 **Zip içi ad çakışması:** kullanıcının şablonunda `{version}` yoksa (varsayılan `{title}`) tüm versiyonlar aynı ada çıkar ve zip 3 özdeş adlı girdi taşır. Kural: **zip modunda `-v{n}` şablondan bağımsız olarak her zaman eklenir.** Zip'in kendi adı şablondan üretilir: `Sales-Dashboard-3-versiyon.zip`.
 
 UTF-8 dosya adları için general purpose bit 11 (language encoding flag) set edilir; aksi halde Türkçe karakterli adlar bazı arşivleyicilerde bozulur.
+
+**Tüm uzunluklar bayt cinsindendir, karakter değil.** ZIP başlıklarındaki `compressed size`, `uncompressed size` ve `file name length` alanları bayt sayar; CRC32 de bayt üzerinden hesaplanır. `str.length` kullanmak ASCII içerikte doğru sonuç verir, ilk Türkçe karakterde veya emoji'de **sessizce bozuk arşiv** üretir — dosya iner, açılmaz. Kural: içerik ve ad `TextEncoder` ile bir kez byte'a çevrilir, bütün alanlar o `Uint8Array`'in `byteLength`'inden okunur. `selftest.js` bunu Türkçe adlı ve emoji içerikli bir girdiyle sabitler.
+
+Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kapsamında oluşamaz, yine de aşılırsa arşiv üretilmez ve hata toast'ı çıkar — bozuk zip verilmez.
 
 ## 7. Boru hattı
 
@@ -197,6 +203,22 @@ UTF-8 dosya adları için general purpose bit 11 (language encoding flag) set ed
 5. **Açık artifact eşleştirme:** panel başlığı → aday artifact'lar. Aynı başlıktan birden fazla varsa, görünen kodun ilk 200 karakteriyle her adayın son versiyonu karşılaştırılıp en yüksek skorlu seçilir. Skorlar birbirine yakınsa menüde her ikisi de gösterilir — belirsizlik sessizce çözülmez.
 6. **Görüntülenen versiyon:** panelin kendi versiyon göstergesinden okunur; okunamazsa son versiyon varsayılır.
 7. Seçim → `Blob` + `<a download>` → başarı toast'ı.
+
+### 7.1 Eşzamanlılık
+
+Boru hattı async ve kullanıcı beklemek zorunda değil. Üç yarış durumu:
+
+**Uçuştaki istek başka konuşmaya ait olabilir.** Kullanıcı ↓'ye basar, fetch sürerken başka bir sohbete geçer. Yanıt döndüğünde artık başka bir konuşmadayız — cevabı uygulamak **yanlış artifact'ı indirmek** demektir. Kural: her istek bir `requestId` + `convUuid` ile damgalanır; yanıt işlenmeden önce `location`'daki konuşma hâlâ aynı mı diye bakılır, değilse sessizce atılır. Rota değişiminde uçuştaki istekler `AbortController` ile iptal edilir.
+
+**Çift tıklama = çift indirme.** Aynı artifact için uçuşta istek varken ikinci tık yeni fetch açmaz; buton `aria-busy` alır ve mevcut isteğe bağlanır.
+
+**Otomatik indirme akış sırasında tetiklenir.** Claude artifact'ı yazarken her op yeni bir "versiyon" gibi görünür; `autoDownload` açıksa tek artifact için onlarca dosya iner. Kural: otomatik indirme **akış bitene kadar beklemek zorunda** (§3.2'deki yazılıyor tespiti), sonra bir kez tetiklenir. Aynı artifact + aynı versiyon için oturumda tekrar inmez.
+
+### 7.2 Yaşam döngüsü
+
+**Menü sahipsiz kalabilir.** React action bar'ı yeniden çizerse buton uçar ama açık menü havada kalır. Kural: yeniden enjeksiyondan önce menü kapatılır. Menü ayrıca şu durumlarda kapanır: dışarı tık, `Esc`, panel kapanması, rota değişimi, panelin kaydırılması.
+
+**Extension güncellenince content script öksüz kalır.** Extension yeniden yüklendiğinde/güncellendiğinde sayfadaki eski content script yaşamaya devam eder ama `chrome.runtime.sendMessage` artık `Extension context invalidated` fırlatır — MV3'te en sık görülen konsol çöplüğü ve kırık buton sebebi. Kural: her `chrome.*` çağrısı sarmalanır; bu hata görülünce content script **kendini kapatır**: observer durur, enjekte edilen UI kaldırılır, bir daha denenmez. Kullanıcı sayfayı yenileyince temiz kurulum gelir.
 
 ## 8. UI kararları
 
@@ -278,6 +300,27 @@ Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eyl
 
 **`tabs` izni neden yok.** Kısayol ve popup, hedef sekmeye `chrome.tabs.sendMessage(tabId, …)` ile ulaşır; `tabId`, popup için `chrome.tabs.query({active:true, currentWindow:true})`'den gelir. Bu çağrı `tabs` izni olmadan da sekme kimliğini döndürür — izin yalnızca `url`/`title` gibi alanları okumak için gerekir ve bize gerekmiyor. Content script yoksa `sendMessage` hata döner, sessizce yutulur ve kullanıcıya "bu sayfada artifact yok" toast'ı gösterilir.
 
+### 8.8 İlk çalıştırma ve boş durumlar
+
+Tasarımın buraya kadarki her ekranı **dolu durumu** gösteriyor. Gerçekte kullanıcının göreceği ilk şey boş durum.
+
+**İlk kurulum.** `chrome.runtime.onInstalled` (`reason === "install"`) ayar sayfasını yeni sekmede açar: extension'ın ne yaptığı, butonun nerede belireceği (ekran görüntüsü), kısayol, gizlilik cümlesi. Tek seferlik. Güncellemede (`reason === "update"`) hiçbir şey açılmaz — kimse güncelleme başına sekme istemez.
+
+Ayrıca ilk kez bir artifact paneli görüldüğünde pill normalden farklı bir metinle çıkar: `● Artifact'lar buradan indirilir` ve 6 sn kalır. Yalnızca bir kez; `storage` içinde `seenIntro` bayrağıyla.
+
+**Popup'ın boş durumları.** "Şu an" kartı üç hâl daha taşır:
+
+| Durum | Kart içeriği |
+|---|---|
+| claude.ai'da değil | `claude.ai'da bir sohbet aç` + Claude'a git bağlantısı |
+| Sohbette artifact yok | `Bu sohbette artifact yok` + kısa açıklama |
+| Artifact var, panel kapalı | `2 artifact bulundu` + `Paneli aç` yerine doğrudan `↓ İndir` (panel açmadan da indirilebilir, çünkü veri API'den gelir) |
+| Okuma başarısız | `Artifact okunamadı` + `Tekrar dene` + `Neden?` (BREAKAGE.md'ye bakan kısa açıklama) |
+
+Son satır bir tasarım kazancı: veri panelden değil API'den geldiği için **artifact indirmek için paneli açmak gerekmiyor.** Popup, kapalı paneldeki artifact'ları da listeleyebilir.
+
+**Hiçbir boş durum sessiz olmaz.** Boş kart her zaman "neden boş" ve "ne yapmalı" söyler; kullanıcı extension'ın bozuk mu yoksa doğru mu çalıştığını ayırt edebilmeli.
+
 ## 9. Ayar şeması
 
 `chrome.storage.sync`, tek anahtar `cfg`:
@@ -358,22 +401,27 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 `node selftest.js`, framework yok, assert tabanlı.
 
+**Fixture'lar sözleşmeyi sabitler.** Testlerin tamamı elle yazılmış girdilerle çalışırsa, claude.ai'ın gerçek yanıt şeması değiştiğinde hepsi yeşil kalır ve extension sahada bozulur. Bu yüzden `test/fixtures/` altına **gerçek konuşmalardan alınmış, kişisel içeriği temizlenmiş** JSON örnekleri commit'lenir: tek artifact, çok versiyonlu artifact, dallanmış konuşma, aynı başlıklı iki artifact, akış hâlinde yarım artifact. `parseOps` bunların hepsine karşı koşar.
+
+Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşmayı dump'la, fixture'ı değiştir, testin nerede kırıldığına bak" olur. Şema değişimi gizemden **kırmızı teste** iner. Fixture'lar temizlenmeden commit'lenmez — içlerinde konuşma metni, kullanıcı adı, org UUID'si kalmaz.
+
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
 - `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
 - `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
 - `buildVersions`: create→update→rewrite→update replay doğruluğu; `old_str` bulunamayınca `ok:false` ve içeriğin bozulmaması; `old_str` 2+ kez geçince `ok:false` + `old_str_ambiguous`; tek `create` → tek versiyon; versiyonlar arası başlık değişiminin dosya adına yansıması
 - `extFor`: react+tsx → `.tsx`; react+jsx → `.jsx`; text/html → `.html`; mermaid → `.mmd`; svg → `.svg`; code+python → `.py`; bilinmeyen → `.txt`
-- `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `artifact`
+- `sanitize`: `a/b:c*?"<>|` temizliği; `CON` → `_CON`; 200 karakterlik başlık → 120 cap; sadece `...` → `artifact`; **emoji'li başlık kırpılınca yarım surrogate kalmıyor**; çok baytlı başlıkta 200 baytlık sınır önce doluyor
 - `fmtName`: her token, eksik token, bilinmeyen token literal kalır
 
 **zip.js**
 - `CRC32("hello") === 0x3610a686`
 - local header imzası `0x04034b50`, EOCD imzası `0x06054b50`
 - 2 girişli zip'te central directory offset'i local header'ların toplam boyutuna eşit
-- UTF-8 dosya adı (Türkçe karakter) doğru uzunlukta yazılıyor
+- **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
+- general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
