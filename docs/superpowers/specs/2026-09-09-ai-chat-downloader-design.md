@@ -69,9 +69,9 @@ Ortak ölçüt açık: **kullanıcının kendi oturumunda zaten var olan veriyle
 
 Kimlik bilgisi gerektirmeyen, elimizdeki veriyle çalışan:
 
-**Bağlam devri.** Uzun sohbette model erken kısımları unutmaya başlar; kullanıcı bunu genelde geç fark eder. Sohbet belirgin biçimde uzadığında (mesaj sayısı/karakter eşiği) popup'ta sessiz bir öneri: `Bu sohbet uzadı — bağlamı yeni bir sohbete taşı`. Taşıma zaten var (§3.3.3); eklenen tek şey **hazır bir devir promptu**: Markdown'ın başına *"Aşağıda önceki konuşmam var. Özetini çıkar ve kaldığımız yerden devam et."* Model çağrısı yok, sadece kullanıcının yapıştıracağı metnin doğru biçimlenmesi.
+**Bağlam devri.** Uzun sohbette model erken kısımları unutmaya başlar; kullanıcı bunu genelde geç fark eder. Eşik ölçüsü kademeye göre değişir ve **mesaj sayısı her zaman elde değildir**: API kademesinde mesaj sayısı doğrudan gelir, DOM kademesinde ise sayfadaki mesaj düğümleri sayılamayabilir (sanallaştırma, §4). Kural: mesaj sayısı güvenilir değilse **karakter toplamı** kullanılır (kod blokları + görünür metin); ikisi de yoksa öneri hiç çıkmaz — yanlış eşikle davetsiz öneri, önerinin kendisinden kötüdür. Sohbet belirgin biçimde uzadığında popup'ta sessiz bir öneri: `Bu sohbet uzadı — bağlamı yeni bir sohbete taşı`. Taşıma zaten var (§3.3.3); eklenen tek şey **hazır bir devir promptu**: Markdown'ın başına *"Aşağıda önceki konuşmam var. Özetini çıkar ve kaldığımız yerden devam et."* Model çağrısı yok, sadece kullanıcının yapıştıracağı metnin doğru biçimlenmesi.
 
-**Kaybolmuş işi bulmak.** Uzun bir sohbette üretilmiş ama hiç indirilmemiş öğeler, geçmiş açıkken bilinebiliyor. Popup: `Bu sohbette 6 öğe var, 2'sini hiç almadın`. En sık kayıp, farkında olunmayan kayıp.
+**Kaybolmuş işi bulmak.** Bu yalnızca **geçmiş açıkken** mümkün (§4.3) — kapalıyken "hiç almadın" bilgisi yok ve gösterge hiç çizilmez (§3.4.5 kuralı). Uzun bir sohbette üretilmiş ama hiç indirilmemiş öğeler, geçmiş açıkken bilinebiliyor. Popup: `Bu sohbette 6 öğe var, 2'sini hiç almadın`. En sık kayıp, farkında olunmayan kayıp.
 
 **Geçmişten bağlam olarak yeniden kullanma.** Geçmişteki bir öğeyi (§4.3) yeni bir sohbete **bağlam olarak** panoya koymak: `⧉ Bağlam olarak kopyala` → ad + dil + içerik, fenced. "Geçen ay yazdığım şu bileşeni referans vererek devam et" akışı, indirip açıp kopyalamadan. Geçmiş zaten hash ve yol tutuyor; eksik olan tek şey bu düğme.
 
@@ -815,7 +815,7 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 
    Gerekçe: ad dört basamaklı bir **sezgisel** zincirden geliyor (§3.3.1) ve sezgisel her zaman yanılabilir — `kod-7.py`, `use-cart.ts` yerine `index.ts`. Düzeltmenin tek yolu indirip dosyayı yeniden adlandırmak olurdu. Türetme ne kadar iyi olursa olsun, kullanıcıya son sözü vermeyen bir ad üreticisi eksiktir. Düzeltilen ad o oturum boyunca o öğe için hatırlanır.
 
-10. **İçeriği panoya kopyala.** Her satırda `↓` yanında bir kopyala eylemi. Uzun basış / ikincil menü **`Bağlam olarak kopyala`** verir: ad + dil + fenced içerik, yeni bir sohbete yapıştırılmaya hazır (§2.1.1). Aynı içerik, iki farklı biçim — hangisini istediği kullanıcının işine bağlı. Çoğu zaman insanın gerçek ihtiyacı dosya değil, içeriğin kendisidir — ve indirip açıp kopyalamak üç adımdır. Sağlayıcının kendi kopyala düğmesi yalnızca kod bloklarında ve yalnızca güncel sürümde var; bizimki **eski bir sürümü** de, **belgeyi** de, **sohbetin Markdown'ını** da kopyalayabiliyor. Aynı içerik boru hattı, yeni bir hedef.
+10. **İçeriği panoya kopyala.** Her satırda `↓` yanında bir kopyala eylemi. Uzun basış / ikincil menü **`Bağlam olarak kopyala`** verir: ad + dil + fenced içerik, yeni bir sohbete yapıştırılmaya hazır (§2.1.1). Sürümlü bir öğede kopyalanan sürüm, indirmeyle **aynı kurala** uyar (`defaultVersion`, §11.2) — iki eylemin farklı sürüm seçmesi kullanıcının en zor fark edeceği tutarsızlık olurdu. Aynı içerik, iki farklı biçim — hangisini istediği kullanıcının işine bağlı. Çoğu zaman insanın gerçek ihtiyacı dosya değil, içeriğin kendisidir — ve indirip açıp kopyalamak üç adımdır. Sağlayıcının kendi kopyala düğmesi yalnızca kod bloklarında ve yalnızca güncel sürümde var; bizimki **eski bir sürümü** de, **belgeyi** de, **sohbetin Markdown'ını** da kopyalayabiliyor. Aynı içerik boru hattı, yeni bir hedef.
 
 11. **Bağlam devri önerisi.** Mesaj sayısı `handoffAt`'i aşınca listenin üstünde tek satırlık, kapatılabilir bir öneri: `Bu sohbet uzadı — bağlamı yeni bir sohbete taşı`. Toast değil, satır: davetsiz ama kesintisiz. Oturumda bir kez.
 
@@ -1397,6 +1397,9 @@ Bir sağlayıcı **bitti** sayılır ancak: adaptör yetenek matrisindeki her sa
 6. `claude.js`: aktif dal çıkarımı → op toplama → versiyonlar → versiyon menüsü + üç kademe
 7. `chatgpt.js` ve keşifte belge/versiyon çıkan diğer adaptörler — yetenek matrisine göre; doğrulanamayan yetenek kapatılır. Taban sağlayıcılar adaptör almaz, kayıt satırıyla yetinir
 8. Ekler: endpoint keşfi, ikili yazım, yoksa kapsamdan çıkar (§3.3.2)
+8b. Sohbet Markdown'ı + taşıma (§3.3.3): `kind:"conversation"`, pano, `newChatUrl`, boyut uyarısı
+8c. İndirme geçmişi (§4.3): opt-in, hash indeksi, `Geçmiş` sekmesi, sohbetler arası tanıma
+8d. Omurga üçlüsü (§2.1.1): bağlam devri önerisi, alınmamış öğe göstergesi, `Bağlam olarak kopyala` — üçü de 8c'ye bağlı ya da ondan ucuzlar
 9. `sw.js`: badge, nabız, kısayol, sistem bildirimi
 10. `panel.html/js`: öğe listesi, ayarlar, canlı önizleme, teşhis, acil durdurma
 11. Sürükle-bırak + klasöre kaydet (§8.7.1, §8.7.2)
