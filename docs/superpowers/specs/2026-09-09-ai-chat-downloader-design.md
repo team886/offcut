@@ -7,6 +7,107 @@
 
 ---
 
+## İçindekiler
+
+- [1. Problem](#1-problem)
+- [2. Hedefler / Hedef olmayanlar](#2-hedefler-hedef-olmayanlar)
+- [2.1 Ne tür bir ürün — "indirici" dar bir tarif](#21-ne-tur-bir-urun-indirici-dar-bir-tarif)
+  - [2.1.1 Omurgaya düşen, henüz yazılmamış üç şey](#211-omurgaya-dusen-henuz-yazilmamis-uc-sey)
+  - [2.1.2 İsim — "downloader" kalıyor, sebebi konumlandırma değil keşfedilebilirlik](#212-isim-downloader-kaliyor-sebebi-konumlandirma-degil-kesfedilebilirlik)
+- [2.2 FindAgent entegrasyonu — önce ne olduğunu bilmem gerek](#22-findagent-entegrasyonu-once-ne-oldugunu-bilmem-gerek)
+  - [2.2.1 Gözlem: FindAgent bir ajan platformu, sohbet arayüzü değil](#221-gozlem-findagent-bir-ajan-platformu-sohbet-arayuzu-degil)
+- [3. Kritik iç görü — artifact bir op-log'dur](#3-kritik-ic-goru-artifact-bir-op-logdur)
+  - [3.1 Konuşma ağacı — dallanma tuzağı](#31-konusma-agaci-dallanma-tuzagi)
+  - [3.2 Yazılmakta olan artifact](#32-yazilmakta-olan-artifact)
+  - [3.3 İndirilebilir öğe modeli](#33-indirilebilir-oge-modeli)
+  - [3.3.1 Kod blokları](#331-kod-bloklari)
+  - [3.3.2 Ekler](#332-ekler)
+  - [3.3.3 Konuşmayı taşıma — Markdown ve "başka sağlayıcıda devam et"](#333-konusmayi-tasima-markdown-ve-baska-saglayicida-devam-et)
+  - [3.4 Sağlayıcı kaydı ve adaptörler](#34-saglayici-kaydi-ve-adaptorler)
+  - [3.4.1 Kendi kendini onaran `chatRoot`](#341-kendi-kendini-onaran-chatroot)
+  - [3.4.2 Listede olmayan siteler — kullanıcı izniyle](#342-listede-olmayan-siteler-kullanici-izniyle)
+  - [3.4.3 Adaptör sözleşmesi](#343-adaptor-sozlesmesi)
+  - [3.4.4 DOM tabanı zorunlu, API isteğe bağlı](#344-dom-tabani-zorunlu-api-istege-bagli)
+  - [3.4.4.1 DOM tabanı da garanti değil — erişilebilirlik ön koşulu](#3441-dom-tabani-da-garanti-degil-erisilebilirlik-on-kosulu)
+  - [3.4.5 Yetenek matrisi](#345-yetenek-matrisi)
+  - [3.4.6 Yalıtım](#346-yalitim)
+- [4. Veri kaynağı — üç kademe (Claude adaptörü)](#4-veri-kaynagi-uc-kademe-claude-adaptoru)
+  - [4.1 Kademe 1 otomatik olarak "gerçek" değildir](#41-kademe-1-otomatik-olarak-gercek-degildir)
+- [4.2 Yüzeyler — extension tek tüketici, çekirdek taşınabilir](#42-yuzeyler-extension-tek-tuketici-cekirdek-tasinabilir)
+- [4.3 Oturumlar arası hafıza — indirme kütüphanesi](#43-oturumlar-arasi-hafiza-indirme-kutuphanesi)
+- [4.4 Çoklu-model sidebar — neden bu ürün değil](#44-coklu-model-sidebar-neden-bu-urun-degil)
+- [5. Mimari](#5-mimari)
+- [6. Modül sözleşmeleri](#6-modul-sozlesmeleri)
+  - [parse.js (saf) — çekirdek](#parsejs-saf-cekirdek)
+  - [zip.js (saf)](#zipjs-saf)
+- [7. Boru hattı](#7-boru-hatti)
+  - [7.1 Eşzamanlılık](#71-eszamanlilik)
+  - [7.2 Yaşam döngüsü](#72-yasam-dongusu)
+- [8. UI kararları](#8-ui-kararlari)
+  - [8.1 İndirme kontrolü — split buton](#81-indirme-kontrolu-split-buton)
+  - [8.1.1 Kod bloğu kontrolü — tek gezici düğme, N enjeksiyon değil](#811-kod-blogu-kontrolu-tek-gezici-dugme-n-enjeksiyon-degil)
+  - [8.2 Versiyon menüsü (popover)](#82-versiyon-menusu-popover)
+  - [8.2.1 Sohbet seviyesi zip](#821-sohbet-seviyesi-zip)
+  - [8.3 Pulse pill — panelin sağ altı](#83-pulse-pill-panelin-sag-alti)
+  - [8.4 Toast](#84-toast)
+  - [8.5 Logo](#85-logo)
+  - [8.6 Ayar paneli (popup = options)](#86-ayar-paneli-popup-options)
+  - [8.6.1 Popup etkileşim modeli](#861-popup-etkilesim-modeli)
+  - [8.7 Stil izolasyonu, erişilebilirlik, dosya yazımı](#87-stil-izolasyonu-erisilebilirlik-dosya-yazimi)
+  - [8.7.1 Sürükle-bırak](#871-surukle-birak)
+  - [8.7.2 Klasöre kaydet (File System Access)](#872-klasore-kaydet-file-system-access)
+  - [8.8 İlk çalıştırma ve boş durumlar](#88-ilk-calistirma-ve-bos-durumlar)
+  - [8.8.1 Kendi bozulduğunu fark etmek](#881-kendi-bozuldugunu-fark-etmek)
+  - [8.9 Teşhis — telemetri olmadan hata raporu](#89-teshis-telemetri-olmadan-hata-raporu)
+- [9. Ayar şeması](#9-ayar-semasi)
+- [10. Mesajlaşma protokolü](#10-mesajlasma-protokolu)
+- [11. Hata matrisi](#11-hata-matrisi)
+  - [11.1 Hangi sayılar ayarlanabilir, hangileri değil](#111-hangi-sayilar-ayarlanabilir-hangileri-degil)
+  - [11.2 Etkileşim semantiği — ayarların kesiştiği yerler](#112-etkilesim-semantigi-ayarlarin-kesistigi-yerler)
+- [12. DOM bağımlılık katmanı](#12-dom-bagimlilik-katmani)
+  - [12.1 DOM'dan metin okuma kuralları](#121-domdan-metin-okuma-kurallari)
+- [13. i18n](#13-i18n)
+- [14. Test](#14-test)
+- [15. Chrome Web Store teslimatları](#15-chrome-web-store-teslimatlari)
+- [16. Riskler](#16-riskler)
+- [17. Güvenlik](#17-guvenlik)
+  - [17.1 Yayıncı hesabı — asıl tedarik zinciri](#171-yayinci-hesabi-asil-tedarik-zinciri)
+  - [17.2 Gizlilik taahhütleri — değişmez sayılanlar](#172-gizlilik-taahhutleri-degismez-sayilanlar)
+- [18. Depo teslimatları](#18-depo-teslimatlari)
+- [19. Production readiness](#19-production-readiness)
+  - [19.1 Tarayıcı desteği](#191-tarayici-destegi)
+  - [19.2 Performans bütçeleri](#192-performans-butceleri)
+  - [19.3 Kalite kapıları (CI)](#193-kalite-kapilari-ci)
+  - [19.4 Sürümleme ve paketleme](#194-surumleme-ve-paketleme)
+  - [19.5 Yayın öncesi kapı](#195-yayin-oncesi-kapi)
+  - [19.6 Mağaza gönderimi](#196-magaza-gonderimi)
+  - [19.7 Kademeli yayın ve geri alma](#197-kademeli-yayin-ve-geri-alma)
+  - [19.8 Yayın sonrası izleme — telemetri olmadan](#198-yayin-sonrasi-izleme-telemetri-olmadan)
+  - [19.9 Destek akışı](#199-destek-akisi)
+  - [19.10 Bitti tanımı](#1910-bitti-tanimi)
+- [Uygulama sırası (özet)](#uygulama-sirasi-ozet)
+  - [MVP kesme çizgisi](#mvp-kesme-cizgisi)
+
+---
+
+## Nereden başlamalı
+
+Bu doküman 30+ turluk denetimden geçti ve uzun. Okuma sırası okuyucuya göre değişir:
+
+| Kimsen | Oku |
+|---|---|
+| **Uygulayacaksan** | §2.1 (ürün ne) → §3.3 (öğe modeli) → §3.4 (kayıt + adaptör) → §6 (modül sözleşmeleri) → **Uygulama sırası** (sonda) → §14 (test). MVP çizgisi orada; çizginin altındakileri şimdi okuma |
+| **Tasarımı denetliyorsan** | §3 (op-log), §4.1 (kademelerin ne kaybettiği), §7.1-7.2 (yarış/yaşam döngüsü), §11 (hata matrisi), §17 (güvenlik) |
+| **Sağlayıcı ekleyeceksen** | §3.4.1 (kendi kendini onaran kök), §3.4.2 (listede olmayan siteler), §12 (DOM katmanı), `docs/ADDING-A-PROVIDER.md` |
+| **Ürün kararı arıyorsan** | §2.1 (omurga ve kapsam ölçütü), §2.1.2 (isim), §4.2 (yüzeyler), §4.4 ve §2.2 (reddedilenler ve neden) |
+| **Yayına hazırlıyorsan** | §15 (mağaza), §17.1-17.2 (yayıncı hesabı, gizlilik değişmezleri), §19 (tamamı) |
+
+**Tek cümlelik özet:** AI sohbetlerinde üretilen kodu, belgeleri ve dosyaları çıkaran, sürümleyen, taşıyan ve yeniden kullanılabilir kılan bir tarayıcı extension'ı; kayıt tabanlı çok-sağlayıcı desteği, sıfır dış istek, sıfır telemetri.
+
+**Değişmez ölçüt:** kullanıcının kendi oturumunda **zaten var olan** veriyle yapılabiliyorsa kapsam içi; model çağrısı, anahtar veya sunucu gerekiyorsa kapsam dışı (§2.1).
+
+---
+
 ## 1. Problem
 
 AI sohbet arayüzleri içeriği kopyalatır ama **dosya olarak indirtmez**. Bir React bileşenini, bir HTML sayfasını, mesajın ortasındaki bir Python fonksiyonunu ya da üç hafta önce yüklediğin CSV'yi diske almak istediğinde yol hep aynı: kopyala → editör aç → yeni dosya → yapıştır → uzantıyı doğru tahmin et → kaydet. Claude'da artifact'ın önceki bir versiyonuna dönmek istiyorsan hiç yolu yok — panel sadece güncel hâli gösterir.
