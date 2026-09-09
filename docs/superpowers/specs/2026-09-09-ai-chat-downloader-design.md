@@ -209,6 +209,18 @@ Bu, "AI sohbetlerinde üretilen işin" **en hızlı büyüyen kısmı** ve şu a
 | İçerik | `tool_result` bloğunun **tamamı** — arayüzün gösterdiği kısaltılmış hâli değil |
 | Sürüm | Yok; her çağrı ayrı bir öğedir (aynı araç 5 kez çağrıldıysa 5 öğe) |
 
+### 2.1.3.0 Çağrı, sonucun yarısıdır
+
+Bir araç sonucunu saklamanın sebebi genelde sonucun kendisi değil, **onu üretebilmek**: hangi araç, hangi parametrelerle, ne zaman. Altı ay sonra elinde 214 satırlık bir JSON varsa ve hangi tarih aralığıyla çekildiğini bilmiyorsan, o dosya veri değil gürültüdür.
+
+`tool_use` bloğu zaten aynı yanıtın içinde ve **parametreleri taşıyor**. Kural: her `tool_output` öğesi çağrısını da taşır.
+
+- `.json` çıktılarda: sarmalayıcı bir nesne — `{ "_call": { "tool", "params", "at" }, "result": … }`. JSON'un içine yorum konamaz, sarmalamak tek temiz yol; `result` anahtarı sabit olduğu için otomasyonla ayrıştırmak da kolay kalır
+- `.csv` çıktılarda: dosyanın başında `#` ile başlayan iki yorum satırı — çoğu araç bunları atlar, atlamayanlar için ayarda kapatılabilir
+- `.md` çıktılarda: üstte küçük bir front-matter bloğu
+
+Kullanıcı bunu kapatabilir (`includeCall`), ama **varsayılan açık**: bağlamsız bir sonuç dosyası, altı ay sonra silinen dosyadır.
+
 ### 2.1.3.1 Burası DOM'un en çok yalan söylediği yer
 
 Araç çıktıları arayüzlerde **varsayılan olarak katlanmış** ve çoğu zaman kırpılmış gösteriliyor — "500 satır sonuç" yazıp ilk 10 satırı açan bir kutu. §12.1'deki bütün DOM tuzakları burada aynı anda geçerli: katlanmış içerik, sanallaştırma, UI parçaları (genişlet düğmesi, satır sayacı) kod düğümünün içinde.
@@ -1015,9 +1027,11 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 14. **İndirilenler işaretlidir** (`history`). Geçmiş kapalıyken işaret **oturum içi**; açıkken kalıcı ve sürüm farkını bilir: aynı hash → `zaten aldın`, farklı hash → `v3'ü aldın, bu v5` (§4.3). Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı; farklı bir sürümü aynı sanmak ise gerçek bir hata.
 
     Geçmiş açıkken popup'a **`Geçmiş`** sekmesi eklenir: ad/sağlayıcı/tarihe göre arama, satırdan yeniden indirme, `Geçmişi temizle`. Kapalıyken sekme hiç görünmez — kapalı bir özelliğin boş kabuğunu göstermek §3.4.5'teki "yetenek yoksa kontrol de yok" kuralının ihlali olurdu. Geçmiş açıkken ayarlarda kayıt sayısı ve **üst sınır** (`historyMax`) görünür, sınır düzenlenebilir; sessizce düşen kayıtların sebebi görünmeden kalmaz.
-15. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
-16. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
-17. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
+15. **Araç çıktısında çağrı bilgisi** (`includeCall`): aç/kapa. Kapatan kullanıcı ham sonucu alır; açık olan altı ay sonra dosyanın ne olduğunu bilir.
+
+16. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
+17. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
+18. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
 
 Gerekçeler: popup'ı açan çoğu insan ayar değil indirme için gelir → eylem üstte, ayarlar altta. Token'lı input'un klasik hatası kullanıcının çıktıyı tahmin edememesidir → canlı önizleme. Geri alınamayan davranış (otomatik indirme) varsayılan olmaz. Gizlilik cümlesi görünür, çünkü bu extension özel sohbetleri okuyor.
 
@@ -1189,6 +1203,7 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.2)
   history: false,            // indirme geçmişi — opt-in, kapalı (§4.3)
   historyMax: 5000,          // kayıt üst sınırı; aşınca en eskiler düşer
+  includeCall: true,        // araç çıktısına çağrı parametrelerini göm (§2.1.3.0)
   handoffAt: 40,             // bu mesaj sayısını aşınca bağlam devri önerilir (§2.1.1); 0 = kapalı
   dragEnabled: true          // §8.7.1
 }
@@ -1354,7 +1369,7 @@ Kazanç: bir sağlayıcı şemayı değiştirdiğinde yapılacak iş "yeni bir k
 
 **parse.js**
 - `parseOps`: structured `tool_use` formu; ham `<antArtifact>` formu; ikisinin karışımı; attribute sırası karışık; gövdede nested backtick ve `<` karakterleri
-- `toolOutputs`: `tool_result` bloğundan ad (araç + sıra), uzantı (nesne→`.json`, satır/sütun→`.csv`, metin→`.md`); aynı araç 5 kez çağrılınca 5 ayrı öğe; içerik kırpılmadan
+- `toolOutputs`: çağrı parametreleri `.json`'da sarmalanıyor / `.csv`'de yorum satırı / `.md`'de front-matter; `includeCall:false` ile ham çıktı; `tool_result` bloğundan ad (araç + sıra), uzantı (nesne→`.json`, satır/sütun→`.csv`, metin→`.md`); aynı araç 5 kez çağrılınca 5 ayrı öğe; içerik kırpılmadan
 - `activeBranch`: düzenlenmiş mesaj yüzünden dallanmış ağaçta yalnızca aktif dalın op'ları toplanır; terk edilmiş daldaki `update` replay'e **karışmaz**; kopuk zincirde en yeni yaprağa düşüş; op sırası `created_at` geriye gitse bile dal konumunu takip eder
 - `readCodeText`: gutter/kopyala düğmesi içeren blokta yalnızca kod döner; U+200B temizlenir; `text-transform` uygulanmış temada büyük/küçük harf korunur
 - `sanitize` güvenlik kolu: `../../etc/passwd` ve `~/x` yol bileşenlerini kaybeder; `<img onerror=x>` başlığı dosya adında zararsız metne iner
