@@ -333,6 +333,25 @@ GET /api/organizations/{orgUuid}/chat_conversations/{convUuid}?tree=True&renderi
 
 `convUuid` → `location.pathname`'den. Pathname bir konuşma UUID'si vermiyorsa (`/project/<id>` liste sayfası, `/new`, henüz kaydedilmemiş sohbet) extension **hiçbir şey yapmaz**: buton enjekte edilmez, badge yazılmaz, hata gösterilmez. Proje içi sohbetlerin gerçekten `/chat/<uuid>` yoluna mı düştüğü implementation'ın ilk adımında doğrulanır; düşüyorsa `/project/*` eşleşmesi manifest'ten çıkarılır (kullanılmayan host eşleşmesi, incelemede gereksiz yüzey demektir).
 
+## 4.2 Yüzeyler — extension tek tüketici, çekirdek taşınabilir
+
+Bu ürünün asıl varlığı extension değil: op-log fold'u, adlandırma zinciri, uzantı eşlemesi, `sanitize`, zip yazıcısı ve `Item` modeli. Bunların hiçbiri DOM'a ya da Chrome API'sine bağlı değil — zaten `node selftest.js` ile çalışıyorlar (§14). Extension, bu çekirdeğin **bir** tüketicisi.
+
+**Karar: çekirdek bugün taşınabilir tutulur, başka yüzey bugün yazılmaz.** Maliyeti sıfıra yakın (zaten öyle), kazancı gelecekteki her yüzeyin yeniden yazım değil, yeni bir tüketici olması. Bunu niyet olarak bırakmıyoruz — CI kapısına bağlıyoruz (§19.3 kapı 15): `parse.js`, `zip.js`, `registry.js` içinde `chrome.`, `document.`, `window.` geçemez.
+
+Değerlendirilen yüzeyler ve gerekçeleri:
+
+| Yüzey | Durum | Neden |
+|---|---|---|
+| **Tarayıcı extension'ı** | v1 | Kullanıcının **oturumuna** bedelsiz erişebilen tek yüzey. Diğer hiçbiri giriş yapılmış bir sohbeti kimlik bilgisi istemeden okuyamaz — bu, seçim değil fiziksel kısıt |
+| **Klasöre kaydetme** (§8.7.2) | v1 | *Zaten* editör entegrasyonudur. Klasör projenin klasörüyse dosya doğrudan çalışma alanına iner. En ucuz entegrasyon, ekstra yüzey gerektirmiyor |
+| **VS Code köprüsü** | v2 adayı | En değerli ikinci yüzey: `↓` → dosya açık çalışma alanına, doğru klasöre. İndirilenler klasörü turunu tamamen kaldırır. **Bedeli gerçek**: makinede bir loopback dinleyici; eşleştirme token'ı, yalnızca `127.0.0.1`, origin kontrolü ve kullanıcının açıkça başlatması şart. Güvenlik tasarımı yapılmadan yazılmaz |
+| **MCP sunucusu** | v3 adayı | Anlamlı tek biçimi: extension'ın kaydettiği **yerel kütüphaneyi** indeksleyip ajana açmak ("geçen ay şu dashboard'u yazmıştım, getir"). Sohbeti kendi okumaya kalkarsa aynı kimlik problemine düşer. Klasöre kaydetme yaygınlaşmadan anlamsız |
+| **CLI** | Hayır | Oturum erişimi yok; çerez dışa aktarımı istemek hem kırılgan hem kullanıcıdan istenmemesi gereken bir şey |
+| **Web uygulaması** | Hayır | Aynı sebep, daha kötüsü: veriyi bir sunucuya taşımayı gerektirir ve §17.2'yi kökten bozar |
+
+**Sıralamanın mantığı:** her yüzey bir öncekinin ürettiği şeyin üstüne biniyor. Extension dosyayı üretir → klasör onu projeye koyar → köprü doğru yere koyar → MCP birikeni aranabilir yapar. Tersten başlamak (önce MCP) elde hiç veri yokken bir arama arayüzü yazmak olurdu.
+
 ## 5. Mimari
 
 ```
@@ -1161,6 +1180,7 @@ GitHub Actions, **npm bağımlılığı olmadan**, yalnızca Node yerleşikleriy
 11. **Ayar kapsaması:** `cfg` şemasındaki her anahtarın panelde bir kontrolü var, panelde şemada olmayan kontrol yok (§8.6). Ayar eklenip UI unutulması bu kapıyla imkânsız
 12. **Mantıksal CSS:** `overlay.css` fiziksel yön özelliği içermiyor (`left:`, `right:`, `margin-left`, `padding-right`); yalnızca `inset-inline-*`, `margin-inline-*` (§8.7). RTL bozulmasını sonradan aramak yerine yazarken engeller
 13. **Kayıt/adaptör tazeliği:** her kayıt satırında ve her adaptörde `LAST_VERIFIED` var; 90 günden eski **uyarı**, 180 günden eski **kırmızı** (§19.8). Doğrulanmamış bir adaptörle yeni sürüm çıkmaz
+15. **Çekirdek taşınabilirliği:** `parse.js`, `zip.js`, `registry.js` içinde `chrome.`, `document.`, `window.` **geçmez** (§4.2). Bu kapı olmadan çekirdek fark edilmeden tarayıcıya çivilenir ve ikinci yüzey yeniden yazım olur
 14. **Spec tutarlılığı** (`tools/check-spec.mjs`): kırık `§` referansı yok (kod blokları **dahil** — bir kırık referans tam orada bulunmuştu) · bölüm numaraları artan · `cfg` şeması ile ayar paneli iki yönlü örtüşüyor · spec'te adı geçen her dosya mimari ağaçta veya teslimat listesinde var · `SEL.*` ve `cfg.*` referansları tanımlı · 2+ kez geçen sayısal eşikler raporlanır (tutarsızlık insan gözüyle bakılsın diye)
 
    Bu kapının gerekçesi doğrudan bu dokümanın geçmişi: kusurların büyük çoğunluğu **aynı değerin iki yerde yazılıp birinin güncellenmemesinden** çıktı. Dokümanda derleyici yok; onun yerini bu kapı alır. Spec de kod gibi bakım gerektirir, ve bakım gerektiren her şey bir kapı hak eder
