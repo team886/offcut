@@ -737,7 +737,9 @@ Sonuç: badge "bu sohbette kaç artifact var" der, "kaç versiyonu var" demez �
 
 11. **Uzun sohbet davranışı.** Öğe sayısı 10'u aşınca listenin üstünde bir **filtre** kutusu belirir (ad ve dile göre, anlık). 40 kod bloklu bir sohbette filtresiz liste kullanılamaz; 3 öğelik sohbette filtre gürültüdür — bu yüzden koşullu.
 12. **Çoklu seçim.** Her satırda, üzerine gelince beliren bir onay kutusu; en az biri seçiliyken alt bar `Seçilenleri indir (4) → zip` olur. "Tümü → zip" seçim yokken görünür. 40 blokluk bir sohbette "hepsi ya da bir tane" ikilemi gerçek bir kısıt.
-13. **Bu oturumda indirilenler işaretlidir.** İnen satır soluk bir `✓` alır (oturum içi, kalıcı değil). Kullanıcı listeye geri döndüğünde neyi aldığını hatırlamak zorunda kalmaz — aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcıdır.
+13. **İndirilenler işaretlidir** (`history`). Geçmiş kapalıyken işaret **oturum içi**; açıkken kalıcı ve sürüm farkını bilir: aynı hash → `zaten aldın`, farklı hash → `v3'ü aldın, bu v5` (§4.3). Aynı dosyayı ikinci kez indirmek zararsız ama kafa karıştırıcı; farklı bir sürümü aynı sanmak ise gerçek bir hata.
+
+    Geçmiş açıkken popup'a **`Geçmiş`** sekmesi eklenir: ad/sağlayıcı/tarihe göre arama, satırdan yeniden indirme, `Geçmişi temizle`. Kapalıyken sekme hiç görünmez — kapalı bir özelliğin boş kabuğunu göstermek §3.4.3'teki "yetenek yoksa kontrol de yok" kuralının ihlali olurdu.
 14. **Ekler boyutunu indirmeden gösterir.** Ek içeriği ayrı istekle geliyor (§3.3.2); boyut meta veriden okunabiliyorsa satırda görünür, okunamıyorsa `boyut bilinmiyor` yazar — tahmin edilmez.
 15. **İlerleme, iş uzunsa.** Sohbet zip'i 40 öğe ve ekler içerebilir; 300 ms'yi aşan işlemlerde alt barda belirleyici bir ilerleme çubuğu (`12/40`) çıkar. Kısa işlerde çıkmaz — 80 ms'lik bir çubuk titremeden başka bir şey değildir. İşlem **iptal edilebilir**; iptalde yarım zip üretilmez.
 16. **Alt satır:** `🔒 Veri cihazdan çıkmıyor · dış istek yok` · `⏻ Bu sitede kapat` · `Teşhis bilgisini kopyala` · `Alt ⇧ D` (kısayol değiştirilmişse gerçek atanmış tuş `chrome.commands.getAll()` ile okunup gösterilir — yanlış tuş göstermek kullanıcıyı boşuna uğraştırır).
@@ -877,7 +879,7 @@ SEL: panel ✓ · actionBar ✓ · codeBlock ✗ · versionIndicator ✗
 Son hata: TypeError: ... (ilk satır)
 ```
 
-**İçinde ne yok:** konuşma metni, öğe içeriği, öğe başlığı, konuşma/org UUID'si, kullanıcı adı, e-posta, URL. Yalnızca hangi kademenin çalıştığı, hangi selector'ın tuttuğu, hata tipi.
+**İçinde ne yok:** konuşma metni, öğe içeriği, öğe başlığı, **geçmiş kayıtları**, konuşma/org UUID'si, kullanıcı adı, e-posta, URL. Yalnızca hangi kademenin çalıştığı, hangi selector'ın tuttuğu, hata tipi.
 
 Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tanı tablosuyla doğrudan eşleşir. Sıfır telemetriyle, gerçek bir hata raporu.
 
@@ -896,6 +898,8 @@ Bu blok bir GitHub issue'ya yapıştırılabilir ve `docs/BREAKAGE.md`'deki tan�
   kinds: { artifact:true, code:true, attachment:true, conversation:true },  // hangi öğe türleri
   sites: { … },              // kayıt id → bool; eksik id varsayılan açık
   extraHosts: [],            // kullanıcının izin verdiği ek origin'ler (§3.4.0)
+  history: false,            // indirme geçmişi — opt-in, kapalı (§4.3)
+  historyMax: 5000,          // kayıt üst sınırı; aşınca en eskiler düşer
   dragEnabled: true          // §8.7.1
 }
 ```
@@ -969,6 +973,8 @@ Kısayolun adı protokolde geçmez; `sw.js` `chrome.commands` olayını `cmd:dow
 | Zip/toplu indirme iptal edildi | Yarım arşiv **üretilmez**; hiçbir dosya inmez, bilgi toast'ı |
 | Toplu ek indirmede 429/403 | İşlem durur, zip üretilmez, `daha az öğe seçin` mesajı — yeniden denenmez (§3.3.2) |
 | Ek boyutu meta veriden okunamıyor | `boyut bilinmiyor` yazılır, tahmin edilmez |
+| Geçmiş `historyMax`'ı aştı | En eski kayıtlar düşer, sessizce; kullanıcıya sınır ayarlarda görünür |
+| `storage.local` kotası doldu | Geçmiş yazımı durur + bir kez uyarı; **indirme etkilenmez** — geçmiş bir kolaylık, yol değil |
 | `<a download>` sonrası dosya yazılmadı | Öğrenilemez; toast bu yüzden "indiriliyor" der, "indirildi" demez |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
@@ -1235,6 +1241,7 @@ Aşağıdakilerin **tamamı** işaretlenmeden gönderim yapılmaz:
 - [ ] Yayıncı hesabında donanım anahtarı/passkey aktif, CI'da yayın yetkisi yok (§17.1)
 - [ ] Her adaptörün `LAST_VERIFIED`'ı güncel · paket SHA-256'sı CHANGELOG'a yazıldı (§19.4)
 - [ ] Teşhis bloğu (§8.9) hiçbir konuşma verisi içermiyor — çıktı gözle denetlendi
+- [ ] `history` varsayılan **kapalı**; kapalıyken hiçbir kalıcı kayıt yazılmadığı doğrulandı (§4.3)
 - [ ] İzin listesi minimal: `storage` + 4 host + opsiyonel `notifications`. Fazlası yok
 - [ ] Gizlilik politikası yayımlandı ve URL erişilebilir
 - [ ] Ekran görüntüleri **demo** konuşmadan
