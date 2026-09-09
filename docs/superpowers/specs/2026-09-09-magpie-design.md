@@ -854,7 +854,7 @@ Sınırlar: 65535 girdi veya 4 GB üzeri ZIP64 gerektirir; bu extension'ın kaps
    **Observer `document.body`'yi izleyemez.** Claude yanıt üretirken sayfa saniyede yüzlerce kez mutasyona uğrar — token token. `body` + `subtree:true` dinleyen bir callback, her akış boyunca CPU'yu yakar; kullanıcı bunu extension olarak değil "Claude yavaşladı, fanlar döndü" olarak yaşar ve sebebini bulamaz. Kural: iki kademeli izleme. (a) Panelin **kapsayıcısı** bulunana kadar `body` üzerinde `childList` (subtree yok, ucuz). (b) Kapsayıcı bulununca observer ona daraltılır ve `characterData` dinlenmez — sadece düğüm ekleme/çıkarma bizi ilgilendiriyor. Callback `requestAnimationFrame` ile debounce edilir ve tek bir "durumu yeniden değerlendir" fonksiyonuna iner. Panel kapanınca observer tekrar (a)'ya döner.
 
    Kabul ölçütü: uzun bir yanıt akarken extension'ın CPU payı ölçülebilir olmamalı. Bu, manuel doğrulama listesinde Performance profili ile kontrol edilir.
-2. Panel görülünce split buton enjekte edilir (`data-adl` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
+2. Panel görülünce split buton enjekte edilir (`data-mg` işaretiyle idempotent). Pill gösterilir, `sw.js`'e `artifact:present` mesajı gider.
 
    **Daha kötüsü: sağlayıcının uygulamasını çökertebiliriz.** React (Claude, ChatGPT, Perplexity) yönettiği kapsayıcının çocuklarını referansla kaldırır; Angular (Gemini) kendi view container'ını indeksle yönetir. Her iki durumda da o kapsayıcıya yabancı bir düğüm soktuğumuzda `NotFoundError: Failed to execute 'removeChild' on 'Node'` sınıfı bir hata fırlayabilir — ve bu bizim butonumuzu değil, **sağlayıcının sayfasını** düşürür. Kullanıcı için sonuç: "ChatGPT bozuldu", sebebi görünmez, suç extension'dayken sağlayıcıya yazılır. Dört sağlayıcı = bu riskin dört ayrı framework'te tekrarı.
 
@@ -967,9 +967,9 @@ Kural: adım 1'de bizim numaralarımız panelin göstergesiyle karşılaştırı
 
 Menüdeki `🗜 Tüm versiyonlar` **bir** artifact'ı kapsar. Sohbetin tamamı için ayrı bir giriş var: popup'ta `🗜 Sohbetteki 9 öğe → zip`.
 
-İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/` (`yuklenen/` + `uretilen/`), `arac-ciktilari/`, `gorseller/`, `kaynaklar/`.
+İçerik: her öğenin **son** versiyonu, `kind` başına klasörde: `artifacts/`, `kod/`, `ekler/` (`yuklenen/` + `uretilen/`), `arac-ciktilari/`, `gorseller/`, `kaynaklar/`. Klasörleme şart: kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Her öğenin **son** sürümü girer — 4 artifact × 5 sürüm = 20 dosyalık bir arşiv kimsenin istediği şey değil; sürüm geçmişi tek artifact düzeyinde anlamlı..
 
-**Sıra önemli: `sanitize` önce, klasör öneki sonra.** `sanitize` dosya adındaki `/` karakterini temizliyor (§6) — klasör önekini ada önce eklersek onu da siler ve zip düz bir liste olur. Zip girdisi `kind öneki + "/" + sanitize(ad)` olarak kurulur; ayırıcı `/`'ler sanitize'dan **geçmez**. Aynı kural klasöre kaydetmede yok, çünkü orada alt klasör üretmiyoruz (§8.6). Klasörleme şart, çünkü kod bloğu adları (`kod-3.py`) ile artifact adları aynı düzlemde karışır ve arşivi açan kişi neyin ne olduğunu ayırt edemez. Tüm artifact'ların tüm versiyonları değil — 4 artifact × 5 versiyon = 20 dosyalık bir arşiv kimsenin istediği şey değil; versiyon geçmişi tek artifact düzeyinde anlamlı.
+**Sıra önemli: `sanitize` önce, klasör öneki sonra.** `sanitize` dosya adındaki `/` karakterini temizliyor (§6) — klasör önekini ada önce eklersek onu da siler ve zip düz bir liste olur. Zip girdisi `kind öneki + "/" + sanitize(ad)` olarak kurulur; ayırıcı `/`'ler sanitize'dan **geçmez**. Klasöre kaydetmede bu kural yok, çünkü orada alt klasör üretmiyoruz (§8.6).
 
 Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-indirilenler.zip`. Başlık okunamazsa `<sağlayıcı>-indirilenler-<tarih>.zip`.
 
@@ -1105,7 +1105,7 @@ Popup, kod bloklarının **tek erişilebilir yolu** (§8.1.1). O iddia ancak pop
 
 **Shadow DOM tam yalıtım değildir.** Shadow root, sayfanın seçicilerinden korur ama **miras alınan** özellikler host üzerinden içeri sızar: `font-size`, `line-height`, `color`, `direction`, `visibility`, `text-transform`. Bir sağlayıcının kök stilinde bunlardan biri sıra dışıysa kutularımız onu devralır. Kural: shadow host'a `all: initial` verilir ve ihtiyaç duyulan her özellik shadow içinde **yeniden** tanımlanır; `direction` ise bilerek devralınır, çünkü RTL'de sayfayla aynı yönde olmalıyız (§8.7).
 
-**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. Sağlayıcının global CSS'i (Tailwind/Angular Material reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için sağlayıcının action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `adl-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
+**Shadow DOM.** Pill, toast ve versiyon menüsü bize ait tek bir `<div>`'e bağlı **shadow root** içinde çizilir. Sağlayıcının global CSS'i (Tailwind/Angular Material reset dahil) bizim kutularımızı yiyemez, bizim CSS'imiz de sayfayı kirletemez. İstisna: split buton, native görünmesi için sağlayıcının action bar'ının **içinde** durmak zorunda — shadow DOM'a alınamaz. Onun için `mg-` önekli sınıf adları ve gerekli her özelliğin açıkça yazılması (miras alınan değerlere güvenilmez).
 
 **Erişilebilirlik.** Buton `role="button"` + `aria-label` (i18n) + `title`. Menü `role="menu"`, satırlar `role="menuitem"`; ok tuşlarıyla gezinilir, `Enter` seçer, `Esc` kapatır ve odağı butona geri verir. Odak halkası görünür bırakılır. Toast'lar `role="status"` (hata: `role="alert"`).
 
@@ -1389,7 +1389,7 @@ Her selector için `null` toleransı: bulunamayan selector exception atmaz, kade
 
 **Selector'lar metne bağlanamaz.** Sağlayıcı arayüzleri yerelleştirilmiştir; `[aria-label="Copy"]` veya "Preview" yazısını arayan bir selector, arayüzü Türkçe olan kullanıcıda **sessizce çalışmaz** — ve extension'ı yazan kişi kendi arayüzü İngilizceyse bunu asla göremez. Kural: yalnızca yapısal ve dilden bağımsız işaretler (DOM hiyerarşisi, `data-*`, `role`, ikon `svg` yapısı). Metin eşleştirme yasak. Doğrulama: her sağlayıcının arayüzü Türkçeye alınıp tüm akış tekrar denenir.
 
-**Tema.** Sağlayıcıların açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--adl-bg`, `--adl-fg`, `--adl-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
+**Tema.** Sağlayıcıların açık teması da var; koyu tema varsayan enjekte UI, açık temada okunmaz bir leke olur. Renkler sabit yazılmaz: sağlayıcının kendi hesaplanmış arka plan ve metin rengi okunup CSS değişkenlerine (`--mg-bg`, `--mg-fg`, `--mg-line`) yazılır. Böylece hangi sağlayıcı temayı hangi mekanizmayla değiştirirse değiştirsin (class, `data-*`, `prefers-color-scheme`) peşinden geliriz — ve dördü için ayrı renk tablosu tutmak gerekmez. Vurgu rengi (#d97757) her iki temada da kontrast sağladığı için sabit kalır.
 
 ### 12.1 DOM'dan metin okuma kuralları
 
