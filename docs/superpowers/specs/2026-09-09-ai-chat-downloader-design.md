@@ -35,6 +35,7 @@ Bu extension o boşluğu kapatır: **sohbetteki her indirilebilir şeye tek tık
 
 **Hedef değil**
 - Toplu hesap yedeği (tüm sohbetleri gezmek)
+- Çoklu-model sidebar / çok modelli istemci (§4.4)
 - Artifact düzenleme / geri yükleme
 - Kayıtta olmayan ve kullanıcının izin vermediği siteler (§3.4.0)
 - Kurumsal politika ile önceden yapılandırma (`storage.managed`) — talep gelirse eklenir, varsayım olarak inşa edilmez
@@ -351,6 +352,35 @@ Değerlendirilen yüzeyler ve gerekçeleri:
 | **Web uygulaması** | Hayır | Aynı sebep, daha kötüsü: veriyi bir sunucuya taşımayı gerektirir ve §17.2'yi kökten bozar |
 
 **Sıralamanın mantığı:** her yüzey bir öncekinin ürettiği şeyin üstüne biniyor. Extension dosyayı üretir → klasör onu projeye koyar → köprü doğru yere koyar → MCP birikeni aranabilir yapar. Tersten başlamak (önce MCP) elde hiç veri yokken bir arama arayüzü yazmak olurdu.
+
+## 4.3 Oturumlar arası hafıza — indirme kütüphanesi
+
+Bugün "bu oturumda indirildi" işareti (§8.6) oturum bitince kayboluyor. Oysa asıl soru ertesi gün soruluyor: *bunu zaten almış mıydım, ve aldığımdan beri değişti mi?*
+
+**Tasarım: yerel bir indirme dizini (index), içerik değil.** Her indirmede bir satır — sağlayıcı, sohbet başlığı, öğe adı, `kind`, sürüm etiketi, tarih, içeriğin **SHA-256**'sı ve (klasöre kaydedildiyse) yol. İçerik saklanmaz; hash aynı şeyi çok daha ucuza yapar.
+
+Kazandırdıkları:
+- **`✓ indirildi` kalıcı olur** ve sürüm farkını bilir: aynı ad + aynı hash → `zaten aldın`; aynı ad + farklı hash → `v3'ü aldın, bu v5` (kullanıcının en sık kaçırdığı durum)
+- **Yinelenen indirmeyi engeller** — klasöre kaydetmede `-2` üretmek yerine "bu dosya zaten burada, aynısı" diyebilir
+- **Geçmişte arama:** popup'ta `Geçmiş` sekmesi, ad/sağlayıcı/tarihe göre. "Şu dashboard'u geçen ay indirmiştim" sorusunun cevabı
+- İleride **MCP yüzeyinin** (§4.2) indeksleyeceği şey tam olarak budur — o yüzden bu adım MCP'den önce gelir
+
+**Gizlilik sonucu açıkça yazılır ve varsayılan kapalıdır.** Sohbet başlığı ve öğe adı **konuşma içeriğidir**; onları kalıcı saklamak, §17.2'deki "içerik yalnızca bellekte" taahhüdünün kapsamını değiştirir. Bu yüzden:
+- Özellik **opt-in**; ilk açılışta ne saklandığı tek ekranda gösterilir
+- Depolama `storage.local` (senkronize **edilmez** — geçmişin cihazlar arası dolaşması istenmeyen bir sürprizdir)
+- `Geçmişi temizle` ayarlarda, tek tık, onaysız çalışmaz
+- §17.2'nin 3. maddesi bu özelliği ayrıca sayar; kapalıyken hiçbir şey yazılmaz
+- Kayıt satırı sayısı üst sınırlı (varsayılan 5000, ayarlanabilir); aşınca en eskiler düşer
+
+## 4.4 Çoklu-model sidebar — neden bu ürün değil
+
+Aynı promptu birden çok modele gönderen bir kenar çubuğu istenebilir. Bunu **yapmıyoruz**, üç somut sebeple:
+
+1. **Kimlik bilgisi problemi.** Ya kullanıcıdan API anahtarı istenir (bu ürünün tamamen dışında bir güven ilişkisi, ve anahtar saklamak §17.2'yi bozar) ya da her sağlayıcının yazma kutusu otomatik doldurulup gönderilir — ki bunu §3.3.3'te bilerek reddettik: sağlayıcı başına yeni seçici yüzeyi, ve kullanıcı adına başka bir şirkete veri gönderen bir eylem.
+2. **Yan yana gösterim teknik olarak kapalı.** Sağlayıcılar `X-Frame-Options`/CSP ile çerçevelenmeyi engelliyor; bir sidebar'da gerçek arayüzlerini göstermek mümkün değil.
+3. **Tek amaç beyanı çöker** (§19.6). "İndirici" ile "çok modelli istemci" aynı listeleme altında savunulamaz; inceleme bunu kapsam patlaması olarak görür ve haklıdır.
+
+**Buna karşılık zaten sunduğumuz komşu yetenek:** konuşmayı taşıma (§3.3.3) N hedefe uygulanabilir — aynı bağlamı üç sağlayıcıda ayrı sekmede başlatmak tek tıkla mümkün, gönderme kararı kullanıcıda kalır. Ve çıktılarını indirip yan yana karşılaştırmak bu ürünün zaten yaptığı şey. İhtiyacın gerçek çekirdeği (aynı soruyu birden çok modele sormak) karşılanıyor; karşılanmayan kısım otomasyon, ve o kısım bilinçli olarak kullanıcıda bırakılıyor.
 
 ## 5. Mimari
 
@@ -1115,7 +1145,7 @@ Aşağıdakiler mağaza beyanının ve kullanıcı güveninin **taşıyıcı** u
 
 1. Dış origin'e hiçbir istek yok (§19.3 kapı 8 bunu korur)
 2. Telemetri, analytics, hata raporlama servisi yok
-3. Konuşma içeriği yalnızca bellekte. Cihazdan çıkışı **yalnızca kullanıcının açık eylemiyle** olur ve üç yolu vardır: indirdiği dosya, seçtiği klasöre yazılan dosya, ve taşıma özelliğinde **panoya** yazılan Markdown (§3.3.3). Panoyu üçüncü bir hedef olarak burada saymak zorundayız — saymamak bu listeyi yanlış yapardı
+3. Konuşma içeriği yalnızca bellekte. Cihazdan çıkışı **yalnızca kullanıcının açık eylemiyle** olur ve üç yolu vardır: indirdiği dosya, seçtiği klasöre yazılan dosya, ve taşıma özelliğinde **panoya** yazılan Markdown (§3.3.3). **İstisna, kullanıcının açıkça açtığı indirme geçmişidir** (§4.3): açıksa sohbet başlığı ve öğe adı yerel olarak kalıcı saklanır — içerik değil, hash. Kapalıyken hiçbir şey yazılmaz. Panoyu üçüncü bir hedef olarak burada saymak zorundayız — saymamak bu listeyi yanlış yapardı
 4. `storage`'da yalnızca ayarlar; IndexedDB'de yalnızca klasör handle'ı
 5. Teşhis bloğu konuşma verisi taşımaz (§8.9)
 
