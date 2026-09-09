@@ -246,6 +246,8 @@ Boru hattı async ve kullanıcı beklemek zorunda değil. Üç yarış durumu:
 
 **Tek versiyon varsa `▾` yarısı çizilmez** — tek satırlık menü gürültüdür. Kontrol ancak seçenek varsa var olur.
 
+**`defaultVersion: "ask"` seçiliyken buton bölünmez.** "Sor" demek "varsayılan yok" demektir; `↓` yarısının indireceği bir şey kalmaz. O ayarda buton tek parçadır ve tıklama doğrudan menüyü açar. İki yarısı da aynı şeyi yapan bir split buton, kullanıcıya olmayan bir seçim sunar.
+
 ### 8.2 Versiyon menüsü (popover)
 ```
 VERSİYON SEÇ
@@ -272,7 +274,11 @@ Zip adı sohbet başlığından üretilir: `<sohbet-başlığı>-artifacts.zip`.
 
 Aynı artifact için oturum başına **bir kez** gösterilir; panel her açılıp kapandığında tekrar nabız atmaz.
 
-**Tetikleyici panel açılışı değil, artifact'ın tamamlanmasıdır.** Claude yazmaya başladığı anda panel zaten açılıyor; o anda "indirebilirsin" demek yanlış — dosya henüz yarım (§3.2). Sinyal, akışın bittiği tespit edildiğinde çıkar. Zaten açık ve tamamlanmış bir artifact'a geçildiğinde ise hemen çıkar. Aynı kural badge nabzı ve sistem bildirimi için de geçerli.
+**Tetikleyici panel açılışı değil, artifact'ın tamamlanmasıdır.** Claude yazmaya başladığı anda panel zaten açılıyor; o anda "indirebilirsin" demek yanlış — dosya henüz yarım (§3.2). Sinyal, akışın bittiği tespit edildiğinde çıkar. Aynı kural badge nabzı ve sistem bildirimi için de geçerli.
+
+**Eski sohbet açmak sinyal üretmez.** Aksi hâlde arşivinden bir konuşmayı her açtığında, aylar önce üretilmiş bir artifact için "indirebilirsin" nabzı alırsın — bildirim değil, gürültü. Sinyal iki durumda çıkar: (a) artifact **bu sayfa oturumunda** tamamlandı, (b) kullanıcı paneli **kendi açtı** ve o artifact bu oturumda daha önce görülmedi. Sayfa yüklenirken zaten açık gelen panel hiçbir sinyal üretmez; buton yine de oradadır.
+
+Ayrım şu ilkeye dayanıyor: davetsiz bildirim ancak **yeni bir şey olduysa** haklıdır. Kullanıcının kendi açtığı bir şeyi ona haber vermek bildirim değil, tekrar.
 
 ### 8.4 Toast
 | tür | süre | örnek |
@@ -349,13 +355,21 @@ e.dataTransfer.setData("DownloadURL", `${mime}:${filename}:${blobUrl}`)
 
 Çözüm **hover ön-yükleme**: kullanıcı butonun üzerine geldiğinde (veya klavyeyle odaklandığında) fetch sessizce başlar. İnsan sürüklemeye başlamadan önce neredeyse her zaman fareyi butonun üstünde bir an tutar; o an bize yetiyor. Hazır değilse buton `draggable` olmaz — yarım dosya sürüklemektense sürüklenememek iyidir.
 
-Sürüklenen versiyon: varsayılan versiyon (`defaultVersion` ayarı). `blobUrl` bırakma sonrası `dragend`'de serbest bırakılır.
+Sürüklenen versiyon: varsayılan versiyon (`defaultVersion` ayarı).
+
+**`blobUrl` `dragend`'de serbest bırakılamaz.** `dragend` bizim tarafımızda, hedef uygulama blob'u **henüz okumamışken** tetiklenir; orada `revokeObjectURL` çağırmak dosyanın boş veya hiç oluşmamış hâlde düşmesine yol açar — üstelik hedefe göre değişir, yani "bende çalışıyor" diyen türden bir bug. Kural: URL `dragend`'de değil, **gecikmeli** (≥60 sn) veya sayfa/rota değişiminde serbest bırakılır. Tutulan blob birkaç yüz KB; sızıntı riski, bozuk bırakma riskinden küçük.
+
+**Sürükleme tıklamayı yutmamalı.** `draggable` bir düğmede küçük fare kaymaları tıklamayı sürüklemeye çevirebilir ve indirme hiç tetiklenmez. Birincil eylem tıklamadır: sürükleme yalnızca eşiği aşan hareketle başlar, `dragstart` claude.ai'ın kendi sürükleme işleyicilerine ulaşmasın diye `stopPropagation` yapar, ve manuel doğrulamada **tıklama ile sürükleme ayrı ayrı** denenir.
 
 Hover ön-yükleme aynı zamanda tıklama gecikmesini de düşürür — feature'ın ikinci kazancı.
 
 ### 8.7.2 Klasöre kaydet (File System Access)
 
-Ayarda `Kayıt yeri: Tarayıcı indirmeleri | Seçilen klasör`. İkincisi seçilince `showDirectoryPicker()` açılır, dönen `FileSystemDirectoryHandle` IndexedDB'de saklanır (handle'lar `storage.sync`'e serialize edilemez; claude.ai origin'inde IndexedDB tutulur).
+Ayarda `Kayıt yeri: Tarayıcı indirmeleri | Seçilen klasör`. İkincisi seçilince `showDirectoryPicker()` açılır, dönen `FileSystemDirectoryHandle` IndexedDB'de saklanır.
+
+**Doğrulanacak (adım 1):** `showDirectoryPicker` content script'in isolated world'ünden çağrılabiliyor mu. Güvenli bağlam ve kullanıcı hareketi koşulları sağlanıyor, ama bu API'nin extension bağlamlarındaki davranışı sürüme göre değişebiliyor. Çağrılamıyorsa yedek yol: seçim, extension'ın kendi sayfasında (options) yapılır. Bu, feature'ın **tek gerçek varsayımı**; erken doğrulanmazsa geç ve pahalı çıkar.
+
+**Handle nerede duruyor ve bunun bedeli.** `FileSystemHandle` `storage.sync`'e serialize edilemez ve `chrome.runtime` mesajlaşmasından geçmez; pratikte tek yer content script'in eriştiği IndexedDB, yani **claude.ai origin'inin depolaması**. İki sonucu var: (a) kullanıcı claude.ai site verisini temizlerse klasör tercihi kaybolur — ayar `downloads`'a döner ve bu kullanıcıya söylenir, sessizce indirilenlere kaymaz; (b) depolama sayfayla paylaşıldığı için oraya **yalnızca handle** konur, başka hiçbir kullanıcı verisi konmaz.
 
 **Tuzak: izin oturumla birlikte solar.** Tarayıcı yeniden başlatıldığında handle duruyor ama yazma izni yok; `handle.requestPermission({mode:"readwrite"})` yeni bir **kullanıcı hareketi** ister. İndirme tıklaması bu hareketi sağlar, ama kullanıcı istemi reddedebilir veya kapatabilir.
 
@@ -471,6 +485,9 @@ panel → content (aktif sekme): `{ type: "popup:download", version | "zip" }`
 | Klasörde aynı adlı dosya var | `-2`, `-3` soneki — üzerine **yazılmaz** |
 | Sürükleme hazır değilken başlatıldı | Buton `draggable` olmaz; hover ön-yüklemesi bitince olur |
 | Sohbet zip'inde şüpheli artifact var | Arşive girer, adı `-partial`, toast kaç tanesi olduğunu söyler |
+| claude.ai site verisi temizlendi | Klasör handle'ı kayboldu; ayar `downloads`'a döner ve **kullanıcıya söylenir** |
+| `showDirectoryPicker` content script'te yok | Seçim options sayfasına taşınır (adım 1'de doğrulanır) |
+| Sürükleme tıklamayı yuttu | Eşik altı hareket tıklama sayılır; sürükleme eşiği aşınca başlar |
 | `old_str` gövdede 2+ kez geçiyor | Versiyon `⚠ kısmi`, `reason:"old_str_ambiguous"` |
 | Aktif dal çıkarılamadı (`parent_message_uuid` zinciri kopuk) | En yeni `created_at`'li yaprak seçilir + sarı toast |
 | Kısayol basıldı, artifact yok | `! Bu sayfada indirilecek artifact yok` toast'ı |
@@ -524,7 +541,7 @@ Kazanç: Anthropic şemayı değiştirdiğinde yapılacak iş "yeni bir konuşma
 - **Türkçe adlı + emoji içerikli girdide tüm boyut alanları `byteLength`'e eşit, karakter sayısına değil** — bu test olmadan çok baytlı içerikte sessizce bozuk arşiv üretilir
 - general purpose bit 11 (UTF-8 flag) set
 
-Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
+Manuel doğrulama listesi (implementation sonunda): gerçek 3 versiyonlu React artifact; tek versiyonlu markdown; SVG; mermaid; çok uzun (>500 satır) HTML; aynı başlıklı iki artifact; oturum kapalıyken fallback; **mesaj düzenlenip dallanmış konuşma**; iki claude.ai sekmesi açıkken badge'lerin karışmaması; React yeniden render'ından sonra butonun hâlâ orada olması; Preview modundayken fallback sonrası sekmenin geri gelmesi; `prefers-reduced-motion` açıkken animasyonsuz çalışma; klavyeyle menü gezinme; **uzun bir yanıt akarken Performance profili** (extension'ın CPU payı ölçülebilir olmamalı); `{date}` şablonunun `en-US` yerelinde de ISO üretmesi; teşhis bloğunun içinde konuşma verisi bulunmaması; **Claude yazarken indirip akış bitince tekrar indirmek** (ikinci dosya tam olmalı); panel kapalıyken popup'tan indirme; iki artifact'lı sohbette popup'ın seçim listesi; **butonu VS Code'a sürükleyip bırakmak** (hover etmeden ve hover ederek); klasör seçip tarayıcıyı kapatıp açtıktan sonraki ilk indirme (izin istemi + reddedince fallback); klasörde aynı adlı dosya varken indirme; 4 artifact'lı sohbetin zip'i; **sürüklenen dosyanın hedefte tam açılması** (blob erken serbest bırakılmamalı); aynı butonda tıklama ve sürüklemenin ayrı ayrı çalışması; `defaultVersion:"ask"` iken butonun tek parça olması; **eski bir sohbeti açmanın hiç sinyal üretmemesi**; **↓'ye basıp yanıt gelmeden başka sohbete geçmek** (yanlış dosya inmemeli); hızlı çift tık (tek dosya inmeli); otomatik indirme açıkken Claude artifact yazarken (akış bitene kadar dosya inmemeli); menü açıkken panelin kapanması; **extension'ı yeniden yükleyip eski sekmeye dönmek** (konsol temiz kalmalı, UI kendini kaldırmalı); ilk kurulumda ayar sekmesinin açılması; claude.ai dışında popup'ın boş durumu.
 
 ## 15. Chrome Web Store teslimatları
 
