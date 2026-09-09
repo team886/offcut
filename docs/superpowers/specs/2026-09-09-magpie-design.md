@@ -759,11 +759,11 @@ magpie/
     parse.js        # pure, node-testable — fold, Item validation
     zip.js          # pure, store-only ZIP writer
     content.js      # adapter selection + DOM observation + UI injection + orchestration
-    overlay.css     # button, menu, pill, toast
+    overlay.css     # button, menu, pill, toast — v2+ only; see the note below
     sw.js           # badge, system notification, optional permission
     panel.html
     panel.js        # popup AND options, one file
-  icons/16.png 48.png 128.png
+  icons/icon16.png icon32.png icon48.png icon128.png
   selftest.js       # node selftest.js
   store/            # Web Store deliverables (§15)
   test/fixtures/<provider>/   # redacted samples from real responses (§14)
@@ -810,6 +810,11 @@ magpie/
     "description": "__MSG_cmdDownload__" } }
 }
 ```
+
+**What v1 actually ships.** The tree and the manifest above are the *target* shape, reached at v2.0 when documents and versions arrive (`docs/ROADMAP.md`). v1 has one content-script block and **no `overlay.css`**: every rule the injected UI needs is a `SHELL_CSS` template literal inside `content.js`, mounted into the shadow root along with the markup.
+
+The reason is the same one that put the UI in a shadow root at all (§8.7). A manifest `css` file is injected into the *page's* stylesheet set, so it can only reach the shadow root's contents if the selectors are written to pierce it — which they cannot be — and its rules would apply to the page itself, which is the leakage the shadow root exists to prevent. A second stylesheet also means a second failure mode: the CSS arrives while the JS has not yet mounted, or an adapter block loads one and the baseline block another. With one shell there is one place, and the CSS cannot arrive without the markup it styles. When v2 adds document buttons injected into the page's own DOM, that placement needs page-level CSS and `overlay.css` earns its existence; until then it would be an empty file the manifest points at.
+
 
 **Each adapter-backed provider gets its own `content_scripts` block and loads only its own adapter.** Loading them all in one block would refute the isolation claim in §3.4.6: a syntax error in `gemini.js` fails not that file but **the entire script load for that tab**, killing the extension on Claude too. Separate blocks make that impossible, at the cost of a few repeated manifest lines.
 
@@ -1730,7 +1735,7 @@ GitHub Actions, **with no npm dependency**, using only Node built-ins. If they a
 9. **Selector text scan:** no natural-language string in selector position inside `adapters/` — patterns such as `[aria-label="Copy"]`, `:has(:contains(…))` or `textContent === "Preview"` are red (§12). CI sees the bug an author running an English interface never could
 10. **Layer violation:** `content.js` contains no provider selector; `SEL` exists only under `adapters/` (§3.4.6, §12). This gate is the only thing protecting adapter isolation
 11. **Settings coverage:** every key in the `cfg` schema has a control in the panel, and the panel has no control absent from the schema (§8.6). Adding a setting and forgetting the UI becomes impossible
-12. **Logical CSS:** `overlay.css` contains no physical direction property (`left:`, `right:`, `margin-left`, `padding-right`); only `inset-inline-*` and `margin-inline-*` (§8.7). Prevents RTL breakage at writing time rather than hunting for it later
+12. **Logical CSS:** the injected CSS — `SHELL_CSS` in `content.js` at v1, `overlay.css` once it exists — contains no physical direction property (`left:`, `right:`, `margin-left`, `padding-right`); only `inset-inline-*` and `margin-inline-*` (§8.7). Prevents RTL breakage at writing time rather than hunting for it later
 13. **Registry and adapter freshness:** every registry row and every adapter carries `LAST_VERIFIED`; older than 90 days is a **warning**, older than 180 is **red** (§19.8). No release ships on an unverified adapter
 14. **Specification consistency** (`tools/check-spec.mjs`): no broken `§` reference (**including inside code blocks** — one broken reference was hiding exactly there) · section numbers ascending · two-way agreement between the `cfg` schema and the settings panel · every file named in the spec present in the architecture tree or the deliverables list · `SEL.*` and `cfg.*` references defined · numeric thresholds stated more than once are reported (for a human to compare)
 
@@ -1738,9 +1743,13 @@ GitHub Actions, **with no npm dependency**, using only Node built-ins. If they a
 
 15. **Core portability:** `parse.js`, `zip.js` and `registry.js` contain **no** `chrome.`, `document.` or `window.` (§4.2). Without this gate the core gets nailed to the browser unnoticed and a second surface becomes a rewrite
 
+16. **Source files are text:** no source file contains a raw control byte, and every one uses a single line ending. Added after `sanitize`'s character class turned out to hold **literal** control bytes rather than the ` -` escape sequence it appears to contain. The code behaved correctly, which is why nothing caught it; the cost was that git classified the file as binary, so it had no reviewable diff. A defect that removes the ability to review the file is worse than one the tests can see
+
+    The gate also fixes the line ending, because a repository with both kinds shows every normalisation as a whole-file diff and buries the real change
+
 ### 19.4 Versioning and packaging
 
-Semver. `node tools/pack.mjs` → `dist/magpie-<version>.zip`, excluding `docs/`, `test/`, `tools/`, `.superpowers/` and `.github/`. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
+Semver. `node tools/pack.mjs` → `dist/magpie-<version>.zip`. The tool packs a **whitelist** — `manifest.json`, `LICENSE`, `src/`, `_locales/`, `icons/` — rather than excluding a list of directories: the failure mode of a blacklist is publishing a file nobody meant to ship, and it fails silently. The archive is written by `src/zip.js`, the same writer that ships to users, so every release exercises it; that is how the End of Central Directory defect in §6 was found. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
 
 Every release gets a git tag: `v1.0.0`.
 
@@ -1764,7 +1773,7 @@ Nothing is submitted until **all** of these are ticked:
 - [ ] Screenshots from a **demo** conversation
 - [ ] Trademark disclaimer covering **every** registry provider in the description
 - [ ] **The name "Magpie" checked for store and trademark collisions** — §2.1.2
-- [ ] Logo: the selected mark produced at 16px (`icons/16.png`) and verified in the toolbar (§8.5)
+- [ ] Logo: the selected mark produced at 16px (`icons/icon16.png`) and verified in the toolbar (§8.5)
 - [ ] `docs/BREAKAGE.md` complete for adapter-backed providers, with a shared section for the baseline
 - [ ] The previous release's zip retained (§19.7)
 
