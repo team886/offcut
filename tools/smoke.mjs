@@ -203,13 +203,35 @@ try {
     await page.waitForTimeout(300);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.screenshot({ path: join(SHOT_DIR, "1-control-on-a-code-block.png") });
-    await popup.setViewportSize({ width: 480, height: 620 });
-    await popup.screenshot({ path: join(SHOT_DIR, "2-the-panel.png") });
+    // The panel shot is taken separately, below, from the UNMODIFIED
+    // extension: shooting it here put a "Smoke fixture" row in the provider
+    // list — a test artefact in a store image, which is the kind of thing
+    // nobody notices until a reviewer does.
     console.log(`\n  screenshots -> ${SHOT_DIR}`);
   }
 } finally {
   await ctx.close();
   server.close();
+}
+
+if (WANT_SHOTS) {
+  const clean = await chromium.launchPersistentContext("", {
+    headless: false,
+    args: [`--disable-extensions-except=${resolve(".")}`, `--load-extension=${resolve(".")}`],
+  });
+  try {
+    let sw2 = clean.serviceWorkers()[0];
+    if (!sw2) sw2 = await clean.waitForEvent("serviceworker", { timeout: 10000 });
+    const id = new URL(sw2.url()).host;
+    const shot = await clean.newPage();
+    await shot.setViewportSize({ width: 480, height: 640 });
+    await shot.goto(`chrome-extension://${id}/src/panel.html`);
+    await shot.waitForTimeout(900);
+    await shot.screenshot({ path: join(SHOT_DIR, "2-the-panel.png") });
+    console.log("  panel shot taken from the shipped extension, with no test row in it");
+  } finally {
+    await clean.close();
+  }
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nsmoke ok");
