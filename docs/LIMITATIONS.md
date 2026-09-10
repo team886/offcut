@@ -55,3 +55,11 @@ Until then: the control may overlap the start of a code block on an RTL page. Ev
 Completeness is proved for the one block being downloaded or copied, at the moment it is taken — not for every block on every rescan. Counting blocks needs one cheap read; handing one over needs the proof.
 
 The consequence is that the floating control's filename preview cannot know whether the block is complete, because that is only established after the read. When a read comes back incomplete the file is saved with `-partial` and a toast says so, which means the preview and the delivered name differ in exactly that case. The alternative — scrolling every block on the page on every DOM mutation — was worse.
+
+## Magpie runs on conversation pages, not on every page of a provider
+
+A registry row matches a **host**; the manifest injects on specific **paths**. On claude.ai that is `/chat/*` and `/project/*`, and nothing else. A published artifact at `/code/artifact/<id>`, the `/recents` listing and the settings screens have no content script in them at all.
+
+This surfaced as a bug in the popup rather than in the extension: a supported host with no answer was reported as "not running on this tab — reload the page", which on an artifact page would have sent the user round the same loop forever. The popup now reads `content_scripts` out of its own manifest and matches the tab's URL against it, so its answer cannot drift from what Chrome actually injects.
+
+**Should artifact pages be included?** Not in v1, and not only because of scope. A published artifact usually *renders* — an HTML page displays as a page, a React component as a component — so there is frequently no `pre > code` on it to read. Making it work means reading the artifact's source rather than its output, which is the v2.0 document work (`docs/ROADMAP.md`) and needs the adapter and API tiers that version introduces. Adding the path now would move the confusing message rather than remove it.

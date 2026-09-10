@@ -161,5 +161,14 @@
   },
   "shortBadge": {
     "message": "kısa"
+  },
+  "notAConversation": {
+    "message": "Konuşma sayfası değil"
+  },
+  "emptyNotAConversation": {
+    "message": "Magpie bir konuşmanın içindeki kod bloklarını okur. Bu sayfa başka bir şey — artifact, liste veya ayar ekranı — yani burada okuyacağı bir şey henüz yok."
+  },
+  "openAConversation": {
+    "message": "Bir konuşma aç"
   }
 }

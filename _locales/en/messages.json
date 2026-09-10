@@ -161,5 +161,14 @@
   },
   "shortBadge": {
     "message": "short"
+  },
+  "notAConversation": {
+    "message": "Not a conversation page"
+  },
+  "emptyNotAConversation": {
+    "message": "Magpie reads code blocks inside a conversation. This page is something else — an artifact, a listing or a settings screen — so there is nothing here for it to read yet."
+  },
+  "openAConversation": {
+    "message": "Open a conversation"
   }
 }

@@ -33,6 +33,8 @@
   let tabId = null;
   let needsReload = false;      // supported host, but no content script answered
   let skipped = 0;              // blocks below MIN_CODE_LINES, counted not hidden
+  let wrongPage = false;        // right provider, but not a page we are injected into
+  let urlRow = null;
   let focusIndex = 0;
 
   // ── i18n: every visible string comes from _locales (§13) ─────────────────
@@ -51,6 +53,34 @@
       if (tabId == null) return res(null);
       chrome.tabs.sendMessage(tabId, msg, (r) => { void chrome.runtime.lastError; res(r || null); });
     });
+  }
+
+  /**
+   * Chrome match pattern → RegExp, read from our own manifest.
+   *
+   * A registry row matches a HOST; the manifest injects on specific PATHS.
+   * Conflating them told a user on claude.ai/code/artifact/… to reload the
+   * page, which could never have helped: the content script is not injected
+   * there at all. Reading content_scripts is the only answer that cannot
+   * drift from what Chrome actually does (§8.4).
+   */
+  function matchPatternToRegExp(pattern) {
+    const m = /^(\*|https?):\/\/([^/]+)(\/.*)$/.exec(pattern);
+    if (!m) return null;
+    const esc = (x) => x.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+    const scheme = m[1] === "*" ? "https?" : m[1];
+    const host = m[2] === "*" ? "[^/]+"
+      : m[2].indexOf("*.") === 0 ? "(?:[^/]+\\.)?" + esc(m[2].slice(2))
+      : esc(m[2]);
+    return new RegExp("^" + scheme + "://" + host + esc(m[3]) + "$");
+  }
+
+  function isInjectedInto(url) {
+    const blocks = chrome.runtime.getManifest().content_scripts || [];
+    return blocks.some((b) => (b.matches || []).some((p) => {
+      const re = matchPatternToRegExp(p);
+      return re && re.test(url);
+    }));
   }
 
   // ── rendering ────────────────────────────────────────────────────────────
@@ -94,7 +124,16 @@
   function emptyState() {
     const d = document.createElement("div");
     d.className = "empty";
-    if (needsReload) {
+    if (wrongPage) {
+      d.textContent = t("emptyNotAConversation", "This page is not a conversation.");
+      const p = document.createElement("div");
+      const a = document.createElement("a");
+      a.href = urlRow.newChatUrl; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = t("openAConversation", "Open a conversation");
+      p.appendChild(a);
+      d.appendChild(document.createElement("br"));
+      d.appendChild(p);
+    } else if (needsReload) {
       // The one empty state with a fix the user can perform from here.
       d.textContent = t("emptyReload", "Reload the page.");
       const b = document.createElement("button");
@@ -409,10 +448,10 @@
     // The tab's URL is readable without the "tabs" permission for any origin
     // we already hold a host permission for — which is exactly the registry's
     // origins, and the only ones this answer needs (§19.6).
-    let urlRow = null;
+    let tabUrl = null;
     try {
-      const u = tabs && tabs[0] && tabs[0].url;
-      if (u) urlRow = R.findProvider(new URL(u).hostname);
+      tabUrl = (tabs && tabs[0] && tabs[0].url) || null;
+      if (tabUrl) urlRow = R.findProvider(new URL(tabUrl).hostname);
     } catch { urlRow = null; }
 
     const resp = await send({ type: "items:list" });
@@ -425,14 +464,19 @@
     // were already open when the extension was loaded or updated, and saying
     // "not a supported chat" on a supported chat sends the user to fix the
     // wrong thing (§8.4: we can only claim what we know).
-    needsReload = !items.provider && !!urlRow;
+    // Four states, not three. A supported HOST on a page we do not inject into
+    // is not a reload problem — reloading claude.ai/code/artifact/… would have
+    // sent the user round the same loop forever.
+    const injected = !!tabUrl && isInjectedInto(tabUrl);
+    wrongPage = !items.provider && !!urlRow && !injected;
+    needsReload = !items.provider && !!urlRow && injected;
 
     el("dot").classList.toggle("off", !items.provider);
     el("strip").textContent = items.provider
       ? items.provider + " · " + t("codeOnly", "code blocks")
-      : needsReload
-        ? t("notRunningHere", "Loaded, but not running on this tab")
-        : t("unsupportedSite", "Not a supported chat");
+      : needsReload ? t("notRunningHere", "Loaded, but not running on this tab")
+      : wrongPage ? urlRow.name + " · " + t("notAConversation", "Not a conversation page")
+      : t("unsupportedSite", "Not a supported chat");
 
     el("filter").addEventListener("input", render);
     el("list").addEventListener("keydown", onKey);
