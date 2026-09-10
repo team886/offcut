@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security issue
-    url: https://github.com/katatechnology/offcut/blob/main/SECURITY.md
+    url: https://github.com/team886/offcut/blob/main/SECURITY.md
     about: Please do not open a public issue — SECURITY.md says where to send it.

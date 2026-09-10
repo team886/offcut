@@ -7,18 +7,19 @@
   "default_locale": "en",
   "minimum_chrome_version": "116",
   "author": "Ömer Faruk Ceylandağ",
-  "homepage_url": "https://github.com/katatechnology/offcut",
-
+  "homepage_url": "https://github.com/team886/offcut",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-
-  "permissions": ["storage"],
-  "optional_permissions": ["notifications"],
-
+  "permissions": [
+    "storage"
+  ],
+  "optional_permissions": [
+    "notifications"
+  ],
   "host_permissions": [
     "https://claude.ai/*",
     "https://chatgpt.com/*",
@@ -33,11 +34,12 @@
     "https://chat.z.ai/*",
     "https://t3.chat/*"
   ],
-
-  "optional_host_permissions": ["https://*/*"],
-
-  "background": { "service_worker": "src/sw.js" },
-
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/sw.js"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -65,7 +67,6 @@
       "run_at": "document_idle"
     }
   ],
-
   "action": {
     "default_popup": "src/panel.html",
     "default_title": "__MSG_extName__",
@@ -74,12 +75,16 @@
       "32": "icons/icon32.png"
     }
   },
-
-  "options_ui": { "page": "src/panel.html?options=1", "open_in_tab": true },
-
+  "options_ui": {
+    "page": "src/panel.html?options=1",
+    "open_in_tab": true
+  },
   "commands": {
     "download-current": {
-      "suggested_key": { "default": "Alt+Shift+D", "mac": "Alt+Shift+D" },
+      "suggested_key": {
+        "default": "Alt+Shift+D",
+        "mac": "Alt+Shift+D"
+      },
       "description": "__MSG_cmdDownload__"
     }
   }
