@@ -1,0 +1,135 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offcut — privacy policy</title>
+<style>
+  :root { color-scheme: dark light; }
+  body { margin:0; padding:56px 24px 96px; background:#17161A; color:#F2F0EC;
+         font:16px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-inline-size: 68ch; margin-inline:auto; }
+  h1 { font-size:26px; margin:0 0 6px; display:flex; align-items:center; gap:12px; }
+  h2 { font-size:15px; margin:34px 0 8px; }
+  .sub { color:#9C99A3; margin:0 0 30px; }
+  .lang { display:flex; gap:10px; margin-block-end:34px; }
+  .lang a { color:#E8B44A; text-decoration:none; border:1px solid #35333B; border-radius:7px;
+            padding:5px 12px; font-size:13px; }
+  .lang a[aria-current="page"] { background:#201F24; }
+  a { color:#E8B44A; }
+  ul { padding-inline-start:22px; }
+  hr { border:0; border-block-start:1px solid #35333B; margin:40px 0 20px; }
+  footer { color:#9C99A3; font-size:13px; }
+  section[hidden] { display:none; }
+  @media (prefers-color-scheme: light) {
+    body { background:#FFFFFF; color:#1A1A1E; }
+    .sub, footer { color:#6B6870; }
+    .lang a { border-color:#E2E0DC; } .lang a[aria-current="page"] { background:#F4F3F1; }
+    a { color:#8A6212; } hr { border-block-start-color:#E2E0DC; }
+  }
+</style>
+<main>
+  <h1><img src="icon48.png" width="30" height="30" alt=""> Offcut</h1>
+  <p class="sub">Privacy policy · Gizlilik politikası</p>
+
+  <div class="lang">
+    <a href="#en" id="l-en" aria-current="page">English</a>
+    <a href="#tr" id="l-tr">Türkçe</a>
+  </div>
+
+  <section id="en">
+    <h2>The short version</h2>
+    <p>Offcut sends nothing anywhere. It has no server, no account, no analytics and no
+       telemetry. Everything it reads stays in the tab you are looking at.</p>
+
+    <h2>What it reads</h2>
+    <p>On the chat sites listed in the extension, Offcut reads the conversation page you have
+       open, to find the code blocks in it. There is no other way to know what can be
+       downloaded. It reads the page as it is displayed; it does not log in as you, does not
+       read other tabs, and does not read pages on any other site.</p>
+
+    <h2>What it stores</h2>
+    <ul>
+      <li><strong>Your settings</strong>, in the browser's own extension storage. If you are
+          signed into Chrome these sync between your devices, the way any extension setting
+          does. That is Chrome's mechanism, not ours; we never see them.</li>
+      <li><strong>Nothing else.</strong> No conversation content, no filenames, no history of
+          what you downloaded.</li>
+    </ul>
+
+    <h2>What leaves your device</h2>
+    <p>Nothing. Files you download are written by your own browser to your own disk. The
+       extension makes no network request of any kind — a build check refuses to compile a
+       release if any source file so much as names a host outside the supported chat sites.</p>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><code>storage</code> — to keep your settings.</li>
+      <li>Access to the listed chat sites — to read the conversation you have open.</li>
+      <li><code>notifications</code> — optional, asked for only if you turn system
+          notifications on, and refusable.</li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>Offcut is not directed at children and collects no personal information from anyone,
+       of any age.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy ever changes, the change will appear in this page's history in the
+       public repository, alongside the release that made it.</p>
+
+    <h2>Contact</h2>
+    <p><a href="mailto:team@katatechnology.co">team@katatechnology.co</a></p>
+  </section>
+
+  <section id="tr" hidden>
+    <h2>Kısaca</h2>
+    <p>Offcut hiçbir yere hiçbir şey göndermez. Sunucusu, hesabı, analitiği ve telemetrisi
+       yoktur. Okuduğu her şey baktığınız sekmede kalır.</p>
+
+    <h2>Ne okur</h2>
+    <p>Eklentide listelenen sohbet sitelerinde, açık olan konuşma sayfasını içindeki kod
+       bloklarını bulmak için okur. Neyin indirilebileceğini anlamanın başka yolu yoktur.
+       Sayfayı göründüğü hâliyle okur; sizin adınıza oturum açmaz, başka sekmeleri okumaz ve
+       başka hiçbir sitede sayfa okumaz.</p>
+
+    <h2>Ne saklar</h2>
+    <ul>
+      <li><strong>Ayarlarınızı</strong>, tarayıcının kendi eklenti deposunda. Chrome'da oturum
+          açıksanız bunlar cihazlarınız arasında senkronize olur — bu Chrome'un mekanizmasıdır,
+          bizim değil; biz hiçbir zaman görmeyiz.</li>
+      <li><strong>Başka hiçbir şey.</strong> Konuşma içeriği yok, dosya adı yok, ne
+          indirdiğinizin geçmişi yok.</li>
+    </ul>
+
+    <h2>Cihazınızdan ne çıkar</h2>
+    <p>Hiçbir şey. İndirdiğiniz dosyaları kendi tarayıcınız kendi diskinize yazar. Eklenti
+       hiçbir türde ağ isteği yapmaz — bir derleme kontrolü, herhangi bir kaynak dosya
+       desteklenen sohbet siteleri dışında bir adresin adını bile geçirirse sürümü reddeder.</p>
+
+    <h2>İzinler</h2>
+    <ul>
+      <li><code>storage</code> — ayarlarınızı saklamak için.</li>
+      <li>Listelenen sohbet sitelerine erişim — açık olan konuşmayı okumak için.</li>
+      <li><code>notifications</code> — isteğe bağlı; yalnızca sistem bildirimlerini açarsanız
+          istenir ve reddedilebilir.</li>
+    </ul>
+
+    <h2>Çocuklar</h2>
+    <p>Offcut çocuklara yönelik değildir ve hiç kimseden, hiçbir yaşta, kişisel bilgi
+       toplamaz.</p>
+
+    <h2>Değişiklikler</h2>
+    <p>Bu politika değişirse, değişiklik onu yapan sürümle birlikte açık depodaki bu sayfanın
+       geçmişinde görünür.</p>
+
+    <h2>İletişim</h2>
+    <p><a href="mailto:team@katatechnology.co">team@katatechnology.co</a></p>
+  </section>
+
+  <hr>
+  <footer>
+    Offcut is a Chrome extension by Kata Technology ·
+    <a href="https://github.com/team886/offcut">source</a> ·
+    Not affiliated with Anthropic, OpenAI, Google, Perplexity or any other listed service.
+  </footer>
+</main>
+<script src="lang.js"></script>
