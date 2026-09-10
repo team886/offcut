@@ -1792,7 +1792,11 @@ Nothing is submitted until **all** of these are ticked:
 - [ ] `history` defaults to **off**, and nothing persistent is written while off (§4.3)
 - [ ] Permission list minimal: `storage` plus the host permissions plus optional `notifications`. Nothing more
 - [ ] The privacy policy published and its URL reachable
-- [ ] Screenshots from a **demo** conversation
+- [ ] **The store description names only what THIS version does**, and says plainly what it does not. Checked against the version's own listing file, not the target one (`store/listing.target.*.md`)
+
+    Added after the v1.0 listing was found describing roughly v2.1: documents with version history, tool outputs, citations, images, attachments, conversation export, drag and drop, folder saving, bulk zip and download history — ten features the submitted build did not have. The store requires the description to match the functionality, but the worse outcome is the one the store would not have caught: someone installs for a feature that does not exist
+
+- [ ] Screenshots from a **demo** conversation, **showing only features this version ships**
 - [ ] Trademark disclaimer covering **every** registry provider in the description
 - [ ] **The name "Magpie" checked for store and trademark collisions** — §2.1.2
 - [ ] Logo: the selected mark produced at 16px (`icons/icon16.png`) and verified in the toolbar (§8.5)

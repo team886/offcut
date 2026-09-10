@@ -1,39 +1,49 @@
-# Mağaza listelemesi — TR
+# Mağaza metni — TR — **v1.0**
+
+> Yalnızca v1.0'ı anlatır. Her sürüm bu dosyayı günceller; ürünün varacağı hâl `listing.target.tr.md` içinde. §19.5 ön-yayın kontrolü: açıklama, gönderilen sürümün gerçekte yaptığıyla örtüşmek zorunda.
 
 ## Ad (mağaza ad alanı)
 Magpie — AI Chat Downloader
 
 ## Kısa açıklama (132 karakter sınırı)
-Sohbetlerinden çıkan kodu, belgeleri ve dosyaları çıkar, sürümle, taşı ve yeniden kullan.
+Yapay zekâ sohbetlerindeki kod bloklarını doğru uzantı ve anlamlı bir adla gerçek dosyaya çevirir.
 
-*(89 karakter)*
+*(97 karakter)*
 
 ## Uzun açıklama
 
-**Neden bu izinleri istiyor?** Magpie, açtığın AI sohbetinin içeriğini okur — indirilecek şeyi bulmanın başka yolu yok. Okuduğu her şey senin tarayıcında kalır. Hiçbir sunucuya istek gitmez, hiçbir veri toplanmaz, analitik yoktur. Kurulumda gördüğün "verilerinizi okuyabilir ve değiştirebilir" uyarısı bu yüzden çıkar ve kapsamı yalnızca listelenen sohbet siteleridir.
+**Ne yapar**
 
-**Ne yapar?**
+Sohbetteki bir kod bloğu, sayfadaki metinden ibarettir. Kullanmak için seçersiniz, kopyalarsınız, yeni dosya açarsınız, uzantıyı tahmin eder, bir ad uydurursunuz. Magpie onu dosya yapar.
 
-Bir AI sohbetinde üretilen şeyler sohbetin içinde kalır. Kod bloğunu kopyalarsın, editöre yapıştırırsın, uzantıyı tahmin edersin. Bir belgenin önceki sürümüne dönmek istersen yolu yoktur. Bir aracın ürettiği 200 satırlık sonucu ararsan arayüz sana ilk onunu gösterir.
+- **Doğru uzantı**, bloğun dilinden — `.py`, `.ts`, `.sql`, `.sh` ve diğerleri.
+- **Kodun kendisinden türetilen ad.** Fence içinde dosya adı varsa o kazanır; yoksa koddaki ilk gerçek tanım (`parseInvoice` → `parse-invoice.ts`), yoksa bloğun üstündeki başlık, yoksa numaralı yedek. Bilemediği yerde bunu söyler: kasıtlı görünen bir şey uydurmak yerine düpedüz `code-4.js` yazar.
+- **İndirmeden önce adı düzeltin.** Ad bir sezgisel zincirden geliyor ve sezgisel olan yanılabilir; tıklayın, düzeltin. Uzantı sabit kalır — yanlış uzantı sessizce başarısız olur.
+- **İsterseniz kopyalayın**, çoğu zaman asıl istediğiniz metnin kendisidir.
+- **Bloğun üstünde bir kontrol**, üreteceği dosya adını daha basmadan gösterir; en son blok için `Alt+Shift+D`.
 
-Magpie bunları dosyaya çevirir:
+**Nerede çalışır**
 
-- **Kod blokları** — doğru uzantıyla, koddan türetilmiş anlamlı adla (`backfill.py`, `use-cart.ts`)
-- **Belgeler ve canvas'lar** — her sürümü ayrı ayrı, aralarındaki farkı satır sayısıyla görerek
-- **Araç / MCP çıktıları** — arayüzün kırptığı değil, tamamı; çağrı parametreleriyle birlikte
-- **Kaynaklar** — arama yapan sohbetlerde kaynak listesi ayrı bir dosya olarak
-- **Üretilen görseller** — anlamlı adla, tek tek ya da toplu
-- **Yüklediğin ve üretilen dosyalar** — geri indir
-- **Sohbetin tamamı** — Markdown olarak; istersen başka bir sağlayıcıda kaldığın yerden devam et
+Claude, ChatGPT, Gemini, Perplexity, DeepSeek, Mistral, Grok, Copilot, Kimi, Qwen, Z.ai ve T3 — on iki sohbet arayüzü, konuşma sayfalarında.
 
-Dosyayı editörüne **sürükleyip bırakabilir**, sabit bir klasöre kaydedebilir, seçtiklerini tek zip olarak alabilirsin. İndirme geçmişini açarsan bir ay sonra "bunu almış mıydım, o zamandan beri değişti mi" sorusunun cevabını verir.
+**Bu sürümün yapmadıkları**
 
-**Nerede çalışır?** Claude, ChatGPT, Gemini, Perplexity ve listeye eklenen diğer sohbet arayüzleri. Kendi kurduğun bir arayüz varsa (Open WebUI, LibreChat) tek tıkla ona da izin verebilirsin.
+Açıkça yazıyoruz, çünkü sohbetin ürettiğinin yarısını sessizce görmezden gelen bir indirici, sınırını söyleyenden kötüdür:
 
-**Gizlilik.** Dış istek yok. Telemetri yok. Hesap yok. Ayarların dışında hiçbir şey saklanmaz — indirme geçmişini kendin açmadıkça o da yazılmaz.
+- Dokümanlar, artifact'ler, canvas'lar ve sürüm geçmişleri — **henüz yok**
+- Ekler, araç çıktıları, kaynakça ve üretilen görseller — **henüz yok**
+- Konuşmanın tamamını dışa aktarma, klasöre kaydetme, sürükle-bırak, toplu zip, indirme geçmişi — **henüz yok**
+
+Sıradaki sürümler bunlar, bu sırayla.
+
+**Gizlilik**
+
+Dışarıya istek yok. Telemetri yok. Hesap yok. Sunucu yok. Magpie açık olan konuşma sayfasını okur — indirilebileceği bulmanın başka yolu yok — ve okuduğu her şey sekmede kalır. Sakladığı tek şey ayarlarınız.
+
+Kurulumdaki "verilerinizi okuyabilir ve değiştirebilir" uyarısı bunu kasteder ve yalnızca yukarıdaki on iki siteyi kapsar.
 
 ---
 
-Anthropic, OpenAI, Google ve Perplexity ile bağlantısı yoktur; adları yalnızca desteklenen hizmetleri belirtmek için kullanılır.
+Anthropic, OpenAI, Google, Perplexity, DeepSeek, Mistral, xAI, Microsoft, Moonshot, Alibaba, Z.ai veya T3 ile bağlantılı değildir; adları yalnızca desteklenen servisleri tanımlamak için kullanılır.
 
 Sorun bildirimi: team@katatechnology.co

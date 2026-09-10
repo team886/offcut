@@ -1,39 +1,49 @@
-# Store listing — EN
+# Store listing — EN — **v1.0**
+
+> Describes v1.0 and nothing else. Every release updates this file; the eventual shape of the product is in `listing.target.en.md`. See §19.5's pre-release gate: the description must match what the submitted version actually does.
 
 ## Name (store name field)
 Magpie — AI Chat Downloader
 
 ## Short description (132 char limit)
-Extract, version, move and reuse the code, documents and files your AI chats produce.
+Save the code blocks in your AI chats as real files, with the right extension and a name that means something.
 
-*(84 characters)*
+*(108 characters)*
 
 ## Long description
 
-**Why these permissions?** Magpie reads the AI conversation you have open — there is no other way to find what can be downloaded. Everything it reads stays in your browser. No requests go to any server, no data is collected, there is no analytics. That is what the "can read and change your data" notice at install refers to, and it covers only the listed chat sites.
-
 **What it does**
 
-What an AI chat produces stays inside the chat. You copy a code block, paste it into an editor, guess the extension. If you want an earlier version of a document there is no way back. If a tool returned two hundred rows, the interface shows you ten.
+A code block in an AI chat is text on a page. To use it you select it, copy it, make a new file, guess the extension and invent a name. Magpie makes it a file.
 
-Magpie turns these into files:
+- **The right extension**, from the language of the block — `.py`, `.ts`, `.sql`, `.sh` and the rest.
+- **A name derived from the code itself.** A filename inside the fence wins; otherwise the first real definition in the code (`parseInvoice` → `parse-invoice.ts`), otherwise the heading above the block, otherwise a numbered fallback. Where it cannot tell, it says so with a plain `code-4.js` rather than inventing something that looks deliberate.
+- **Rename before you download.** The name comes from a heuristic and a heuristic can be wrong, so click it and fix it. The extension stays fixed — a wrong extension fails silently.
+- **Copy instead**, when the text is what you actually wanted.
+- **A control on the block itself**, showing the filename it will produce before you commit to it, plus `Alt+Shift+D` for the most recent block.
 
-- **Code blocks** — correct extension, a meaningful name derived from the code itself (`backfill.py`, `use-cart.ts`)
-- **Documents and canvases** — every version separately, with the line-level difference between them shown
-- **Tool and MCP outputs** — the whole result rather than the truncated view, together with the call parameters
-- **Citations** — the source list as its own file where the chat searched the web
-- **Generated images** — meaningfully named, one at a time or together
-- **Files you uploaded and files that were produced** — downloadable again
-- **The whole conversation** — as Markdown, and optionally continued on another provider
+**Where it works**
 
-You can **drag a file straight into your editor**, save to a fixed folder, or take a selection as one zip. Turn on download history and a month later it can answer whether you already took something and whether it has changed since.
+Claude, ChatGPT, Gemini, Perplexity, DeepSeek, Mistral, Grok, Copilot, Kimi, Qwen, Z.ai and T3 — twelve chat interfaces, on their conversation pages.
 
-**Where it works.** Claude, ChatGPT, Gemini, Perplexity, and other chat interfaces in the registry. If you run your own (Open WebUI, LibreChat), you can grant it access to that too.
+**What this version does not do**
 
-**Privacy.** No external requests. No telemetry. No account. Nothing is stored beyond your settings, and download history is only written if you turn it on yourself.
+Said plainly, because a downloader that quietly ignores half of what a chat produces is worse than one that tells you where its edges are:
+
+- Documents, artifacts and canvases, and their version history — **not yet**
+- Attachments, tool outputs, citations and generated images — **not yet**
+- Whole-conversation export, folder saving, drag and drop, bulk zip, download history — **not yet**
+
+Those are the next versions, in that order.
+
+**Privacy**
+
+No external requests. No telemetry. No account. No server. Magpie reads the conversation page you have open — there is no other way to find what can be downloaded — and everything it reads stays in the tab. The only thing it stores is your settings.
+
+That is what the "read and change your data" notice at install refers to, and it applies only to the twelve sites listed above.
 
 ---
 
-Not affiliated with Anthropic, OpenAI, Google or Perplexity; their names are used only to identify the supported services.
+Not affiliated with Anthropic, OpenAI, Google, Perplexity, DeepSeek, Mistral, xAI, Microsoft, Moonshot, Alibaba, Z.ai or T3; their names are used only to identify the supported services.
 
 Report an issue: team@katatechnology.co
