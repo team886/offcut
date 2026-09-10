@@ -4,7 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 Every released version records the SHA-256 of its package here, so that the archive in the store can be verified against the commit it was built from (design document, section 19.4).
 
-## [1.0.0] — unreleased
+## [1.0.0] — 2026-09-10
+
+`offcut-1.0.0.zip` · sha256 `51d5d445ae9cde4ce0415ee7ed3dc57d689ae52beccbcdc6705cb6d78122d84a`
 
 The MVP: **code blocks, on every provider in the registry.** No documents, no versions, no attachments — those are v2.0 (`docs/ROADMAP.md`). What this version does, it does on all twelve providers rather than on one.
 
