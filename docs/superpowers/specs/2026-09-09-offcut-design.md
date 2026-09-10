@@ -1800,7 +1800,9 @@ Nothing is submitted until **all** of these are ticked:
 
     Added after the v1.0 listing was found describing roughly v2.1: documents with version history, tool outputs, citations, images, attachments, conversation export, drag and drop, folder saving, bulk zip and download history — ten features the submitted build did not have. The store requires the description to match the functionality, but the worse outcome is the one the store would not have caught: someone installs for a feature that does not exist
 
-- [ ] Screenshots from a **demo** conversation, **showing only features this version ships**
+- [x] Screenshots from a **demo** conversation, **showing only features this version ships** — `store/1-control-on-a-code-block.png` and `store/2-the-panel.png`, produced by `node tools/smoke.mjs --shots` from the fixture, so they are re-made rather than re-staged when the interface changes
+
+    Both are 1280×800, which the store requires and rejects silently otherwise; the first version of the panel shot was 480×640 and would have been thrown out. The panel shot is taken from the **unmodified** extension — taken from the smoke copy it showed a "Smoke fixture" row in the provider list
 - [ ] Trademark disclaimer covering **every** registry provider in the description
 - [ ] **The name "Offcut" checked for store and trademark collisions** — §2.1.2
 - [ ] Logo: the selected mark produced at 16px (`icons/icon16.png`) and verified in the toolbar (§8.5)

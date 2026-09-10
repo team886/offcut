@@ -250,10 +250,20 @@ if (WANT_SHOTS) {
     let sw2 = clean.serviceWorkers()[0];
     if (!sw2) sw2 = await clean.waitForEvent("serviceworker", { timeout: 10000 });
     const id = new URL(sw2.url()).host;
+    // The store accepts 1280x800 or 640x400 and nothing else, so the panel is
+    // shown at its own size on a canvas of the required one rather than
+    // stretched to fill it. A 480px-wide screenshot is simply rejected.
     const shot = await clean.newPage();
-    await shot.setViewportSize({ width: 480, height: 640 });
+    await shot.setViewportSize({ width: 1280, height: 800 });
     await shot.goto(`chrome-extension://${id}/src/panel.html`);
     await shot.waitForTimeout(900);
+    await shot.evaluate(() => {
+      const b = document.body;
+      b.style.cssText += ";margin:0 auto;box-shadow:0 24px 70px -20px rgba(0,0,0,.75);border-radius:12px;overflow:hidden";
+      document.documentElement.style.cssText =
+        "min-height:100vh;display:grid;place-items:center;background:#17161A;padding:40px";
+    });
+    await shot.waitForTimeout(200);
     await shot.screenshot({ path: join(SHOT_DIR, "2-the-panel.png") });
     console.log("  panel shot taken from the shipped extension, with no test row in it");
   } finally {
