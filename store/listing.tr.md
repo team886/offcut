@@ -42,6 +42,9 @@ Dışarıya istek yok. Telemetri yok. Hesap yok. Sunucu yok. Offcut açık olan 
 
 Kurulumdaki "verilerinizi okuyabilir ve değiştirebilir" uyarısı bunu kasteder ve yalnızca yukarıdaki on iki siteyi kapsar.
 
+## Gizlilik politikası URL'i (mağaza alanı)
+https://team886.github.io/offcut/
+
 ---
 
 Anthropic, OpenAI, Google, Perplexity, DeepSeek, Mistral, xAI, Microsoft, Moonshot, Alibaba, Z.ai veya T3 ile bağlantılı değildir; adları yalnızca desteklenen servisleri tanımlamak için kullanılır.

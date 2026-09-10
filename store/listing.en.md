@@ -42,6 +42,9 @@ No external requests. No telemetry. No account. No server. Offcut reads the conv
 
 That is what the "read and change your data" notice at install refers to, and it applies only to the twelve sites listed above.
 
+## Privacy policy URL (store field)
+https://team886.github.io/offcut/
+
 ---
 
 Not affiliated with Anthropic, OpenAI, Google, Perplexity, DeepSeek, Mistral, xAI, Microsoft, Moonshot, Alibaba, Z.ai or T3; their names are used only to identify the supported services.
