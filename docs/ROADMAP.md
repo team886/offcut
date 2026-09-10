@@ -28,13 +28,15 @@ Why it is publishable alone: code blocks come out through one code path regardle
 
 ---
 
-## Under review — read `docs/DEMAND.md` before scheduling v1.1
+## Measured, not assumed — `docs/DEMAND.md`
 
-The step 5 verification produced a ratio that was not being looked for: across 25 conversations, ~360 code fences yielded **~14** blocks reaching `MIN_CODE_LINES`, and **20 of 25 conversations contained none at all**. Roughly 4%.
+Across 40 conversations there were 1807 code fences and **85** blocks reaching `MIN_CODE_LINES`: **4.7%**. Fewer than one fence in twenty is a file.
 
-v1.1 below is scoped for a long list — multi-select, a bulk bar, a filter past ten items. The measured list is zero to four, and it is zero four times out of five. That does not make the features wrong; it makes them an answer to a distribution nobody has observed yet.
+A first reading of that ratio argued for pushing v1.1 back, on the grounds that bulk controls answer a long list nobody has. The instrument written to check it refuted that: the volume is not absent, it is **concentrated**. A quarter of conversations hold 88% of the downloadable blocks, and seven of forty carry seven or more. Bulk operations have exactly the population they were designed for; the error was reasoning from the average conversation to the valuable one.
 
-`docs/DEMAND.md` argues for putting provenance, truncation honesty and copy-first ahead of bulk, and for making cross-conversation search the headline of v1.2. **It rests on one account.** `tools/measure-demand.js` prints the numbers that settle it; run it on two more accounts before moving anything. If the qualifying rate comes back near 40%, the order below was right all along.
+v1.1 stands as written, with one correction: the filter box §8.6 draws past ten items is crossed by **one conversation in forty**, so it is a cheap nicety rather than the usability condition that section calls it.
+
+What the ratio does still say is that **downloading is rare and copying is not** — 93% of all fences are untagged one-liners — which is why cross-conversation search is v1.2's headline and why copy deserves a faster path than a hover-revealed button.
 
 ---
 

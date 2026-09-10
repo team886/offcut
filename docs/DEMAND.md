@@ -1,126 +1,90 @@
-# What to build next, and the number that reframes it
+# What to build next — and what the measurement corrected
 
-This document exists because the step 5 verification produced a ratio nobody was looking for, and it undercuts part of the roadmap. It is written before the next version is scoped, so the scoping argues with the data rather than around it.
+This document argued for a reordering of the roadmap from a 25-conversation sample. `tools/measure-demand.js` was written to refute it. Run on 40 conversations, it confirmed the central ratio and **refuted the conclusion drawn from it**.
 
-**Read `tools/measure-demand.js` alongside this.** Every claim below marked *measured* comes out of it; every claim marked *hypothesis* is a guess with a way to refute it. The sample is one account, so the instrument matters more than the numbers.
+The refuted version is kept below rather than quietly rewritten, because the shape of the error is the useful part: a real number, read too eagerly, produced a confident recommendation to cut work that turned out to be justified.
+
+**Measured:** 40 conversations, 2026-06-29 to 2026-09-09, one account.
 
 ---
 
-## 1. The number
+## 1. What held
 
-*Measured, n = 25 conversations, one account, 2026-09-09.*
-
-| | |
-|---|---|
-| Code fences | ~360 |
-| Fenced blocks reaching `MIN_CODE_LINES` (3 non-empty lines) | **~14** |
-| Conversations containing at least one | **5 of 25** |
-| Artifacts | 0 |
-
-So roughly **4%** of fences are worth a download control, and four conversations out of five contain nothing to download at all.
-
-The step 1 note called 360 fences "the most consequential product finding here" and used it to put code blocks ahead of artifacts. That ordering still holds — 14 beats 0. But 360 was measuring typing, not deliverables, and the corrected number changes what the *next* versions should be.
-
-## 2. What it undercuts
-
-**v1.1 is scoped for a volume that does not exist in this corpus.** Multi-select, a bulk bar, `All → zip`, and the filter box that appears past ten items are all answers to a long list. The measured list is zero to four items, and it is zero four times out of five. §8.6 item 12 says "a forty-block conversation is unusable without a filter"; no such conversation appeared.
-
-That is not an argument to cut v1.1 — a heavy code user's numbers will differ, and the features are cheap once the extraction exists. It is an argument that **v1.1 is not where the next big value is**, and shipping it first would be building for a distribution we have not observed.
-
-**It also implies a retention problem.** A product whose core action fires once every five conversations is not a product someone opens. Download is a rare event. If Magpie's value equals its download count, the value is small.
-
-## 3. What the same number reveals
-
-The 96% did not vanish. Those ~346 short fences are commands, config lines, one-liners, snippets — the things people **copy**, not download.
-
-So the two actions have inverted frequencies from the ones the interface assumes:
-
-| Action | Measured frequency | Where v1 puts it |
+| | First sample (25) | Instrument (40) |
 |---|---|---|
-| Copy a short snippet | constant | a hover-revealed button in the popup |
-| Download a file | ~0.6 per conversation | the floating control, the keyboard shortcut, the badge |
+| Fences | ~360 | 1807 |
+| Reaching `MIN_CODE_LINES` | ~14 | 85 |
+| **Ratio** | **~4%** | **4.7%** |
 
-**Hypothesis H1:** copy is the high-frequency action and deserves the fastest path in the product. Refutable: `measure-demand.js` reports the language and length distribution of sub-threshold fences. If they are overwhelmingly shell, SQL and config one-liners, H1 stands.
+The ratio survived a sample nearly twice the size. Fewer than one fence in twenty is a file; the rest are snippets. That is the finding, and everything below rests on it.
 
-## 4. The bigger consequence — 346 snippets you will never find again
+## 2. What was wrong
 
-The corpus contains hundreds of small, useful outputs. Exactly one path exists to any of them: remember which conversation, open it, scroll. There is no search over your own code across conversations, and the provider does not offer one worth the name.
+**Claim:** *"four conversations out of five contain nothing to download."*
+**Measured:** 23 of 40 contain nothing — **three out of five**, not four. Overstated from a small sample.
 
-This is the pain that recurs weekly rather than monthly: *"I asked for that ffmpeg invocation last month."*
+**Claim:** *"v1.1 is scoped for a volume that does not exist in this corpus."*
+**Measured: false.** The volume exists. It is *concentrated*, which is not the same thing as absent:
 
-A downloader ignores it entirely. And it is precisely the thing this architecture is already positioned to do — the API tier is confirmed, `chat_conversations` lists everything, `updated_at` allows incremental work, and none of it needs a model call, a key or a server. It passes the admission test in `docs/ROADMAP.md` unchanged.
+| Qualifying blocks | Conversations | Share of all blocks |
+|---|---|---|
+| 0 | 23 (57.5%) | — |
+| 1–3 | 7 (17.5%) | 11.8% |
+| **4 or more** | **10 (25%)** | **88.2%** |
+| 7 or more | 7 (17.5%) | 74.1% |
 
-It is also the natural end of the line the roadmap already draws. v1.2's note says the memory version "changes what the product is for: not downloading, but knowing what you already took." Search is the same sentence one step further: **knowing what you already have.**
+**A quarter of conversations hold seven-eighths of the downloadable code.** Seven of forty carry seven or more blocks; one carries twelve.
 
-## 5. Ranked candidates
+That is precisely the population multi-select and `All → zip` exist for. The mistake was reasoning from the *average* conversation to the *valuable* one. Nobody reaches for a bulk control in the conversation with one block — they reach for it in the conversation with ten, and those are 17.5% of the corpus rather than the zero the first reading implied.
 
-Scored on: does the corpus say people hit this, does it fit the architecture without new dependencies, and how much does it change what the product is worth.
+**v1.1 is reinstated.** The argument against it was an artifact of averaging a long-tailed distribution.
 
-### A. Search across your own conversations — **the big one**
+One detail inside v1.1 does not survive: §8.6 item 12 draws a filter box past ten items, and exactly **one conversation in forty** crosses that line. It is a few lines of code and it stays, but it is decoration, not the "usability condition" §8.6 calls it.
 
-A local, opt-in index over the user's own conversations: every fenced block, its language, its conversation and message, its date. Lexical search, no embeddings, no model call. Results open the conversation at the message, copy the block, or download it.
+## 3. What the number pointed at, and still does
 
-- **Need:** *measured* — 346 unreachable snippets in 25 conversations
-- **Fit:** API tier already confirmed; index in IndexedDB; incremental by `updated_at`
-- **Changes:** the product stops being an event (download) and becomes a place (your output, searchable)
+The 1722 sub-threshold fences did not disappear when the bulk argument collapsed.
 
-**The cost that must be designed, not discovered.** An index is a large local copy of private conversations. The privacy line — *"data stays on your device"* — stays literally true, but the store listing and §19.6 have to say plainly that an opt-in index exists, what it holds, and that deleting it is one click. A permission story that was easy to defend gets harder, and pretending otherwise would be the dishonest version of this feature.
+**H1 is strongly supported.** Of 1722 short fences, **1697 are a single line**, and **1681 carry no language tag at all** — 93% of every fence in the corpus is an untagged one-liner. The tagged remainder is what you would expect of things people run rather than save: `bash` 14, `json` 11, `powershell` 6, `sql` 5.
 
-Also real: building the index is N API calls against the user's own session. Rate limiting, backoff, and resumability are part of the feature, not polish.
+Downloading fires 85 times in ten weeks. Whatever people do with the other 1722 blocks, they do it far more often, and the only mechanism for it is copy.
 
-### B. Provenance — a file that still means something in six months
+So the interface question stands even though the roadmap question was answered wrongly: **copy is the frequent action and download is the rare one**, and v1 gives download the floating control, the keyboard shortcut and the badge while copy is a hover-revealed button in the popup.
 
-Every downloaded file carries, in a way that survives the filesystem, where it came from: the conversation, the message, the date, and optionally the request that produced it. A comment header for code, a sidecar for everything else, opt-in.
+## 4. Where the instrument is weak
 
-- **Need:** *inferred* — with ~0.6 downloads per conversation, the Downloads folder fills slowly with files that have no context and names derived from a heuristic
-- **Fit:** trivial; the conversation and message UUIDs are already in hand, and a deep link back is a URL
-- **Changes:** it is what makes A worth having later, and it is a fraction of the work
+Owning this, because it changes how much the next section is worth.
 
-This is the cheapest large win on the list and it should probably ship before A.
+**The chain measurement is much weaker than its "0" suggests.** Chains are detected by deriving a name and seeing it twice. The deriver covers py, js, go, rs and sql — but **44 of the 85 qualifying blocks (52%) carry no language tag**, so no name is derivable and they cannot participate in a chain by construction. "0 chains" therefore means *no chains among the half of blocks that could have had one*. The same limit applies to the 0 for multi-file answers.
 
-### C. Copy, promoted to the primary action
+It is still evidence — 41 nameable blocks produced no repeat at all — but it is not the clean refutation the raw number looks like. Detecting chains properly needs content similarity, not names.
 
-If H1 holds: a keystroke that copies the most recent code block without opening anything, copy as the default action on the floating control, and copy-with-context (name, language, fence) one modifier away.
+## 5. The ranking, corrected
 
-- **Need:** *hypothesis H1*, refutable by the instrument
-- **Fit:** the extraction already exists; this is interface, not machinery
-- **Changes:** moves the product from "used occasionally" to "used constantly"
+| | Candidate | Measured basis | Verdict |
+|---|---|---|---|
+| **A** | Search across your own conversations | 1722 unreachable snippets in ten weeks | **Flagship, unchanged** |
+| **B** | Provenance — where a file came from | 85 downloads in ten weeks, each orphaned in a folder | **Cheapest large win** |
+| **C** | Copy promoted to the primary action | H1 supported: 93% of fences are untagged one-liners | **Confirmed** |
+| **v1.1** | Bulk, multi-select, zip, folder saving | 25% of conversations hold 88% of blocks | **Reinstated — the objection was wrong** |
+| **D** | Revision chains | 0 found, but half the blocks were unnameable | **Not scheduled; needs a better instrument** |
+| **E** | Truncation honesty | 1 truncated message in 40 | **Already fixed** — rare, and the fix was three lines |
+| **F** | Attachments and produced files | 6 attachments / 3 conversations; **14 produced files** | Modest. Produced files outnumber uploads more than 2:1 |
 
-### D. Revision chains — the same file, emitted five times
-
-Within a conversation, group blocks that are successive versions of one file rather than listing them as `code-1`, `code-3`, `code-6`. This is the op-log insight (§3) applied where the volume actually is, and it would give code blocks a version menu without waiting for v2.0's adapters.
-
-- **Need:** **unmeasured, and possibly small.** With ~14 qualifying blocks across 25 conversations, chains may be rare. `measure-demand.js` counts them directly. Do not schedule this before that number exists.
-- **Fit:** pure `parse.js`; grouping by derived name and content similarity
-
-### E. Truncation honesty
-
-`truncated` exists on every message (*measured*, step 1). A truncated message means an incomplete code block, and downloading it hands over a broken file with a confident name. `fmtName` already supports a `-partial` suffix; nothing currently sets it from the server's own flag.
-
-- **Need:** correctness, not value. Small, and it prevents the worst failure this product has: a silently wrong file.
-- **Fit:** one field, one flag, one suffix
-
-### F. Your own uploaded files, back out
-
-`attachments[]` carries `file_size` and `extracted_content` (*measured*). Getting back a file you uploaded months ago and no longer have locally.
-
-- **Need:** *unmeasured* — the instrument counts attachments per conversation
-- **Fit:** already in v2.1's territory; no new dependency
+Also measured: **7 of 40 conversations belong to a Project** (17.5%), which gives grouping-by-project a real basis it did not have before.
 
 ## 6. What this does to the roadmap
 
-Nothing is deleted. The order changes, and one version gets a new occupant:
+- **v1.1 stays where it was.** Bulk and placement answer the conversations that actually carry code. The filter box is kept as a cheap nicety rather than a headline.
+- **B and E ride along with it** — both are small, and provenance makes every later version better.
+- **C joins if the interface work fits**; H1 is supported and the change is interface rather than machinery.
+- **A remains the flagship of v1.2**, with download history as a subset of it.
+- **D waits** for an instrument that does not depend on naming.
 
-- **v1.1** stops being "bulk and placement" as the next release. Bulk answers a distribution not observed; it moves behind the items that answer a measured one.
-- **B (provenance)** and **E (truncation)** are small, and both make every later version better. They are the natural v1.1.
-- **C (copy first)** joins them if H1 survives the instrument.
-- **A (search)** becomes the flagship of v1.2, replacing "download history" as the headline — history is a subset of it, and an index that knows every block also knows which ones you took.
-- **D** waits for its number.
+Under `docs/VERSIONING.md` all of these are minor: none adds a dependency outside our control.
 
-Under `docs/VERSIONING.md` all of these are **minor**: none adds a dependency outside our control. A is a minor that changes what the product is, which is exactly the case that document's major/minor axis was built to get right — the risk surface does not grow, so the digit does not.
+## 7. The caveat that did not go away
 
-## 7. The honest caveat
+**Still n = 1 account**, now over 40 conversations and ten weeks rather than 25. The corpus skews toward analysis, configuration and marketing rather than sustained software work — which is exactly why the concentration finding matters: it says the software-shaped conversations exist inside this corpus as a minority, and for those users the numbers would look nothing like the average.
 
-**n = 1 account.** These conversations skew toward analysis, marketing and configuration rather than sustained software work. An engineer using Claude for eight hours a day would plausibly invert the 4%, and every ranking above with it.
-
-That is why `tools/measure-demand.js` exists and why it prints counts rather than conclusions. Before any of this is scheduled, run it on a second and third account. If the qualifying-block rate comes back at 40% instead of 4%, v1.1 was right and this document is wrong — and it will have been wrong in a way that took one console run to find out.
+Run `tools/measure-demand.js` on a second account before treating the ranking as settled. It prints counts rather than conclusions, and it has now demonstrated that it will contradict this document when the document is wrong.
