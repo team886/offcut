@@ -1780,7 +1780,11 @@ Every release gets a git tag: `v1.0.0`.
 Nothing is submitted until **all** of these are ticked:
 
 - [ ] CI green (**all** of §19.3 — the count is not repeated here, counts drift)
-- [ ] The manual verification list (§14) run per the sampling rule, with the sample recorded in `SMOKE.md`
+- [ ] `node tools/smoke.mjs` green — the extension actually loaded, driving `test/fixture/conversation.html`. It is the only check that exercises what a user touches: injection, the shadow shell, the floating control, the previewed name matching the delivered one, and a file arriving on disk with the block's bytes in it
+
+    Deliberately outside CI: every gate in §19.3 runs on Node built-ins with nothing to install, and this one needs Playwright and a browser. Keeping it opt-in preserves that property for the build that has to stay trustworthy
+
+- [ ] The manual verification list (§14) run per the sampling rule, with the sample recorded in `SMOKE.md` — for what the harness cannot reach: a real provider's live DOM, the popup as a *popup* rather than a tab, a screen reader, and a touch device
 - [ ] Performance budgets (§19.2) measured and not exceeded
 - [ ] The injection crash test (§7 step 2) clean on every adapter-backed provider
 - [ ] Accessibility: the full flow by keyboard, toast and menu announcements with a screen reader, `prefers-reduced-motion`, and **a code block downloaded from the popup using only a keyboard and a screen reader** (§8.6.1 — the only accessible path to code blocks, §8.1.1)

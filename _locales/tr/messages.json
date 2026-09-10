@@ -170,5 +170,8 @@
   },
   "openAConversation": {
     "message": "Bir konuşma aç"
+  },
+  "listLabel": {
+    "message": "İndirilebilir öğeler"
   }
 }

@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fixture conversation — Offcut smoke test</title>
+<!--
+  A stand-in for a provider's conversation page, built from the structure
+  MEASURED on claude.ai (docs/DISCOVERY-claude.md): code lives in
+  `pre.code-block__code > code`, the language in a `language-*` class, no
+  virtualisation, no UI nodes inside the code element.
+
+  It exists so the end-to-end flow — injection, the floating control, the
+  derived filename, the download itself — can be exercised without a live
+  account, a login, or anyone's private conversation. Everything here is
+  invented; nothing was copied out of a real chat.
+
+  The blocks are chosen to cover the decisions the naming chain makes:
+    1  css, 5 lines      no name pattern for css  -> positional fallback
+    2  (untagged) 1 line below MIN_CODE_LINES     -> counted, not offered
+    3  js, function      a declaration            -> derived from the code
+    4  js, const el      a throwaway local        -> must NOT become el.js
+    5  python:seed.py    a filename in the fence  -> wins outright
+    6  (untagged) 1 line below MIN_CODE_LINES     -> counted, not offered
+-->
+<style>
+  body { margin:0; background:#262624; color:#F2F0EC;
+         font:15px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-inline-size: 760px; margin-inline:auto; padding:48px 24px 160px; }
+  .font-claude-response { margin-block:28px; }
+  pre.code-block__code { background:#1A1915; border:1px solid #35333B; border-radius:10px;
+                         padding:14px 16px; overflow-x:auto; margin:14px 0; }
+  pre.code-block__code > code { font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;
+                                white-space:pre; color:#E9E7E2; }
+  h3 { font-size:15px; margin:26px 0 6px; }
+  p { margin:10px 0; }
+</style>
+
+<main>
+  <div class="font-claude-response">
+    <p>Here is the panel styling and the two helpers that go with it.</p>
+
+    <h3>Panel styling</h3>
+<pre class="code-block__code"><code class="language-css">.panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+}</code></pre>
+
+    <p>Install it with:</p>
+<pre class="code-block__code"><code>npm install</code></pre>
+
+    <p>Then the renderer:</p>
+<pre class="code-block__code"><code class="language-js">function renderCart(items) {
+  const total = items.reduce((n, i) => n + i.price, 0);
+  return { count: items.length, total };
+}</code></pre>
+
+    <p>And wiring it up:</p>
+<pre class="code-block__code"><code class="language-js">const el = document.querySelector('.cart');
+el.addEventListener('click', wireUp);
+function wireUp() { renderCart([]); }</code></pre>
+  </div>
+
+  <div class="font-claude-response">
+    <p>The seed script:</p>
+<pre class="code-block__code"><code class="language-python:seed.py">import random
+
+def seed(n):
+    return [random.random() for _ in range(n)]</code></pre>
+
+    <p>Run it with:</p>
+<pre class="code-block__code"><code>python seed.py 100</code></pre>
+  </div>
+</main>

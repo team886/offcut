@@ -355,6 +355,23 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
   }
 }
 
+// ── gate 18b: markup carries no user-visible literal either ─────────────
+// Gate 18 scanned .js only, so `aria-label="Downloadable items"` sat in
+// panel.html untranslated — in the listbox §8.1.1 calls the only accessible
+// path to a code block. The catalogue is reached from markup through
+// data-i18n, data-i18n-ph and data-i18n-aria; a literal means one was missed.
+{
+  const htmlFiles = all.filter((p) => p.startsWith("src") && p.endsWith(".html"));
+  for (const f of htmlFiles) {
+    const body = read(f);
+    for (const m of body.matchAll(/\b(aria-label|title|placeholder)\s*=\s*"([^"]*)"/g)) {
+      if (!/[A-Za-z]{3}/.test(m[2])) continue;
+      const line = body.slice(0, m.index).split("\n").length;
+      fail(18, `${f}:${line} has ${m[1]}="${m[2].slice(0, 40)}" — use data-i18n-aria/-ph and a message key (§13)`);
+    }
+  }
+}
+
 // ── gate 19: safety mechanisms are connected ─────────────────────────────────
 // A safety net with no caller is worse than no safety net, because it reads
 // as protection in review and in the tests. Both entries below shipped in v1

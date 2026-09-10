@@ -32,6 +32,14 @@ header .ver { margin-inline-start:auto; font-size:10px; color:var(--oc-dim); fon
 .filter input { all:unset; flex:1; font:inherit; font-size:11.5px; color:var(--oc-fg); min-inline-size:0; }
 .filter .count { font-size:10px; color:var(--oc-dim); }
 #list { overflow-y:auto; flex:1; min-block-size:80px; }
+/* The list is focused programmatically when the popup opens (§8.6.1), so
+   without this the browser draws its own focus ring around the whole list —
+   a hard black rectangle around the empty state, off-palette and alarming.
+   Keyboard focus still gets a ring; it is ours. */
+#list:focus { outline:none; }
+#list:focus-visible { outline:2px solid var(--oc-gold); outline-offset:-2px; border-radius:6px; }
+/* Native controls default to the browser's blue, which ignores §8.0.1 entirely. */
+input[type=checkbox], input[type=radio] { accent-color: var(--oc-gold); }
 .grp { padding:8px 13px 3px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--oc-dim); }
 .row { display:flex; align-items:center; gap:8px; padding:6px 13px; font-size:12px;
   border-block-end:1px solid color-mix(in srgb, var(--oc-line) 60%, transparent); }
@@ -94,7 +102,7 @@ kbd { font:10px ui-monospace,monospace; border:1px solid var(--oc-line); border-
     <span class="count" id="count" role="status" aria-live="polite"></span>
   </div>
 
-  <div id="list" role="listbox" tabindex="-1" aria-label="Downloadable items"></div>
+  <div id="list" role="listbox" tabindex="-1" data-i18n-aria="listLabel"></div>
 
   <div id="settings" class="hidden"></div>
 

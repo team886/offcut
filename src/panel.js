@@ -45,6 +45,9 @@
     document.querySelectorAll("[data-i18n-ph]").forEach((n) => {
       n.placeholder = t(n.dataset.i18nPh, "Filter");
     });
+    document.querySelectorAll("[data-i18n-aria]").forEach((n) => {
+      n.setAttribute("aria-label", t(n.dataset.i18nAria));
+    });
     el("ver").textContent = "v" + chrome.runtime.getManifest().version;
   }
 
@@ -191,6 +194,7 @@
     row.tabIndex = -1;
     row.dataset.key = item.key;
     row.dataset.index = String(index);
+    row.id = "oc-row-" + index;              // aria-activedescendant needs a target
 
     const ic = document.createElement("span");
     ic.className = "ic";
@@ -269,6 +273,11 @@
     if (!rs.length) return;
     focusIndex = Math.max(0, Math.min(i, rs.length - 1));
     rs.forEach((r, n) => r.setAttribute("aria-selected", n === focusIndex ? "true" : "false"));
+    // Focus stays on the listbox and the active option is named. Without this
+    // a screen reader announces the list and then nothing at all as the arrow
+    // keys move — on the path §8.1.1 calls the ONLY accessible route to a
+    // code block, which makes it the one place this cannot be missing.
+    el("list").setAttribute("aria-activedescendant", rs[focusIndex].id);
     rs[focusIndex].scrollIntoView({ block: "nearest" });
   }
 
@@ -498,7 +507,11 @@
 
     render();
     // Focus lands on the filter for long lists, the first row otherwise (§8.6.1)
-    if (items.length > 10) el("filter").focus(); else el("list").focus();
+    // Focusing an empty list rings the empty state, which reads as an error
+    // rather than as a focus position. With rows, the ring is the affordance.
+    if (items.length > 10) el("filter").focus();
+    else if (items.length) el("list").focus();
+    else el("list").removeAttribute("aria-activedescendant");
     if (isOptions) { el("settings").classList.remove("hidden"); settingsUI(); }
   }
 

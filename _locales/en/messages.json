@@ -170,5 +170,8 @@
   },
   "openAConversation": {
     "message": "Open a conversation"
+  },
+  "listLabel": {
+    "message": "Downloadable items"
   }
 }
