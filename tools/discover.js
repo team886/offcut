@@ -1,5 +1,5 @@
 /**
- * Magpie — provider discovery script
+ * Offcut — provider discovery script
  *
  * USAGE: open a conversation on a candidate provider (ideally with at least one
  * code block and, if possible, a tool call), open the DevTools console, paste
@@ -95,7 +95,7 @@
   const cs = getComputedStyle(document.body);
   out.theme = { bg: cs.backgroundColor, fg: cs.color, dir: cs.direction, lang: document.documentElement.lang };
 
-  console.log('%cMagpie discovery output', 'font-weight:bold;color:#E8B44A');
+  console.log('%cOffcut discovery output', 'font-weight:bold;color:#E8B44A');
   console.log(JSON.stringify(out, null, 2));
   console.log('%cNo content was printed. Transfer this into the design 3.4.5 matrix.', 'color:#9C99A3');
   return out;

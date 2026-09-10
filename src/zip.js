@@ -1,5 +1,5 @@
 /**
- * Magpie — store-only ZIP writer (design §6, zip.js)
+ * Offcut — store-only ZIP writer (design §6, zip.js)
  *
  * Pure. No DOM, no chrome.*, no window (CI gate 15).
  *
@@ -157,9 +157,9 @@ function dedupeNames(names) {
   });
 }
 
-const MagpieZip = { crc32, buildZip, zipEntryPath, dedupeNames,
+const OffcutZip = { crc32, buildZip, zipEntryPath, dedupeNames,
                     ZIP_LOCAL_SIG, ZIP_CENTRAL_SIG, ZIP_EOCD_SIG, ZIP_VERSION_NEEDED, ZIP_UTF8_FLAG };
-if (typeof globalThis !== "undefined") globalThis.MagpieZip = MagpieZip;
+if (typeof globalThis !== "undefined") globalThis.OffcutZip = OffcutZip;
 
 if (typeof module !== "undefined") {
   module.exports = { crc32, buildZip, zipEntryPath, dedupeNames,

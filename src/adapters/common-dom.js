@@ -1,5 +1,5 @@
 /**
- * Magpie — provider-independent DOM extraction (design §3.4.4)
+ * Offcut — provider-independent DOM extraction (design §3.4.4)
  *
  * This file is why twenty registry providers cost less than four adapters:
  * every one of them renders a code block as `pre > code` with the language in
@@ -9,10 +9,10 @@
  * it — the only DOM this file creates is a detached clone.
  */
 
-/* global MagpieParse */
+/* global OffcutParse */
 
-const MagpieDom = (() => {
-  const P = typeof MagpieParse !== "undefined" ? MagpieParse
+const OffcutDom = (() => {
+  const P = typeof OffcutParse !== "undefined" ? OffcutParse
           : (typeof require !== "undefined" ? require("../parse.js") : null);
 
   const ZERO_WIDTH = /[​‌﻿]/g;
@@ -200,5 +200,5 @@ const MagpieDom = (() => {
            precedingHeading, collectCodeItems, resolveChatRoot, UI_INSIDE_CODE };
 })();
 
-if (typeof globalThis !== "undefined") globalThis.MagpieDom = MagpieDom;
-if (typeof module !== "undefined") module.exports = MagpieDom;
+if (typeof globalThis !== "undefined") globalThis.OffcutDom = OffcutDom;
+if (typeof module !== "undefined") module.exports = OffcutDom;

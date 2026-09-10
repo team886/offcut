@@ -3,78 +3,78 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Magpie</title>
+<title>Offcut</title>
 <!-- No inline script and no inline handler: MV3's default CSP blocks them and
      it would fail silently (design §17). All behaviour lives in panel.js. -->
 <style>
 :root {
-  --mg-ink:#17161A; --mg-surface:#201F24; --mg-line:#35333B; --mg-fg:#F2F0EC;
-  --mg-dim:#9C99A3; --mg-gold:#E8B44A; --mg-ok:#3F8F5E; --mg-warn:#E0A32E; --mg-err:#C0392B;
+  --oc-ink:#17161A; --oc-surface:#201F24; --oc-line:#35333B; --oc-fg:#F2F0EC;
+  --oc-dim:#9C99A3; --oc-gold:#E8B44A; --oc-ok:#3F8F5E; --oc-warn:#E0A32E; --oc-err:#C0392B;
   color-scheme: dark light;
 }
 @media (prefers-color-scheme: light) {
-  :root { --mg-ink:#FFFFFF; --mg-surface:#F4F3F1; --mg-line:#E2E0DC; --mg-fg:#1A1A1E;
-          --mg-dim:#6B6870; --mg-gold:#8A6212; } }
+  :root { --oc-ink:#FFFFFF; --oc-surface:#F4F3F1; --oc-line:#E2E0DC; --oc-fg:#1A1A1E;
+          --oc-dim:#6B6870; --oc-gold:#8A6212; } }
 * { box-sizing: border-box; }
 body { margin:0; inline-size:360px; max-block-size:580px; display:flex; flex-direction:column;
-  background:var(--mg-ink); color:var(--mg-fg);
+  background:var(--oc-ink); color:var(--oc-fg);
   font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
 body.options { inline-size:auto; max-inline-size:640px; max-block-size:none; margin-inline:auto; padding-block:24px; }
 header { display:flex; align-items:center; gap:8px; padding:9px 13px;
-  border-block-end:1px solid var(--mg-line); font-weight:600; font-size:12.5px; }
-header .ver { margin-inline-start:auto; font-size:10px; color:var(--mg-dim); font-weight:400; }
-.strip { display:flex; align-items:center; gap:6px; padding:6px 13px; background:var(--mg-surface);
-  border-block-end:1px solid var(--mg-line); font-size:11px; color:var(--mg-dim); }
-.dot { inline-size:6px; block-size:6px; border-radius:99px; background:var(--mg-ok); }
-.dot.off { background:var(--mg-dim); }
-.filter { margin:9px 13px 4px; display:flex; align-items:center; gap:7px; background:var(--mg-surface);
-  border:1px solid var(--mg-line); border-radius:7px; padding:4px 9px; }
-.filter input { all:unset; flex:1; font:inherit; font-size:11.5px; color:var(--mg-fg); min-inline-size:0; }
-.filter .count { font-size:10px; color:var(--mg-dim); }
+  border-block-end:1px solid var(--oc-line); font-weight:600; font-size:12.5px; }
+header .ver { margin-inline-start:auto; font-size:10px; color:var(--oc-dim); font-weight:400; }
+.strip { display:flex; align-items:center; gap:6px; padding:6px 13px; background:var(--oc-surface);
+  border-block-end:1px solid var(--oc-line); font-size:11px; color:var(--oc-dim); }
+.dot { inline-size:6px; block-size:6px; border-radius:99px; background:var(--oc-ok); }
+.dot.off { background:var(--oc-dim); }
+.filter { margin:9px 13px 4px; display:flex; align-items:center; gap:7px; background:var(--oc-surface);
+  border:1px solid var(--oc-line); border-radius:7px; padding:4px 9px; }
+.filter input { all:unset; flex:1; font:inherit; font-size:11.5px; color:var(--oc-fg); min-inline-size:0; }
+.filter .count { font-size:10px; color:var(--oc-dim); }
 #list { overflow-y:auto; flex:1; min-block-size:80px; }
-.grp { padding:8px 13px 3px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--mg-dim); }
+.grp { padding:8px 13px 3px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--oc-dim); }
 .row { display:flex; align-items:center; gap:8px; padding:6px 13px; font-size:12px;
-  border-block-end:1px solid color-mix(in srgb, var(--mg-line) 60%, transparent); }
-.row:focus-visible { outline:2px solid var(--mg-gold); outline-offset:-2px; }
-.row[aria-selected="true"] { background:color-mix(in srgb, var(--mg-gold) 12%, transparent); }
+  border-block-end:1px solid color-mix(in srgb, var(--oc-line) 60%, transparent); }
+.row:focus-visible { outline:2px solid var(--oc-gold); outline-offset:-2px; }
+.row[aria-selected="true"] { background:color-mix(in srgb, var(--oc-gold) 12%, transparent); }
 .row .ic { inline-size:22px; block-size:19px; border-radius:5px; display:grid; place-items:center;
-  font-size:8px; background:var(--mg-surface); color:var(--mg-dim); flex:0 0 auto; }
+  font-size:8px; background:var(--oc-surface); color:var(--oc-dim); flex:0 0 auto; }
 .row .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font-family:ui-monospace,Menlo,monospace; font-size:11.5px; }
-.row .nm[contenteditable="true"] { outline:1px solid var(--mg-gold); border-radius:4px; padding-inline:4px; }
-.row .meta { margin-inline-start:auto; font-size:10px; color:var(--mg-dim); white-space:nowrap; }
+.row .nm[contenteditable="true"] { outline:1px solid var(--oc-gold); border-radius:4px; padding-inline:4px; }
+.row .meta { margin-inline-start:auto; font-size:10px; color:var(--oc-dim); white-space:nowrap; }
 .row .act { display:flex; gap:3px; flex:0 0 auto; opacity:0; }
 .row:hover .act, .row:focus-within .act, .row[aria-selected="true"] .act { opacity:1; }
 .row button { all:unset; cursor:pointer; inline-size:21px; block-size:19px; border-radius:5px;
-  display:grid; place-items:center; font-size:10px; background:var(--mg-surface); color:var(--mg-dim); }
-.row button.pri { background:color-mix(in srgb, var(--mg-gold) 18%, transparent);
-  box-shadow:0 0 0 1px var(--mg-gold); color:var(--mg-fg); opacity:1; }
-.row .act button:focus-visible { outline:2px solid var(--mg-gold); outline-offset:1px; }
-.empty { padding:22px 16px; color:var(--mg-dim); font-size:12px; text-align:center; }
-.empty a { color:var(--mg-gold); }
+  display:grid; place-items:center; font-size:10px; background:var(--oc-surface); color:var(--oc-dim); }
+.row button.pri { background:color-mix(in srgb, var(--oc-gold) 18%, transparent);
+  box-shadow:0 0 0 1px var(--oc-gold); color:var(--oc-fg); opacity:1; }
+.row .act button:focus-visible { outline:2px solid var(--oc-gold); outline-offset:1px; }
+.empty { padding:22px 16px; color:var(--oc-dim); font-size:12px; text-align:center; }
+.empty a { color:var(--oc-gold); }
 .empty button.reload { all:unset; cursor:pointer; margin-block-start:10px; padding:5px 12px;
-  border-radius:7px; border:1px solid var(--mg-gold); color:var(--mg-fg);
-  background:color-mix(in srgb, var(--mg-gold) 14%, transparent); font-size:11.5px; }
-.empty button.reload:focus-visible { outline:2px solid var(--mg-gold); outline-offset:2px; }
-footer { padding:7px 13px; border-block-start:1px solid var(--mg-line); background:var(--mg-surface);
-  display:flex; gap:10px; align-items:center; font-size:10.5px; color:var(--mg-dim); }
-footer button { all:unset; cursor:pointer; color:var(--mg-dim); }
-footer button:hover, footer a:hover { color:var(--mg-fg); }
+  border-radius:7px; border:1px solid var(--oc-gold); color:var(--oc-fg);
+  background:color-mix(in srgb, var(--oc-gold) 14%, transparent); font-size:11.5px; }
+.empty button.reload:focus-visible { outline:2px solid var(--oc-gold); outline-offset:2px; }
+footer { padding:7px 13px; border-block-start:1px solid var(--oc-line); background:var(--oc-surface);
+  display:flex; gap:10px; align-items:center; font-size:10.5px; color:var(--oc-dim); }
+footer button { all:unset; cursor:pointer; color:var(--oc-dim); }
+footer button:hover, footer a:hover { color:var(--oc-fg); }
 footer .sp { flex:1; }
-kbd { font:10px ui-monospace,monospace; border:1px solid var(--mg-line); border-radius:4px;
-  padding:1px 4px; color:var(--mg-dim); }
-#settings { padding:4px 13px 12px; border-block-start:1px solid var(--mg-line); }
-#settings h2 { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--mg-dim);
+kbd { font:10px ui-monospace,monospace; border:1px solid var(--oc-line); border-radius:4px;
+  padding:1px 4px; color:var(--oc-dim); }
+#settings { padding:4px 13px 12px; border-block-start:1px solid var(--oc-line); }
+#settings h2 { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--oc-dim);
   margin:12px 0 4px; font-weight:600; }
 .set { display:flex; align-items:center; gap:9px; padding:6px 0;
-  border-block-end:1px solid color-mix(in srgb, var(--mg-line) 50%, transparent); }
+  border-block-end:1px solid color-mix(in srgb, var(--oc-line) 50%, transparent); }
 .set label { font-size:12px; }
-.set small { display:block; color:var(--mg-dim); font-size:10.5px; margin-block-start:2px; }
+.set small { display:block; color:var(--oc-dim); font-size:10.5px; margin-block-start:2px; }
 .set .ctl { margin-inline-start:auto; flex:0 0 auto; }
-.set input[type=text] { all:unset; font:11.5px ui-monospace,Menlo,monospace; color:var(--mg-fg);
-  background:var(--mg-surface); border:1px solid var(--mg-line); border-radius:6px; padding:4px 8px;
+.set input[type=text] { all:unset; font:11.5px ui-monospace,Menlo,monospace; color:var(--oc-fg);
+  background:var(--oc-surface); border:1px solid var(--oc-line); border-radius:6px; padding:4px 8px;
   inline-size:170px; }
-.preview { font:11px ui-monospace,Menlo,monospace; color:var(--mg-ok); margin-block-start:5px; }
+.preview { font:11px ui-monospace,Menlo,monospace; color:var(--oc-ok); margin-block-start:5px; }
 .sites { max-block-size:150px; overflow-y:auto; }
 .hidden { display:none !important; }
 </style>
@@ -82,7 +82,7 @@ kbd { font:10px ui-monospace,monospace; border:1px solid var(--mg-line); border-
 <body>
   <header>
     <img src="../icons/icon32.png" width="17" height="17" alt="">
-    <span data-i18n="extName">Magpie</span>
+    <span data-i18n="extName">Offcut</span>
     <span class="ver" id="ver"></span>
   </header>
 

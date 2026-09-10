@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Offcut — the mark</title>
+<!--
+  CURRENT. The mark as tools/make-icons.mjs actually renders it, not a
+  redrawing of it — these are the shipped PNGs, so this page cannot drift
+  from what a user sees in the toolbar (design §8.5).
+
+  The magpie candidates this replaced are in logo-history-magpie.html.
+-->
+<style>
+  :root { color-scheme: dark light; }
+  body { margin:0; padding:40px; background:#17161A; color:#F2F0EC;
+         font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  h1 { font-size:17px; font-weight:600; margin:0 0 4px; }
+  p.sub { color:#9C99A3; margin:0 0 32px; max-inline-size:60ch; }
+  h2 { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#9C99A3;
+       font-weight:600; margin:32px 0 12px; }
+  .strip { display:flex; align-items:center; gap:22px; padding:14px 18px; border-radius:10px; }
+  .strip.dark { background:#201F24; border:1px solid #35333B; }
+  .strip.light { background:#F4F3F1; border:1px solid #E2E0DC; color:#1A1A1E; }
+  .strip .cap { font-size:10.5px; color:#9C99A3; margin-inline-start:auto; }
+  .strip.light .cap { color:#6B6870; }
+  img { image-rendering:pixelated; display:block; }
+  figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  figcaption { font-size:10px; color:#9C99A3; }
+  .strip.light figcaption { color:#6B6870; }
+  table { border-collapse:collapse; font-size:12.5px; margin-block-start:10px; }
+  td, th { text-align:start; padding:5px 18px 5px 0; border-block-end:1px solid #35333B; }
+  th { color:#9C99A3; font-weight:600; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; }
+  code { font:11.5px ui-monospace,Menlo,monospace; color:#E8B44A; }
+</style>
+
+<h1>Offcut — the mark</h1>
+<p class="sub">
+  A workpiece with its corner cut away, and the piece that came off sitting just clear of it.
+  The images below are the shipped PNGs, so this page shows what the toolbar shows.
+</p>
+
+<h2>Dark toolbar</h2>
+<div class="strip dark">
+  <figure><img src="../../icons/icon128.png" width="128" height="128" alt=""><figcaption>128</figcaption></figure>
+  <figure><img src="../../icons/icon48.png" width="48" height="48" alt=""><figcaption>48</figcaption></figure>
+  <figure><img src="../../icons/icon32.png" width="32" height="32" alt=""><figcaption>32</figcaption></figure>
+  <figure><img src="../../icons/icon16.png" width="16" height="16" alt=""><figcaption>16</figcaption></figure>
+  <span class="cap">16 is the arbiter</span>
+</div>
+
+<h2>Light toolbar</h2>
+<div class="strip light">
+  <figure><img src="../../icons/icon128.png" width="128" height="128" alt=""><figcaption>128</figcaption></figure>
+  <figure><img src="../../icons/icon48.png" width="48" height="48" alt=""><figcaption>48</figcaption></figure>
+  <figure><img src="../../icons/icon32.png" width="32" height="32" alt=""><figcaption>32</figcaption></figure>
+  <figure><img src="../../icons/icon16.png" width="16" height="16" alt=""><figcaption>16</figcaption></figure>
+  <span class="cap">the ink tile carries it on both</span>
+</div>
+
+<h2>At 16px, magnified — where the decision was made</h2>
+<div class="strip dark">
+  <figure><img src="../../icons/icon16.png" width="128" height="128" alt=""><figcaption>16px, drawn at 8×</figcaption></figure>
+  <figure><img src="../../icons/icon16.png" width="64" height="64" alt=""><figcaption>16px at 4×</figcaption></figure>
+  <span class="cap">the seam is one pixel; colour keeps it open</span>
+</div>
+
+<h2>Measured at 16px</h2>
+<table>
+  <tr><th>Region</th><th>Pixels of 256</th><th>Colour</th></tr>
+  <tr><td>Ink tile</td><td>112</td><td><code>#17161A</code></td></tr>
+  <tr><td>Workpiece</td><td>90</td><td><code>#F2F0EC</code></td></tr>
+  <tr><td><strong>Offcut</strong></td><td><strong>35</strong> (14%)</td><td><code>#E8B44A</code></td></tr>
+  <tr><td>Edge blend</td><td>15</td><td>—</td></tr>
+</table>
+<p class="sub" style="margin-block-start:14px">
+  The first attempt put the cut too near the corner: the gold fell to a thin edge accent
+  that read as a rendering artifact rather than a piece. The cut was moved deeper into the
+  body until the count said it was a mass. Counting beats squinting.
+</p>

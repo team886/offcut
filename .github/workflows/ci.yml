@@ -40,7 +40,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import zipfile, glob, sys
-          path = glob.glob("dist/magpie-*.zip")[0]
+          path = glob.glob("dist/offcut-*.zip")[0]
           z = zipfile.ZipFile(path)
           bad = z.testzip()
           if bad:

@@ -1,5 +1,5 @@
 /**
- * Magpie — provider registry (design §3.4)
+ * Offcut — provider registry (design §3.4)
  *
  * Pure data. No DOM, no chrome.*, no window (CI gate 15).
  *
@@ -130,8 +130,8 @@ function stalenessDays(row, today) {
   return Math.floor((now - then) / 86400000);
 }
 
-const MagpieRegistry = { REGISTRY, findProvider, stalenessDays };
-if (typeof globalThis !== "undefined") globalThis.MagpieRegistry = MagpieRegistry;
+const OffcutRegistry = { REGISTRY, findProvider, stalenessDays };
+if (typeof globalThis !== "undefined") globalThis.OffcutRegistry = OffcutRegistry;
 
 if (typeof module !== "undefined") {
   module.exports = { REGISTRY, findProvider, stalenessDays };

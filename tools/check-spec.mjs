@@ -1,5 +1,5 @@
 /**
- * Magpie — specification consistency (design §19.3, gate 14)
+ * Offcut — specification consistency (design §19.3, gate 14)
  *
  *   node tools/check-spec.mjs
  *
@@ -12,7 +12,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const SPEC = "docs/superpowers/specs/2026-09-09-magpie-design.md";
+const SPEC = "docs/superpowers/specs/2026-09-09-offcut-design.md";
 const spec = readFileSync(SPEC, "utf8");
 const lines = spec.split("\n");
 const problems = [];

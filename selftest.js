@@ -1,5 +1,5 @@
 /**
- * Magpie — self tests (design §14)
+ * Offcut — self tests (design §14)
  *
  *   node selftest.js
  *

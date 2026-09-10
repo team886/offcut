@@ -1,5 +1,5 @@
 /**
- * Magpie — mechanical gates (design §19.3, gates 2–19)
+ * Offcut — mechanical gates (design §19.3, gates 2–19)
  *
  *   node tools/check-invariants.mjs
  *
@@ -222,7 +222,12 @@ if (!Array.isArray(REGISTRY) || REGISTRY.length === 0) {
   // `perl -pe 's/\b.../'` wrote a literal backspace into this very file, and
   // the gate could not see it. A checker exempt from its own rule is a gap.
   const toolFiles = all.filter((p) => p.startsWith("tools") && /\.m?js$/.test(p));
-  for (const f of [...srcFiles, ...toolFiles, "selftest.js"]) {
+  // Prose too. The paragraph in the design document that DESCRIBES this rule
+  // was itself written with literal control bytes, which made git treat the
+  // whole specification as binary — no diff, so no review, on the file the
+  // project reasons from. A document is source.
+  const docFiles = all.filter((p) => /\.md$/.test(p) && !p.includes("node_modules"));
+  for (const f of [...srcFiles, ...toolFiles, ...docFiles, "selftest.js"]) {
     const buf = readFileSync(f);
     for (let i = 0; i < buf.length; i++) {
       const c = buf[i];

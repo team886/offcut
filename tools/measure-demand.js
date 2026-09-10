@@ -1,5 +1,5 @@
 /**
- * Magpie — what is actually in a conversation history (docs/DEMAND.md)
+ * Offcut — what is actually in a conversation history (docs/DEMAND.md)
  *
  * Paste into the console on a signed-in claude.ai tab. Read-only: it issues
  * the same GETs the extension's API tier would, and writes nothing.
@@ -12,9 +12,9 @@
  * The point is to refute docs/DEMAND.md, not to confirm it. Its whole
  * argument rests on one account; two more runs settle it either way.
  *
- *   await magpieMeasure(60)     // conversations to scan, default 40
+ *   await offcutMeasure(60)     // conversations to scan, default 40
  */
-async function magpieMeasure(limit = 40) {
+async function offcutMeasure(limit = 40) {
   const org = (document.cookie.match(/lastActiveOrg=([^;]+)/) || [])[1];
   if (!org) return "no lastActiveOrg cookie — sign in first";
 
@@ -124,7 +124,7 @@ async function magpieMeasure(limit = 40) {
   // One block of plain text, so it can be pasted somewhere in one go rather
   // than expanded object by object in the console.
   const report = [
-    "=== Magpie demand measurement ===",
+    "=== Offcut demand measurement ===",
     `conversations   ${R.scanned} scanned, ${R.failed} failed`,
     `window          ${(R.oldest || "").slice(0, 10)} .. ${(R.newest || "").slice(0, 10)}`,
     "",
@@ -164,4 +164,4 @@ async function magpieMeasure(limit = 40) {
   return R;
 }
 
-if (typeof module !== "undefined") module.exports = { magpieMeasure };
+if (typeof module !== "undefined") module.exports = { offcutMeasure };

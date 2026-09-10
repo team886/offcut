@@ -1,5 +1,5 @@
 /**
- * Magpie — core pure layer (design §6, parse.js)
+ * Offcut — core pure layer (design §6, parse.js)
  *
  * Pure. No DOM, no chrome.*, no window (CI gate 15).
  * parseOps is the ADAPTER's job; this file consumes Op[] and knows no
@@ -296,14 +296,14 @@ function validateItem(item) {
   return errors;
 }
 
-const MagpieParse = {
+const OffcutParse = {
   MIN_CODE_LINES, NAME_MAX_CODEPOINTS, NAME_MAX_BYTES, ITEM_KINDS, NAME_MIN_IDENT,
   isMeaningfulIdent,
   sanitize, extForLanguage, isoLocalDate, fmtName,
   deriveCodeName, countCodeLines, isDownloadableCodeBlock, heuristicRoot,
   buildVersions, lineDelta, validateItem,
 };
-if (typeof globalThis !== "undefined") globalThis.MagpieParse = MagpieParse;
+if (typeof globalThis !== "undefined") globalThis.OffcutParse = OffcutParse;
 
 if (typeof module !== "undefined") {
   module.exports = {

@@ -1,4 +1,4 @@
-# Gizlilik Politikası — Magpie
+# Gizlilik Politikası — Offcut
 
 **Son güncelleme:** 2026-09-09
 **Yayıncı:** Ömer Faruk Ceylandağ (Kata Technology)
@@ -8,11 +8,11 @@
 
 ## Kısa cevap
 
-Magpie hiçbir veri toplamaz, hiçbir veriyi hiçbir yere göndermez. Okuduğu her şey senin tarayıcında kalır.
+Offcut hiçbir veri toplamaz, hiçbir veriyi hiçbir yere göndermez. Okuduğu her şey senin tarayıcında kalır.
 
 ## Neye erişiyor
 
-Magpie yalnızca desteklenen AI sohbet sitelerinde ve yalnızca **senin açık olan konuşmanda** çalışır. Orada gördüğü şeyler: mesaj metni, kod blokları, belgeler ve sürümleri, araç çağrılarının sonuçları, kaynak listeleri, görseller, sohbete yüklenmiş ve sohbette üretilmiş dosyalar.
+Offcut yalnızca desteklenen AI sohbet sitelerinde ve yalnızca **senin açık olan konuşmanda** çalışır. Orada gördüğü şeyler: mesaj metni, kod blokları, belgeler ve sürümleri, araç çağrılarının sonuçları, kaynak listeleri, görseller, sohbete yüklenmiş ve sohbette üretilmiş dosyalar.
 
 Bunları okumasının tek sebebi, indirilebilecek şeyleri bulmak ve senin istediğini dosyaya çevirmek.
 
@@ -37,11 +37,11 @@ Bunların hiçbiri bize ya da başka birine ulaşmaz.
 
 ## Çerezler
 
-Magpie çerez oluşturmaz. Ziyaret ettiğin sohbet sitesinin kendi oturum çerezleri, senin zaten giriş yapmış olman sayesinde vardır ve extension onları değiştirmez.
+Offcut çerez oluşturmaz. Ziyaret ettiğin sohbet sitesinin kendi oturum çerezleri, senin zaten giriş yapmış olman sayesinde vardır ve extension onları değiştirmez.
 
 ## Çocuklar
 
-Magpie çocuklara yönelik değildir ve yaş bilgisi toplamaz.
+Offcut çocuklara yönelik değildir ve yaş bilgisi toplamaz.
 
 ## Değişiklikler
 

@@ -3,7 +3,7 @@
 > Describes v1.0 and nothing else. Every release updates this file; the eventual shape of the product is in `listing.target.en.md`. See §19.5's pre-release gate: the description must match what the submitted version actually does.
 
 ## Name (store name field)
-Magpie — AI Chat Downloader
+Offcut — AI Chat Downloader
 
 ## Short description (132 char limit)
 Save the code blocks in your AI chats as real files, with the right extension and a name that means something.
@@ -14,7 +14,7 @@ Save the code blocks in your AI chats as real files, with the right extension an
 
 **What it does**
 
-A code block in an AI chat is text on a page. To use it you select it, copy it, make a new file, guess the extension and invent a name. Magpie makes it a file.
+A code block in an AI chat is text on a page. To use it you select it, copy it, make a new file, guess the extension and invent a name. Offcut makes it a file.
 
 - **The right extension**, from the language of the block — `.py`, `.ts`, `.sql`, `.sh` and the rest.
 - **A name derived from the code itself.** A filename inside the fence wins; otherwise the first real definition in the code (`parseInvoice` → `parse-invoice.ts`), otherwise the heading above the block, otherwise a numbered fallback. Where it cannot tell, it says so with a plain `code-4.js` rather than inventing something that looks deliberate.
@@ -38,7 +38,7 @@ Those are the next versions, in that order.
 
 **Privacy**
 
-No external requests. No telemetry. No account. No server. Magpie reads the conversation page you have open — there is no other way to find what can be downloaded — and everything it reads stays in the tab. The only thing it stores is your settings.
+No external requests. No telemetry. No account. No server. Offcut reads the conversation page you have open — there is no other way to find what can be downloaded — and everything it reads stays in the tab. The only thing it stores is your settings.
 
 That is what the "read and change your data" notice at install refers to, and it applies only to the twelve sites listed above.
 

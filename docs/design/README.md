@@ -7,7 +7,7 @@ Open the `.html` files directly in a browser. They are self-contained — no bui
 | File | Shows |
 |---|---|
 | `current.html` | **The current design.** Palette, mark, English interface, the popup item list, the in-page control and the version menu. Supersedes the annotated screens below wherever they disagree |
-| `logo-magpie.html` | The three logo candidates at 128 / 48 / **real 16px** on light and dark toolbar strips, and why the third won (§8.5) |
+| `logo-offcut.html` | The three logo candidates at 128 / 48 / **real 16px** on light and dark toolbar strips, and why the third won (§8.5) |
 
 ## Historical
 
@@ -27,3 +27,7 @@ These recorded a decision at the time it was made. They are kept because the spe
 ## Why these are in the repository
 
 The specification points at them and they are the visual evidence for its decisions. Left in a temporary directory, the spec loses its own references (§18).
+
+## Superseded identity
+
+`logo-history-magpie.html` holds the three magpie candidates and the test that chose among them. It is history: the name was dropped when the Chrome Web Store turned out to hold at least six extensions called Magpie, several in adjacent categories. The current mark is `logo-offcut.html`, and unlike the historical page it displays the shipped PNGs rather than a redrawing, so it cannot drift from the toolbar.

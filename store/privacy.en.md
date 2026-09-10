@@ -1,4 +1,4 @@
-# Privacy Policy — Magpie
+# Privacy Policy — Offcut
 
 **Last updated:** 2026-09-09
 **Publisher:** Ömer Faruk Ceylandağ (Kata Technology)
@@ -8,11 +8,11 @@
 
 ## Short answer
 
-Magpie collects no data and sends nothing anywhere. Everything it reads stays in your browser.
+Offcut collects no data and sends nothing anywhere. Everything it reads stays in your browser.
 
 ## What it accesses
 
-Magpie runs only on supported AI chat sites, and only on **the conversation you have open**. There it sees: message text, code blocks, documents and their versions, the results of tool calls, citation lists, images, and files that were uploaded to or produced in the conversation.
+Offcut runs only on supported AI chat sites, and only on **the conversation you have open**. There it sees: message text, code blocks, documents and their versions, the results of tool calls, citation lists, images, and files that were uploaded to or produced in the conversation.
 
 The only reason it reads them is to find what can be downloaded and to turn what you choose into a file.
 
@@ -37,11 +37,11 @@ None of this reaches us or anyone else.
 
 ## Cookies
 
-Magpie sets no cookies. The chat site's own session cookies exist because you are already signed in, and the extension does not modify them.
+Offcut sets no cookies. The chat site's own session cookies exist because you are already signed in, and the extension does not modify them.
 
 ## Children
 
-Magpie is not directed at children and collects no age information.
+Offcut is not directed at children and collects no age information.
 
 ## Changes
 

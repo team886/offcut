@@ -3,7 +3,7 @@
 > Yalnızca v1.0'ı anlatır. Her sürüm bu dosyayı günceller; ürünün varacağı hâl `listing.target.tr.md` içinde. §19.5 ön-yayın kontrolü: açıklama, gönderilen sürümün gerçekte yaptığıyla örtüşmek zorunda.
 
 ## Ad (mağaza ad alanı)
-Magpie — AI Chat Downloader
+Offcut — AI Chat Downloader
 
 ## Kısa açıklama (132 karakter sınırı)
 Yapay zekâ sohbetlerindeki kod bloklarını doğru uzantı ve anlamlı bir adla gerçek dosyaya çevirir.
@@ -14,7 +14,7 @@ Yapay zekâ sohbetlerindeki kod bloklarını doğru uzantı ve anlamlı bir adla
 
 **Ne yapar**
 
-Sohbetteki bir kod bloğu, sayfadaki metinden ibarettir. Kullanmak için seçersiniz, kopyalarsınız, yeni dosya açarsınız, uzantıyı tahmin eder, bir ad uydurursunuz. Magpie onu dosya yapar.
+Sohbetteki bir kod bloğu, sayfadaki metinden ibarettir. Kullanmak için seçersiniz, kopyalarsınız, yeni dosya açarsınız, uzantıyı tahmin eder, bir ad uydurursunuz. Offcut onu dosya yapar.
 
 - **Doğru uzantı**, bloğun dilinden — `.py`, `.ts`, `.sql`, `.sh` ve diğerleri.
 - **Kodun kendisinden türetilen ad.** Fence içinde dosya adı varsa o kazanır; yoksa koddaki ilk gerçek tanım (`parseInvoice` → `parse-invoice.ts`), yoksa bloğun üstündeki başlık, yoksa numaralı yedek. Bilemediği yerde bunu söyler: kasıtlı görünen bir şey uydurmak yerine düpedüz `code-4.js` yazar.
@@ -38,7 +38,7 @@ Sıradaki sürümler bunlar, bu sırayla.
 
 **Gizlilik**
 
-Dışarıya istek yok. Telemetri yok. Hesap yok. Sunucu yok. Magpie açık olan konuşma sayfasını okur — indirilebileceği bulmanın başka yolu yok — ve okuduğu her şey sekmede kalır. Sakladığı tek şey ayarlarınız.
+Dışarıya istek yok. Telemetri yok. Hesap yok. Sunucu yok. Offcut açık olan konuşma sayfasını okur — indirilebileceği bulmanın başka yolu yok — ve okuduğu her şey sekmede kalır. Sakladığı tek şey ayarlarınız.
 
 Kurulumdaki "verilerinizi okuyabilir ve değiştirebilir" uyarısı bunu kasteder ve yalnızca yukarıdaki on iki siteyi kapsar.
 

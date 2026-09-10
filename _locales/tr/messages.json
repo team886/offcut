@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "Magpie — AI Chat Downloader"
+    "message": "Offcut — AI Chat Downloader"
   },
   "extDescription": {
     "message": "Sohbetlerinden çıkan kodu, belgeleri ve dosyaları çıkar, sürümle, taşı ve yeniden kullan."
@@ -142,7 +142,7 @@
     "message": "Yüklü, ama bu sekmede çalışmıyor"
   },
   "emptyReload": {
-    "message": "Magpie bu sayfa açıldıktan sonra eklendi veya güncellendi, bu yüzden içinde henüz çalışmıyor. Sayfayı yenile."
+    "message": "Offcut bu sayfa açıldıktan sonra eklendi veya güncellendi, bu yüzden içinde henüz çalışmıyor. Sayfayı yenile."
   },
   "reloadPage": {
     "message": "Sayfayı yenile"
@@ -166,7 +166,7 @@
     "message": "Konuşma sayfası değil"
   },
   "emptyNotAConversation": {
-    "message": "Magpie bir konuşmanın içindeki kod bloklarını okur. Bu sayfa başka bir şey — artifact, liste veya ayar ekranı — yani burada okuyacağı bir şey henüz yok."
+    "message": "Offcut bir konuşmanın içindeki kod bloklarını okur. Bu sayfa başka bir şey — artifact, liste veya ayar ekranı — yani burada okuyacağı bir şey henüz yok."
   },
   "openAConversation": {
     "message": "Bir konuşma aç"

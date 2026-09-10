@@ -1,10 +1,10 @@
-# Magpie
+# Offcut
 
 **Extract, version, move and reuse the code, documents and files your AI chats produce.**
 
 What an AI chat produces stays inside the chat. You copy a code block, paste it into an editor, guess the extension. If you want an earlier version of a document there is no way back. If a tool returned 200 rows, the interface shows you ten.
 
-Magpie turns these into files — on Claude, ChatGPT, Gemini, Perplexity and the other chat interfaces in the registry.
+Offcut turns these into files — on Claude, ChatGPT, Gemini, Perplexity and the other chat interfaces in the registry.
 
 ## What it captures
 
@@ -22,7 +22,7 @@ You can drag a file straight into your editor, save to a fixed folder, or take a
 
 ## With MCP agents
 
-Anything an MCP server produces — Linear, Sentry, GA4, FindAgent agents, one you wrote yourself — lands inside the conversation, which makes it an ordinary item to Magpie. You can download an agent's output in full, with the call parameters that produced it. No integration required.
+Anything an MCP server produces — Linear, Sentry, GA4, FindAgent agents, one you wrote yourself — lands inside the conversation, which makes it an ordinary item to Offcut. You can download an agent's output in full, with the call parameters that produced it. No integration required.
 
 ## Install
 
@@ -52,7 +52,7 @@ No dependencies, no build step, no bundler.
 
 | | |
 |---|---|
-| [Design document](docs/superpowers/specs/2026-09-09-magpie-design.md) | Decisions and their reasoning. Where to start is at the top |
+| [Design document](docs/superpowers/specs/2026-09-09-offcut-design.md) | Decisions and their reasoning. Where to start is at the top |
 | [Adding a provider](docs/ADDING-A-PROVIDER.md) | Usually one line |
 | [Known limitations](docs/LIMITATIONS.md) | What it cannot do, and why |
 | [Breakage runbook](docs/BREAKAGE.md) | Symptom → diagnosis → fix |

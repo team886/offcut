@@ -1,5 +1,5 @@
 /**
- * Magpie — cut a release (docs/VERSIONING.md, design §19.4)
+ * Offcut — cut a release (docs/VERSIONING.md, design §19.4)
  *
  *   node tools/release.mjs <major|minor|patch> [--dry]
  *
@@ -79,21 +79,21 @@ for (const step of [["selftest.js"], ["tools/check-invariants.mjs"], ["tools/che
 
 // ── 5. pack, and record what was packed ──────────────────────────────────────
 execFileSync(process.execPath, ["tools/pack.mjs"], { stdio: "inherit" });
-const zip = readFileSync(`dist/magpie-${next}.zip`);
+const zip = readFileSync(`dist/offcut-${next}.zip`);
 const sha = (await import("node:crypto")).createHash("sha256").update(zip).digest("hex");
 
 const withSha = readFileSync("CHANGELOG.md", "utf8").replace(
   `## [${next}] — ${today}`,
-  `## [${next}] — ${today}\n\n\`magpie-${next}.zip\` · sha256 \`${sha}\``,
+  `## [${next}] — ${today}\n\n\`offcut-${next}.zip\` · sha256 \`${sha}\``,
 );
 writeFileSync("CHANGELOG.md", withSha);
 
 // ── 6. commit and tag ────────────────────────────────────────────────────────
 execFileSync("git", ["add", "manifest.json", "CHANGELOG.md"], { stdio: "inherit" });
 execFileSync("git", ["commit", "-m", `release: ${next}`], { stdio: "inherit" });
-execFileSync("git", ["tag", "-a", `v${next}`, "-m", `magpie ${next}\n\nsha256 ${sha}`], { stdio: "inherit" });
+execFileSync("git", ["tag", "-a", `v${next}`, "-m", `offcut ${next}\n\nsha256 ${sha}`], { stdio: "inherit" });
 
 console.log(`\nreleased ${next}`);
-console.log(`  package  dist/magpie-${next}.zip`);
+console.log(`  package  dist/offcut-${next}.zip`);
 console.log(`  sha256   ${sha}`);
 console.log(`  tag      v${next}  (not pushed — git push --follow-tags when ready)`);

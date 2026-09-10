@@ -1,14 +1,15 @@
 /**
- * Magpie — icon rasteriser (design §8.5, mark B)
+ * Offcut — icon rasteriser (design §8.5)
  *
  *   node tools/make-icons.mjs
  *
  * MV3 action icons must be PNG, so the mark is rasterised here rather than
  * shipped as SVG. Pure Node: zlib is a built-in, no image library.
  *
- * The mark is three filled shapes because filled forms survive 16px where
- * strokes thin out: an ink rounded square, a bone head with a triangular
- * beak, and a gold dot for what it carries.
+ * The mark is the name. A workpiece with a corner cut away, and the piece
+ * that came off sitting just clear of it in gold — the part you keep. Three
+ * filled shapes and no strokes, because a stroke thins to nothing at 16px,
+ * and colour rather than a gap carries the separation for the same reason.
  */
 import { deflateSync } from "node:zlib";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -18,32 +19,43 @@ const SS = 4;                                  // supersampling factor
 
 function draw(size) {
   const n = size * SS, px = new Uint8Array(n * n * 4);
-  const r = n * 0.20;                           // corner radius
-  const inRounded = (x, y) => {
-    const cx = Math.min(Math.max(x, r), n - r), cy = Math.min(Math.max(y, r), n - r);
-    return (x - cx) ** 2 + (y - cy) ** 2 <= r * r + 0.001 || (x >= r && x <= n - r) || (y >= r && y <= n - r);
+
+  const rounded = (x, y, x0, y0, x1, y1, r) => {
+    if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+    const cx = Math.min(Math.max(x, x0 + r), x1 - r);
+    const cy = Math.min(Math.max(y, y0 + r), y1 - r);
+    return (x - cx) ** 2 + (y - cy) ** 2 <= r * r + 0.001;
   };
-  const circle = (x, y, cx, cy, rad) => (x - cx) ** 2 + (y - cy) ** 2 <= rad * rad;
-  // beak: triangle from the head's right edge to a point
-  const beak = (x, y) => {
-    // Tuned against the 16px render, which is the arbiter (§8.5): a longer,
-    // blunter wedge survives downsampling where a fine point disappears.
-    const x0 = 0.46 * n, x1 = 0.72 * n, yc = 0.46 * n, half = 0.135 * n;
-    if (x < x0 || x > x1) return false;
-    const tt = (x - x0) / (x1 - x0);
-    return Math.abs(y - yc) <= half * (1 - 0.72 * tt);
-  };
+
+  // The cut: a diagonal across the workpiece's top-right corner. Everything
+  // on its far side is the offcut. Tuned against the 16px render, which is
+  // the arbiter (§8.5) — a shallower angle loses the triangle to rounding.
+  const A = [0.32 * n, 0.13 * n];               // where the cut meets the top edge
+  const B = [0.87 * n, 0.68 * n];               // where it meets the right edge
+  const side = (x, y) => (x - A[0]) * (B[1] - A[1]) - (y - A[1]) * (B[0] - A[0]);
+
+  const i0 = 0.13 * n, i1 = 0.87 * n, rb = 0.15 * n;
+  const inBody = (x, y) => rounded(x, y, i0, i0, i1, i1, rb);
+
+  // The offcut, shifted clear along the cut's normal so a seam of tile shows
+  // between the two even after downsampling.
+  const d = 0.10 * n, off = [d * 0.72, -d * 0.72];
+
   for (let y = 0; y < n; y++) {
     for (let x = 0; x < n; x++) {
+      const fx = x + 0.5, fy = y + 0.5;
       let c = null;
-      if (inRounded(x + 0.5, y + 0.5)) c = INK;
-      if (c && circle(x, y, 0.345 * n, 0.475 * n, 0.215 * n)) c = BONE;
-      if (c && beak(x, y)) c = BONE;
-      if (c && circle(x, y, 0.845 * n, 0.455 * n, 0.115 * n)) c = GOLD;
+      if (rounded(fx, fy, 0, 0, n, n, 0.20 * n)) c = INK;
+      // body: inside the workpiece, on the near side of the cut
+      if (c && inBody(fx, fy) && side(fx, fy) < 0) c = BONE;
+      // offcut: the far side of the cut, translated away from the body
+      const ox = fx - off[0], oy = fy - off[1];
+      if (c && inBody(ox, oy) && side(ox, oy) >= 0) c = GOLD;
       const i = (y * n + x) * 4;
       if (c) { px[i] = c[0]; px[i + 1] = c[1]; px[i + 2] = c[2]; px[i + 3] = 255; }
     }
   }
+
   // downsample with a box filter
   const out = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {

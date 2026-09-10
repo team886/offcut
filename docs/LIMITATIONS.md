@@ -56,7 +56,7 @@ Completeness is proved for the one block being downloaded or copied, at the mome
 
 The consequence is that the floating control's filename preview cannot know whether the block is complete, because that is only established after the read. When a read comes back incomplete the file is saved with `-partial` and a toast says so, which means the preview and the delivered name differ in exactly that case. The alternative — scrolling every block on the page on every DOM mutation — was worse.
 
-## Magpie runs on conversation pages, not on every page of a provider
+## Offcut runs on conversation pages, not on every page of a provider
 
 A registry row matches a **host**; the manifest injects on specific **paths**. On claude.ai that is `/chat/*` and `/project/*`, and nothing else. A published artifact at `/code/artifact/<id>`, the `/recents` listing and the settings screens have no content script in them at all.
 

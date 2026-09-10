@@ -1,14 +1,14 @@
 /**
- * Magpie — content script (design §7, §8)
+ * Offcut — content script (design §7, §8)
  *
  * v1 scope: code blocks. No provider selector lives here (§12, CI gate 10);
  * everything provider-specific comes from the registry row or an adapter.
  */
 
-/* global MagpieParse, MagpieRegistry, MagpieDom */
+/* global OffcutParse, OffcutRegistry, OffcutDom */
 
 (() => {
-  const P = MagpieParse, R = MagpieRegistry, D = MagpieDom;
+  const P = OffcutParse, R = OffcutRegistry, D = OffcutDom;
 
   const DEFAULTS = {
     badge: true, notify: "inpage", autoDownload: false, defaultVersion: "current",
@@ -40,8 +40,8 @@
     }
   }
 
-  const UPDATED_TEXT = { en: "Magpie was updated — reload the page",
-                         tr: "Magpie güncellendi — sayfayı yenile" };
+  const UPDATED_TEXT = { en: "Offcut was updated — reload the page",
+                         tr: "Offcut güncellendi — sayfayı yenile" };
 
   /** Every user-visible string goes through here (§13). Returns the key itself
    *  if the catalogue is unreachable, which is loud rather than silent: a bare
@@ -73,19 +73,19 @@
   function ensureShell() {
     if (state.host && document.contains(state.host)) return;
     const host = document.createElement("div");
-    host.setAttribute("data-mg", "root");
+    host.setAttribute("data-oc", "root");
     host.style.cssText = "all:initial;position:fixed;inset:0;pointer-events:none;z-index:2147483000";
     const shadow = host.attachShadow({ mode: "open" });
     shadow.innerHTML = `<style>${SHELL_CSS}</style>
-      <div class="mg-layer" part="layer">
-        <button class="mg-ctl" hidden type="button"></button>
-        <div class="mg-toasts" role="region" aria-live="polite"></div>
+      <div class="oc-layer" part="layer">
+        <button class="oc-ctl" hidden type="button"></button>
+        <div class="oc-toasts" role="region" aria-live="polite"></div>
       </div>`;
     document.documentElement.appendChild(host);
     state.host = host;
     state.shadow = shadow;
-    state.control = shadow.querySelector(".mg-ctl");
-    state.toastHost = shadow.querySelector(".mg-toasts");
+    state.control = shadow.querySelector(".oc-ctl");
+    state.toastHost = shadow.querySelector(".oc-toasts");
     state.control.addEventListener("click", onControlClick);
     // Direction is inherited on purpose so the overlay follows the page in RTL.
     shadow.host.style.direction = getComputedStyle(document.body).direction || "ltr";
@@ -93,35 +93,35 @@
 
   const SHELL_CSS = `
 :host { all: initial; }
-.mg-layer { position:fixed; inset:0; pointer-events:none;
+.oc-layer { position:fixed; inset:0; pointer-events:none;
   font:12px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mg-ink:#17161A; --mg-surface:#201F24; --mg-line:#35333B; --mg-fg:#F2F0EC;
-  --mg-dim:#9C99A3; --mg-gold:#E8B44A; --mg-ok:#3F8F5E; --mg-warn:#E0A32E; --mg-err:#C0392B; }
+  --oc-ink:#17161A; --oc-surface:#201F24; --oc-line:#35333B; --oc-fg:#F2F0EC;
+  --oc-dim:#9C99A3; --oc-gold:#E8B44A; --oc-ok:#3F8F5E; --oc-warn:#E0A32E; --oc-err:#C0392B; }
 @media (prefers-color-scheme: light) {
-  .mg-layer { --mg-surface:#FFFFFF; --mg-line:#E2E0DC; --mg-fg:#1A1A1E; --mg-dim:#6B6870; --mg-gold:#8A6212; } }
-.mg-ctl { position:fixed; pointer-events:auto; display:inline-flex; align-items:center; gap:5px;
-  padding:4px 9px 4px 7px; border-radius:7px; border:1px solid var(--mg-gold);
-  background:var(--mg-surface); color:var(--mg-fg); font:inherit; font-size:11px;
+  .oc-layer { --oc-surface:#FFFFFF; --oc-line:#E2E0DC; --oc-fg:#1A1A1E; --oc-dim:#6B6870; --oc-gold:#8A6212; } }
+.oc-ctl { position:fixed; pointer-events:auto; display:inline-flex; align-items:center; gap:5px;
+  padding:4px 9px 4px 7px; border-radius:7px; border:1px solid var(--oc-gold);
+  background:var(--oc-surface); color:var(--oc-fg); font:inherit; font-size:11px;
   cursor:pointer; box-shadow:0 6px 18px -6px rgba(0,0,0,.55); max-inline-size:240px; }
-.mg-ctl:focus-visible { outline:2px solid var(--mg-gold); outline-offset:2px; }
-.mg-ctl b { font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mg-toasts { position:fixed; inset-block-end:16px; inset-inline-end:16px; display:flex;
+.oc-ctl:focus-visible { outline:2px solid var(--oc-gold); outline-offset:2px; }
+.oc-ctl b { font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.oc-toasts { position:fixed; inset-block-end:16px; inset-inline-end:16px; display:flex;
   flex-direction:column; gap:6px; align-items:flex-end; pointer-events:none; }
-.mg-toast { pointer-events:auto; display:flex; align-items:center; gap:8px; padding:8px 12px;
-  border-radius:9px; background:var(--mg-surface); color:var(--mg-fg);
-  border:1px solid var(--mg-line); box-shadow:0 8px 24px -8px rgba(0,0,0,.6); font-size:11.5px;
-  max-inline-size:340px; animation:mg-in .16s ease-out; }
-.mg-toast.ok { border-color:color-mix(in srgb, var(--mg-ok) 55%, transparent); }
-.mg-toast.warn { border-color:color-mix(in srgb, var(--mg-warn) 55%, transparent); }
-.mg-toast.err { border-color:color-mix(in srgb, var(--mg-err) 60%, transparent); }
-.mg-toast button { all:unset; cursor:pointer; color:var(--mg-dim); padding-inline-start:6px; }
-@keyframes mg-in { from { opacity:0; transform:translateY(4px); } }
-@media (prefers-reduced-motion: reduce) { .mg-toast { animation:none; } }`;
+.oc-toast { pointer-events:auto; display:flex; align-items:center; gap:8px; padding:8px 12px;
+  border-radius:9px; background:var(--oc-surface); color:var(--oc-fg);
+  border:1px solid var(--oc-line); box-shadow:0 8px 24px -8px rgba(0,0,0,.6); font-size:11.5px;
+  max-inline-size:340px; animation:oc-in .16s ease-out; }
+.oc-toast.ok { border-color:color-mix(in srgb, var(--oc-ok) 55%, transparent); }
+.oc-toast.warn { border-color:color-mix(in srgb, var(--oc-warn) 55%, transparent); }
+.oc-toast.err { border-color:color-mix(in srgb, var(--oc-err) 60%, transparent); }
+.oc-toast button { all:unset; cursor:pointer; color:var(--oc-dim); padding-inline-start:6px; }
+@keyframes oc-in { from { opacity:0; transform:translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .oc-toast { animation:none; } }`;
 
   function showToast(text, level, ms) {
     ensureShell();
     const el = document.createElement("div");
-    el.className = "mg-toast " + (level || "ok");
+    el.className = "oc-toast " + (level || "ok");
     el.setAttribute("role", level === "err" ? "alert" : "status");
     const span = document.createElement("span");
     span.textContent = text;                      // never innerHTML (§17)
@@ -320,7 +320,7 @@
     if (state.dead || !state.hoverCapable) return;
     const code = nearestCode(ev.target);
     if (code) positionControl(code);
-    else if (state.hoverEl && !ev.target.closest("[data-mg]")) hideControl();
+    else if (state.hoverEl && !ev.target.closest("[data-oc]")) hideControl();
   }
 
   function onFocusIn(ev) {

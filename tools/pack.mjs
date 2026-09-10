@@ -1,9 +1,9 @@
 /**
- * Magpie — build the Web Store upload (design §15, §19.4)
+ * Offcut — build the Web Store upload (design §15, §19.4)
  *
  *   node tools/pack.mjs
  *
- * Writes dist/magpie-<version>.zip and prints its SHA-256, which goes into the
+ * Writes dist/offcut-<version>.zip and prints its SHA-256, which goes into the
  * CHANGELOG entry for the release. Anyone can then check that the zip on the
  * store is the one built from this tag.
  *
@@ -53,7 +53,7 @@ const entries = files.map((f) => ({
 const zip = buildZip(entries, { date: new Date("2026-01-01T00:00:00Z") });
 
 mkdirSync("dist", { recursive: true });
-const out = `dist/magpie-${version}.zip`;
+const out = `dist/offcut-${version}.zip`;
 writeFileSync(out, zip);
 
 const sha = createHash("sha256").update(zip).digest("hex");

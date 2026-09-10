@@ -2,7 +2,7 @@
 
 ## Reporting
 
-Please do not open a public issue for a vulnerability. Magpie reads users' private conversations, so a flaw needs to be closed quietly before it has an audience.
+Please do not open a public issue for a vulnerability. Offcut reads users' private conversations, so a flaw needs to be closed quietly before it has an audience.
 
 **team@katatechnology.co** — put `SECURITY` in the subject.
 

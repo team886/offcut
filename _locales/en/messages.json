@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "Magpie — AI Chat Downloader"
+    "message": "Offcut — AI Chat Downloader"
   },
   "extDescription": {
     "message": "Extract, version, move and reuse the code, documents and files your AI chats produce."
@@ -142,7 +142,7 @@
     "message": "Loaded, but not running on this tab"
   },
   "emptyReload": {
-    "message": "Magpie was added or updated after this page opened, so it is not running in it yet. Reload the page."
+    "message": "Offcut was added or updated after this page opened, so it is not running in it yet. Reload the page."
   },
   "reloadPage": {
     "message": "Reload the page"
@@ -166,7 +166,7 @@
     "message": "Not a conversation page"
   },
   "emptyNotAConversation": {
-    "message": "Magpie reads code blocks inside a conversation. This page is something else — an artifact, a listing or a settings screen — so there is nothing here for it to read yet."
+    "message": "Offcut reads code blocks inside a conversation. This page is something else — an artifact, a listing or a settings screen — so there is nothing here for it to read yet."
   },
   "openAConversation": {
     "message": "Open a conversation"

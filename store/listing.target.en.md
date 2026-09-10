@@ -3,7 +3,7 @@
 > **This is the TARGET listing, not the one to submit.** It describes the product at roughly v2.1 (`docs/ROADMAP.md`). The listing that ships with a release lives in `listing.en.md` / `listing.tr.md` and must describe only what that version does — the Chrome Web Store requires the description to match the functionality, and a user who installs on the strength of a feature that does not exist has been misled whether or not the store notices.
 
 ## Name (store name field)
-Magpie — AI Chat Downloader
+Offcut — AI Chat Downloader
 
 ## Short description (132 char limit)
 Extract, version, move and reuse the code, documents and files your AI chats produce.
@@ -12,13 +12,13 @@ Extract, version, move and reuse the code, documents and files your AI chats pro
 
 ## Long description
 
-**Why these permissions?** Magpie reads the AI conversation you have open — there is no other way to find what can be downloaded. Everything it reads stays in your browser. No requests go to any server, no data is collected, there is no analytics. That is what the "can read and change your data" notice at install refers to, and it covers only the listed chat sites.
+**Why these permissions?** Offcut reads the AI conversation you have open — there is no other way to find what can be downloaded. Everything it reads stays in your browser. No requests go to any server, no data is collected, there is no analytics. That is what the "can read and change your data" notice at install refers to, and it covers only the listed chat sites.
 
 **What it does**
 
 What an AI chat produces stays inside the chat. You copy a code block, paste it into an editor, guess the extension. If you want an earlier version of a document there is no way back. If a tool returned two hundred rows, the interface shows you ten.
 
-Magpie turns these into files:
+Offcut turns these into files:
 
 - **Code blocks** — correct extension, a meaningful name derived from the code itself (`backfill.py`, `use-cart.ts`)
 - **Documents and canvases** — every version separately, with the line-level difference between them shown

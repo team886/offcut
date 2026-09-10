@@ -1,5 +1,5 @@
 /**
- * Magpie — service worker (design §8.5, §10)
+ * Offcut — service worker (design §8.5, §10)
  *
  * Badge, the keyboard command, and first-run. Deliberately small: an MV3
  * worker dies after ~30s idle, so it holds no state that matters.

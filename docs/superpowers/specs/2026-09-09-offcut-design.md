@@ -1,4 +1,4 @@
-# Magpie — Design Document
+# Offcut — Design Document
 
 **Date:** 2026-09-09
 **Status:** Design approved and taken through 30+ audit passes; awaiting an implementation plan. **The `?` cells in the capability matrix are still open** (§3.4.5) — no adapter is written before step one closes them
@@ -33,7 +33,7 @@ This document has been through more than thirty audit passes and it is long. The
 - [2. Goals / non-goals](#2-goals-non-goals)
 - [2.1 What kind of product this is — "downloader" is a narrow description](#21-what-kind-of-product-this-is-downloader-is-a-narrow-description)
   - [2.1.1 Three things that belong to the spine and are not written yet](#211-three-things-that-belong-to-the-spine-and-are-not-written-yet)
-  - [2.1.2 Naming — Magpie](#212-naming-magpie)
+  - [2.1.2 Naming — Offcut](#212-naming-offcut)
 - [2.1.3 MCP tool outputs — the fifth item kind](#213-mcp-tool-outputs-the-fifth-item-kind)
   - [2.1.3.0 The call is half the result](#2130-the-call-is-half-the-result)
   - [2.1.3.1 This is where the DOM lies most](#2131-this-is-where-the-dom-lies-most)
@@ -197,17 +197,17 @@ None need credentials; all work from data already in hand.
 
 All three sit inside the same boundary: **from data that exists**, without a model call, on the user's action.
 
-### 2.1.2 Naming — Magpie
+### 2.1.2 Naming — Offcut
 
 **The earlier decision was reversed and the reason has to stay on record.** A previous version argued for keeping "AI Chat Downloader": people type their intent into store search, and "downloader" is that intent. That argument rested on an assumption — **that the name still described the product's main job.**
 
 That assumption no longer holds. After tool outputs (§2.1.3), citations (§2.1.4.1), generated images (§2.1.4.3), conversation transfer (§3.3.3) and download history (§4.3), "downloader" is a small slice of the product. If the name does not describe the job, the discoverability defended in its name gets **the wrong product** discovered.
 
-**Magpie**: the bird that collects what shines and carries it home. That is the story — take what is valuable out of a conversation, keep it, use it later. Not generic, memorable, and nowhere near any provider's brand (§15 trademark rule).
+**Offcut**: the bird that collects what shines and carries it home. That is the story — take what is valuable out of a conversation, keep it, use it later. Not generic, memorable, and nowhere near any provider's brand (§15 trademark rule).
 
-**How discoverability is preserved:** the store name field carries brand plus descriptor — `Magpie — AI Chat Downloader`. The search term stays, the brand leads; the short description carries the spine sentence (§2.1). We neither disappear from search nor describe ourselves incompletely.
+**How discoverability is preserved:** the store name field carries brand plus descriptor — `Offcut — AI Chat Downloader`. The search term stays, the brand leads; the short description carries the spine sentence (§2.1). We neither disappear from search nor describe ourselves incompletely.
 
-**Unverifiable, and therefore on the pre-release gate:** "Magpie" is a common word, so a Web Store name collision and trademark check is required (§19.5).
+**Unverifiable, and therefore on the pre-release gate:** "Offcut" is a common word, so a Web Store name collision and trademark check is required (§19.5).
 
 ## 2.1.3 MCP tool outputs — the fifth item kind
 
@@ -750,7 +750,7 @@ Someone may want a sidebar that sends the same prompt to several models. We are 
 ## 5. Architecture
 
 ```
-magpie/
+offcut/
   manifest.json
   _locales/tr/messages.json
   _locales/en/messages.json
@@ -905,7 +905,7 @@ Limits: more than 65535 entries or over 4 GB requires ZIP64; that cannot arise w
 
    Acceptance criterion: while a long response streams, the extension's CPU share must not be measurable. This is checked with a Performance profile on the manual verification list.
 
-2. When the panel appears the split button is injected (idempotent via a `data-mg` marker). The pill is shown and an `items:present` message goes to `sw.js`.
+2. When the panel appears the split button is injected (idempotent via a `data-oc` marker). The pill is shown and an `items:present` message goes to `sw.js`.
 
    **Worse: we could crash the provider's application.** React (Claude, ChatGPT, Perplexity) removes the children of a container it manages by reference; Angular (Gemini) manages its own view container by index. In both cases inserting a foreign node into that container can throw a `NotFoundError: Failed to execute 'removeChild' on 'Node'` — and that takes down not our button but **the provider's page**. To the user: "ChatGPT broke", with no visible cause, and the blame goes to the provider while the fault is ours. Four providers means this risk repeated across four frameworks.
 
@@ -959,7 +959,7 @@ The pipeline is asynchronous and the user is not obliged to wait. Three races:
 
 **An extension update orphans the content script.** When the extension is reloaded or updated, the old content script on the page keeps running but `chrome.runtime.sendMessage` now throws `Extension context invalidated` — the most common source of console noise and dead buttons in MV3. Rule: every `chrome.*` call is wrapped; on seeing that error the content script **shuts itself down**: the observer stops, injected UI is removed, and nothing is retried.
 
-But disappearing silently is also wrong: the user looks for the button, cannot find it, and has no idea why. Before shutting down it shows **one** toast: `Magpie was updated — reload the page`. The text is read from a **pre-cached** bilingual constant because `chrome.i18n` may already be dead (this is the deliberate and only exception to the i18n rule, and its reason is written here). A page reload gives a clean installation.
+But disappearing silently is also wrong: the user looks for the button, cannot find it, and has no idea why. Before shutting down it shows **one** toast: `Offcut was updated — reload the page`. The text is read from a **pre-cached** bilingual constant because `chrome.i18n` may already be dead (this is the deliberate and only exception to the i18n rule, and its reason is written here). A page reload gives a clean installation.
 
 ## 8. UI decisions
 
@@ -983,21 +983,21 @@ Features accumulated across this document: seven item kinds, a filter, multi-sel
 
 The previous palette was built on Claude's coral (`#d97757`); reasonable while the product was Claude-specific. It now runs on four providers, and carrying another company's brand colour creates two problems: seeing Claude's colour on ChatGPT implies **a connection that does not exist**, and the trademark rule in §15 ("imply no provider's brand") is contradicted by our own palette.
 
-**The new palette — magpie.** The name already gives the story: a black-and-white bird with something gold in its beak.
+**The new palette — offcut.** The name already gives the story: a black-and-white bird with something gold in its beak.
 
 | Token | Dark theme | Light theme | Use |
 |---|---|---|---|
-| `--mg-ink` | `#17161A` | `#FFFFFF` | background |
-| `--mg-surface` | `#201F24` | `#F4F3F1` | card, menu, popup surface |
-| `--mg-line` | `#35333B` | `#E2E0DC` | borders, dividers |
-| `--mg-fg` | `#F2F0EC` | `#1A1A1E` | text |
-| `--mg-dim` | `#9C99A3` | `#6B6870` | secondary text |
-| `--mg-gold` | `#E8B44A` | `#8A6212` | **accent** — primary action, selection, focus |
-| `--mg-ok` | `#3F8F5E` | `#2E6B45` | success |
-| `--mg-warn` | `#E0A32E` | `#8A5D0F` | warning |
-| `--mg-err` | `#C0392B` | `#A32B1F` | error |
+| `--oc-ink` | `#17161A` | `#FFFFFF` | background |
+| `--oc-surface` | `#201F24` | `#F4F3F1` | card, menu, popup surface |
+| `--oc-line` | `#35333B` | `#E2E0DC` | borders, dividers |
+| `--oc-fg` | `#F2F0EC` | `#1A1A1E` | text |
+| `--oc-dim` | `#9C99A3` | `#6B6870` | secondary text |
+| `--oc-gold` | `#E8B44A` | `#8A6212` | **accent** — primary action, selection, focus |
+| `--oc-ok` | `#3F8F5E` | `#2E6B45` | success |
+| `--oc-warn` | `#E0A32E` | `#8A5D0F` | warning |
+| `--oc-err` | `#C0392B` | `#A32B1F` | error |
 
-**Why gold:** the meaning comes from the name — the shiny thing in the magpie's beak, which is the product. And it is none of the four providers' brand colour: Claude coral, ChatGPT green, Gemini blue-purple, Perplexity teal. **Teal and green were ruled out deliberately** — the iridescent tones that come to mind first collide with exactly Perplexity and ChatGPT.
+**Why gold:** the meaning comes from the name — the shiny thing in the offcut's beak, which is the product. And it is none of the four providers' brand colour: Claude coral, ChatGPT green, Gemini blue-purple, Perplexity teal. **Teal and green were ruled out deliberately** — the iridescent tones that come to mind first collide with exactly Perplexity and ChatGPT.
 
 **Contrast is a constraint, not a preference.** Gold is unreadable on a light background (`#E8B44A` on white is about 1.9:1). The accent is therefore **two separate tokens**: bright gold in dark mode, deep amber in light mode (`#8A6212`, 4.6:1 on white). Using one colour and "adjusting opacity per theme" would produce an unreadable primary action in light mode.
 
@@ -1118,21 +1118,21 @@ On the folder path, a failing `write()` produces a real error toast. On the brow
 
 ### 8.5 Logo
 
-The rename reopens the mark, but **the criterion is unchanged: 16px.** A logo lives in the toolbar, not at 128.
+**The criterion is 16px.** A logo lives in the toolbar, not at 128.
 
-**The test was run** (`docs/design/logo-magpie.html`, three candidates at 128/48/16 on light and dark toolbar strips). Result:
+**Second rename, second mark.** The magpie identity is gone with the name (§2.1.2): the Chrome Web Store already holds at least six extensions called Magpie, several of them in adjacent categories — an X-bookmark exporter, a web-clipper, an SEO auditor, an AI summariser. A name that cannot be found is not a name. The magpie candidates are kept as history in `docs/design/logo-history-magpie.html`.
 
-- **A — the full magpie** (body, head, beak, long tail, a dot for what it carries): tells the whole story at 128 and **four of its five shapes merge at 16** — the tail fuses into the body, the beak disappears. Eliminated
-- **C — the existing mark** (document plus arrow): readable at 16 but stroke-based so it thins out, and it no longer relates to the name. Eliminated
-- **B — head, beak and gold dot: selected**
+**The mark is the name.** An ink (`#17161A`) rounded tile; inside it a bone (`#F2F0EC`) workpiece with its top-right corner cut away on a diagonal; and that corner sitting just clear of the cut in **gold** (`#E8B44A`) — the piece that came off, which is the part you keep (§8.0.1). Rendered at every size by `tools/make-icons.mjs`; shown at 128, 48 and 16 on light and dark toolbar strips in `docs/design/logo-offcut.html`.
 
-**The selected mark:** an ink (`#17161A`) rounded square, a filled bone (`#F2F0EC`) bird head with a triangular beak, and a **gold** (`#E8B44A`) dot in front of the beak — the shiny thing it carries (§8.0.1).
+Three properties, and each is a lesson the magpie mark taught:
 
-Three reasons: (1) only three shapes and every one above 3px at 16 — the silhouette holds; (2) **filled forms survive small sizes better than strokes**, which thin out; (3) the gold dot is both brand accent and meaning — the thing in the beak is the product.
+1. **Three filled shapes, no strokes.** A stroke thins to nothing at 16px. Every region here is a filled area.
+2. **Colour carries the separation, not the gap.** The seam between workpiece and offcut is roughly one pixel at 16 and would close under downsampling; bone against gold does not close.
+3. **Measured, not eyeballed.** At 16px the mark is 112 ink, 90 bone and **35 gold** pixels of 256 — the gold is 14% of the tile, a mass rather than a sliver. The first attempt put the cut too near the corner and the gold fell to a thin edge accent that read as a rendering artifact; the cut was moved deeper until the count said otherwise.
 
-**The accepted limit:** B is a bird, not a magpie. What makes a magpie recognisable — the long tail, the pied pattern — is unavailable at 16px however it is drawn. The name carries the story and the mark reminds you of it. The full magpie form can be used in store imagery at 128 and above — **same brand, different detail at different scale** — but the toolbar mark is B.
+**What it gives up.** It is an abstract mark, so it says nothing on its own to someone who has not read the name — unlike a bird, which at least reads as *something*. That is the trade for a silhouette that survives 16px and a name that survives a store search.
 
-**Eliminated direction:** a logo resembling Claude's spark mark — Chrome Web Store impersonation policy and trademark risk. Tonal kinship through colour is enough; imitating a mark is unnecessary risk.
+**Eliminated direction:** a mark resembling Claude's spark — Chrome Web Store impersonation policy and trademark risk. Tonal kinship through colour is enough; imitating a mark is unnecessary risk.
 
 **Badge states**
 
@@ -1344,7 +1344,7 @@ Detection is cheap, though: **we know we are on a conversation page, and if no `
 Rule: after the page loads, if the conversation id resolves (§4) but `SEL.chatRoot`, `SEL.codeBlock` and `SEL.docCard` all find nothing, retry once after 5 seconds; if still empty the state becomes `interface-changed`:
 
 - Red `!` badge
-- At the top of the popup: `The interface on this site appears to have changed — Magpie needs an update` + a `Report an issue` link (with the diagnostics block prefilled)
+- At the top of the popup: `The interface on this site appears to have changed — Offcut needs an update` + a `Report an issue` link (with the diagnostics block prefilled)
 - **Nothing** is injected into the page and no toast fires — the user did not ask for anything, and an uninvited warning is only justified once they open the popup
 
 The gain runs both ways: the user is spared the "is it broken, or is it me" question, and the report flow (§19.9) is routed into the right class. A self-diagnosing failure class, with zero telemetry.
@@ -1356,7 +1356,7 @@ There is no telemetry (§17), so when something breaks we learn about it **only 
 A **Copy diagnostics** link sits in the popup's bottom row and writes a block of text to the clipboard containing no sensitive data:
 
 ```
-Magpie 1.0.0 · Chrome 141 · en
+Offcut 1.0.0 · Chrome 141 · en
 Provider: chatgpt · adapter LAST_VERIFIED 2026-09-09
 Tier: 3 (DOM)              ← which source was used
 Org resolution: cookie ✓   ← adapter-specific lines; each adapter adds its own fields
@@ -1527,7 +1527,7 @@ Every selector tolerates `null`: a selector that finds nothing throws no excepti
 
 **Selectors may not depend on text.** Provider interfaces are localised; a selector looking for `[aria-label="Copy"]` or the word "Preview" **silently fails** for a user running the interface in Turkish — and the person who wrote the extension, whose interface is in English, will never see it. Rule: only structural, language-independent markers (DOM hierarchy, `data-*`, `role`, icon `svg` shape). Text matching is forbidden. Verification: each provider's interface is switched to another language and the whole flow retried.
 
-**Theme.** Providers have light themes too; injected UI that assumes dark becomes an unreadable smudge in light mode. Colours are not hardcoded: the provider's own computed background and text colours are read into CSS variables (`--mg-bg`, `--mg-fg`, `--mg-line`). Whatever mechanism a provider uses to switch themes (a class, `data-*`, `prefers-color-scheme`) we follow it, and no per-provider colour table is needed. The accent is **not** read from the page — it is ours (§8.0.1): bright gold in dark mode, deep amber in light. Background and text come from the page; the accent comes from the brand.
+**Theme.** Providers have light themes too; injected UI that assumes dark becomes an unreadable smudge in light mode. Colours are not hardcoded: the provider's own computed background and text colours are read into CSS variables (`--oc-bg`, `--oc-fg`, `--oc-line`). Whatever mechanism a provider uses to switch themes (a class, `data-*`, `prefers-color-scheme`) we follow it, and no per-provider colour table is needed. The accent is **not** read from the page — it is ours (§8.0.1): bright gold in dark mode, deep amber in light. Background and text come from the page; the accent comes from the brand.
 
 ### 12.1 Rules for reading text out of the DOM
 
@@ -1614,7 +1614,7 @@ Where store review most often catches is the broad host permission and the quest
 
 **No real conversation appears in the screenshots.** All five come from a **demo conversation** opened for the purpose. Otherwise you have put your own private data permanently onto a public, indexed store page that cannot be taken back.
 
-**Naming and trademarks — now several brands.** The name starts with no provider's trademark and implies no official product; a neutral name such as `Magpie`, with a line in the description reading "not affiliated with Anthropic, OpenAI, Google or Perplexity". More brands means proportionally more infringement surface. Provider names appear only in a **descriptive** position ("supports Claude, ChatGPT, Gemini and Perplexity"). The logo resembles no provider's mark (§8.5). Imitation in an icon or a name is among the fastest rejection reasons in review.
+**Naming and trademarks — now several brands.** The name starts with no provider's trademark and implies no official product; a neutral name such as `Offcut`, with a line in the description reading "not affiliated with Anthropic, OpenAI, Google or Perplexity". More brands means proportionally more infringement surface. Provider names appear only in a **descriptive** position ("supports Claude, ChatGPT, Gemini and Perplexity"). The logo resembles no provider's mark (§8.5). Imitation in an icon or a name is among the fastest rejection reasons in review.
 
 ## 16. Risks
 
@@ -1749,7 +1749,7 @@ GitHub Actions, **with no npm dependency**, using only Node built-ins. If they a
 
 15. **Core portability:** `parse.js`, `zip.js` and `registry.js` contain **no** `chrome.`, `document.` or `window.` (§4.2). Without this gate the core gets nailed to the browser unnoticed and a second surface becomes a rewrite
 
-16. **Source files are text:** no file under `src/` or `tools/`, nor `selftest.js`, contains a raw control byte, and every one uses a single line ending. `tools/` is in scope because that is where it happened the second time — a `perl -pe` substitution wrote a literal backspace into `check-invariants.mjs` itself, and a checker exempt from its own rule is a gap. Added after `sanitize`'s character class turned out to hold **literal** control bytes rather than the ` -` escape sequence it appears to contain. The code behaved correctly, which is why nothing caught it; the cost was that git classified the file as binary, so it had no reviewable diff. A defect that removes the ability to review the file is worse than one the tests can see
+16. **Source files are text:** no file under `src/` or `tools/`, nor `selftest.js`, contains a raw control byte, and every one uses a single line ending. `tools/` is in scope because that is where it happened the second time — a `perl -pe` substitution wrote a literal backspace into `check-invariants.mjs` itself, and a checker exempt from its own rule is a gap. Added after `sanitize`'s character class turned out to hold **literal** control bytes rather than the `\x00-\x1f` escape sequence it appears to contain. The code behaved correctly, which is why nothing caught it; the cost was that git classified the file as binary, so it had no reviewable diff. A defect that removes the ability to review the file is worse than one the tests can see
 
     The gate also fixes the line ending, because a repository with both kinds shows every normalisation as a whole-file diff and buries the real change
 
@@ -1771,7 +1771,7 @@ Semver, with the axes redefined for a product whose users cannot choose a versio
 
 `node tools/release.mjs <major|minor|patch|current>` performs the release and refuses at the first step that is not ready: dirty tree, an empty pending changelog section, an illegal or already-tagged number, a failing gate, or an archive that does not open. One command writes the manifest version, the changelog entry, the package and the tag, so the four cannot drift apart.
 
-`node tools/pack.mjs` → `dist/magpie-<version>.zip`. The tool packs a **whitelist** — `manifest.json`, `LICENSE`, `src/`, `_locales/`, `icons/` — rather than excluding a list of directories: the failure mode of a blacklist is publishing a file nobody meant to ship, and it fails silently. The archive is written by `src/zip.js`, the same writer that ships to users, so every release exercises it; that is how the End of Central Directory defect in §6 was found. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
+`node tools/pack.mjs` → `dist/offcut-<version>.zip`. The tool packs a **whitelist** — `manifest.json`, `LICENSE`, `src/`, `_locales/`, `icons/` — rather than excluding a list of directories: the failure mode of a blacklist is publishing a file nobody meant to ship, and it fails silently. The archive is written by `src/zip.js`, the same writer that ships to users, so every release exercises it; that is how the End of Central Directory defect in §6 was found. The zip's SHA-256 is written into `CHANGELOG.md` so the store's package can be verified against the repository's commit.
 
 Every release gets a git tag: `v1.0.0`.
 
@@ -1798,7 +1798,7 @@ Nothing is submitted until **all** of these are ticked:
 
 - [ ] Screenshots from a **demo** conversation, **showing only features this version ships**
 - [ ] Trademark disclaimer covering **every** registry provider in the description
-- [ ] **The name "Magpie" checked for store and trademark collisions** — §2.1.2
+- [ ] **The name "Offcut" checked for store and trademark collisions** — §2.1.2
 - [ ] Logo: the selected mark produced at 16px (`icons/icon16.png`) and verified in the toolbar (§8.5)
 - [ ] `docs/BREAKAGE.md` complete for adapter-backed providers, with a shared section for the baseline
 - [ ] The previous release's zip retained (§19.7)

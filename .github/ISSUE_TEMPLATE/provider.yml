@@ -1,5 +1,5 @@
 name: Add a provider
-description: A chat provider Magpie does not know about yet
+description: A chat provider Offcut does not know about yet
 labels: [provider]
 body:
   - type: markdown

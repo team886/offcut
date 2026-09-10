@@ -1,14 +1,14 @@
 /**
- * Magpie — popup and options, one file (design §8.6, §8.6.1)
+ * Offcut — popup and options, one file (design §8.6, §8.6.1)
  *
  * The popup is the ONLY accessible path to code blocks (§8.1.1), so its
  * keyboard and screen reader model is load-bearing rather than polish.
  */
 
-/* global MagpieParse, MagpieRegistry */
+/* global OffcutParse, OffcutRegistry */
 
 (() => {
-  const P = MagpieParse, R = MagpieRegistry;
+  const P = OffcutParse, R = OffcutRegistry;
   const isOptions = new URLSearchParams(location.search).get("options") === "1"
                  || (chrome.extension && chrome.extension.getViews
                      && !chrome.extension.getViews({ type: "popup" }).includes(window));
@@ -418,14 +418,14 @@
   async function copyDiagnostics() {
     const d = await send({ type: "diag:get" });
     const lines = d
-      ? ["Magpie " + d.version + " · " + d.ua + " · " + d.lang,
+      ? ["Offcut " + d.version + " · " + d.ua + " · " + d.lang,
          "Provider: " + d.provider + " · adapter LAST_VERIFIED " + d.lastVerified,
          "Tier: " + d.tier,
          "chatRoot: " + d.chatRoot,
          "Code blocks: " + d.codeBlocks + " · hover: " + d.hoverCapable,
          "Interface changed: " + d.interfaceChanged,
          "Last error: " + (d.lastError || "none")]
-      : ["Magpie " + chrome.runtime.getManifest().version, "No content script on this tab"];
+      : ["Offcut " + chrome.runtime.getManifest().version, "No content script on this tab"];
     await navigator.clipboard.writeText(lines.join("\n"));
     el("diag").textContent = t("copied", "Copied");
     setTimeout(() => { el("diag").textContent = t("copyDiagnostics", "Diagnostics"); }, 1500);
