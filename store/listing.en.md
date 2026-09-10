@@ -42,6 +42,13 @@ No external requests. No telemetry. No account. No server. Offcut reads the conv
 
 That is what the "read and change your data" notice at install refers to, and it applies only to the twelve sites listed above.
 
+## Category (store field)
+**Productivity → Developer Tools**
+
+Chosen because the product's entire value is turning a code block into a file with the right extension and a name that means something — the audience is people whose chats produce code, which the corpus measurement bears out: the languages of qualifying blocks are json, ts, powershell, bash, css and sql (`docs/DEMAND.md`).
+
+Second choice is **Tools**, which reaches wider and is far more crowded. **Privacy & Security is deliberately not chosen**: privacy is this extension's property, not its function, and someone browsing that category is looking for a blocker or a VPN.
+
 ## Privacy policy URL (store field)
 https://team886.github.io/offcut/
 

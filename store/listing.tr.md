@@ -42,6 +42,13 @@ Dışarıya istek yok. Telemetri yok. Hesap yok. Sunucu yok. Offcut açık olan 
 
 Kurulumdaki "verilerinizi okuyabilir ve değiştirebilir" uyarısı bunu kasteder ve yalnızca yukarıdaki on iki siteyi kapsar.
 
+## Kategori (mağaza alanı)
+**Productivity → Developer Tools**
+
+Ürünün tüm değeri bir kod bloğunu doğru uzantı ve anlamlı bir adla dosyaya çevirmek; kitlesi sohbetleri kod üreten insanlar. Ölçüm de bunu doğruluyor: nitelikli blokların dilleri json, ts, powershell, bash, css ve sql (`docs/DEMAND.md`).
+
+İkinci tercih **Tools** — daha geniş, ama çok daha kalabalık. **Privacy & Security bilerek seçilmedi**: gizlilik bu eklentinin özelliği, işlevi değil; o kategoriye bakan kişi engelleyici veya VPN arıyor.
+
 ## Gizlilik politikası URL'i (mağaza alanı)
 https://team886.github.io/offcut/
 
