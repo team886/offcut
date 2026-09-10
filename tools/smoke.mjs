@@ -187,6 +187,33 @@ try {
   // correctly reports that a chrome-extension:// page is not a chat. Provider
   // detection is covered above through the message path; what is worth
   // asserting here is that the page renders and speaks a real language.
+  // ── the two claims the published privacy policy makes ────────────────
+  // "No conversation content leaves the tab" and "nothing is stored but your
+  // settings" are promises on a page anyone can read. Checking them by eye is
+  // not checking them.
+  const diag = await popup.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find((t) => t.url && t.url.startsWith("http://localhost"));
+    return await new Promise((res) =>
+      chrome.tabs.sendMessage(tab.id, { type: "diag:get" }, (r) => res(r || null)));
+  });
+  const diagText = JSON.stringify(diag || {});
+  // The fixture's code contains these; none of them may appear in diagnostics.
+  const leaks = ["renderCart", "border-radius", "querySelector", "import random"]
+    .filter((needle) => diagText.includes(needle));
+  check("the diagnostics block carries no conversation content (§8.9)",
+        !!diag && leaks.length === 0, leaks.length ? `leaked: ${leaks.join(", ")}` : diagText.slice(0, 120));
+
+  const stored = await popup.evaluate(async () => ({
+    sync: await chrome.storage.sync.get(null),
+    local: await chrome.storage.local.get(null),
+  }));
+  const storedText = JSON.stringify(stored);
+  check("history is off by default (§4.3)", stored.sync?.cfg?.history !== true, storedText.slice(0, 160));
+  check("a download writes nothing but settings to storage",
+        !["renderCart", "border-radius", "panel-styling"].some((n) => storedText.includes(n)),
+        storedText.slice(0, 200));
+
   const shellState = await popup.evaluate(() => ({
     version: document.getElementById("ver")?.textContent || "",
     empty: (document.querySelector(".empty")?.textContent || "").trim(),
